@@ -20,3 +20,5 @@ api/build
 .DS_Store
 .vscode/
 .idea/
+.vite/
+dist/
