@@ -1,0 +1,22 @@
+.welcome{
+    align-items: center;
+    width: 81%;
+    position: relative;
+}
+
+
+.video-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: #000000; /* Optional: background color */
+  }
+  
+  .video-element {
+    width: 100%; /* Adjust width as needed */
+    height: auto; /* Maintain aspect ratio */
+    max-width: 100%; /* Ensure it doesn't exceed container width */
+    border: 5px solid #fff; /* Optional: border for styling */
+  }
+  

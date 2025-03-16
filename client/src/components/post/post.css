@@ -1,0 +1,70 @@
+.post{
+    width: 385px;
+    margin: 0px 25px 40px 25px ;
+}
+
+.postImg{
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.postInfo{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+}
+
+.postCat{
+    font-family: "Fredoka", sans-serif;
+    font-size: 18px;
+    color: #be9656;
+    line-height: 20px;
+    margin-top: 15px;
+    margin-right: 10px;
+    cursor: pointer;
+
+}
+
+.postTitle{
+    font-family: "Kanit", sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-top: 15px;
+    cursor: pointer;
+
+}
+
+.postDate{
+    font-family: "Poppins", sans-serif;
+    font-style: italic;
+    font-style: 18px;
+    margin-top: 15px;
+    color: #a7a4a4;
+}
+
+.postDescription{
+    font-family: "Roboto", sans-serif;
+    font-style: 15px;
+    color: #444;
+    line-height: 21px;
+    margin-top: 17px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+
+}
+.postContent{
+    font-family: "Playwrite DE Grund", cursive;
+    font-optical-sizing: auto;
+
+}
