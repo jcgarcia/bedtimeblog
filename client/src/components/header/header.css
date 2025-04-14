@@ -49,3 +49,17 @@
     opacity: 0.8;
     filter: brightness(0.7); /* Darken the image for better text visibility */
 }
+
+@media (max-width: 768px) {
+    .header {
+        height: 30vh; /* Reduce header height for mobile devices */
+    }
+
+    .headerTitle {
+        font-size: 1.5rem; /* Adjust font size for smaller screens */
+    }
+
+    .headerTitleLg {
+        font-size: 2.5rem; /* Adjust large title size for smaller screens */
+    }
+}

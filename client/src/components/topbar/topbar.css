@@ -1,28 +1,32 @@
-.top{
+.top {
     width: 100%;
     height: 50px;
     background-color: white;
     position: sticky; 
     top: 0;
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap; /* Allow wrapping if needed */
+    padding: 10px;
     font-family: "Oswald", sans-serif;
     z-index: 999;
 }
 
-.topLeft,.topRight{
-    flex: 3  ;
+.topLeft, .topRight {
     display: flex;
     align-items: center;
+    flex: 1;
+    justify-content: flex-start;
+}
+
+.topCenter {
+    flex: 2;
+    display: flex;
     justify-content: center;
-
 }
 
-.topCenter{
-    flex: 6 ;
-}
-
-.topIcon{
+.topIcon {
     font-size: 27px;
     margin-right: 10px;
     color: #444;
@@ -35,14 +39,14 @@
     transition: transform 0.2s ease-in-out;
 }
 
-.topImg{
+.topImg {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.topList{
+.topList {
     display: flex;
     justify-content: center;
     margin: 0;
@@ -55,7 +59,7 @@
     max-height: 500px; /* Expand menu when open */
 }
 
-.topListItem{
+.topListItem {
     margin-right: 20px;
     font-size: 27px;
     font-weight: bold; /* Make the font more bold */
@@ -75,7 +79,7 @@
     border-bottom: 2px solid #eb0bba; /* Add underline for active link */
 }
 
-.topSearchIcon{
+.topSearchIcon {
     font-size: 27px;
     color: #666;
     cursor: pointer;
@@ -94,6 +98,7 @@
         flex-direction: column;
         height: auto;
         padding: 10px;
+        flex-wrap: nowrap; /* Prevent wrapping */
     }
 
     .topLeft, .topRight {
@@ -105,6 +110,13 @@
         align-items: center;
         max-height: 0;
         overflow: hidden;
+        display: none; /* Hide menu by default */
+    }
+
+    .topList.open {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
 
     .hamburgerIcon {
