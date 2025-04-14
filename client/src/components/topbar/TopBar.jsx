@@ -1,8 +1,15 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import "./topbar.css"
 
 export default function TopBar() {
   const user = false;
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
+
   return (
     <div className='top'>
       <div className="topLeft">
@@ -12,7 +19,7 @@ export default function TopBar() {
         <i className="topIcon fa-brands fa-square-threads"></i>
       </div>
       <div className="topCenter">
-        <ul className="topList">
+        <ul className={`topList ${menuOpen ? "open" : ""}`}>
         <li className="topListItem"><Link className="link" to="/"  > Home </Link></li>
         <li className="topListItem"><Link className="link" to="/"  > About </Link></li>
         <li className="topListItem"><Link className="link" to="/"  > Contact </Link></li>
@@ -34,14 +41,16 @@ export default function TopBar() {
           ) : (
             <ul className="topItem">
               <li className="topListItem">
-                <Link className="link" to="/login">Login </Link>
-                <Link className="link" to="/register">Register </Link>
+                <Link className="link" to="/login">
+                  <i className="fa-solid fa-right-to-bracket"></i> {/* Replaced 'Login' with a login icon */}
+                </Link>
               </li>
             </ul>
           )
         }
 
       <i className="topSearchIcon fa-brands fa-searchengin"></i>
+      <i className="hamburgerIcon fa-solid fa-bars" onClick={toggleMenu}></i>
       </div>
     </div>
   )
