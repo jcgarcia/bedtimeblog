@@ -6,16 +6,16 @@ export default function Login() {
     <div className="login">
         <span className="loginTitle">Login</span>
       <form  className="loginForm">
-        <label>Email</label>
-        <input type="text" className="loginInput" placeholder="Username " />
-        <label>Password</label>
-        <input type="password" className="loginInput" placeholder="Password  " />
-        <button className="loginButton">Login</button>
-      </form>
-      <button className="loginRegisterButton">
-       <Link to="/register">Register</Link> 
+        <button className="loginGoogleButton">
+          <a href="/api/auth/google">Login with Google</a>
         </button>
-
+        <button className="loginGoogleButton">
+          <a href="/api/auth/facebook">Login with Facebook</a>
+        </button>
+        <button className="loginGoogleButton">
+          <a href="/api/auth/twitter">Login with Twitter</a>
+        </button>
+      </form>
     </div>
   )
 }

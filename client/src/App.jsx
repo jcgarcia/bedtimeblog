@@ -6,6 +6,7 @@ import Settings from "./pages/settings/Settings";
 import Login from "./pages/login/Login";
 import Register from "./pages/register/Register";
 import Home from "./pages/home/Home";
+import AdminLogin from "./pages/adminlogin/AdminLogin";
 
 function App() {
   const user = false;
@@ -20,6 +21,7 @@ function App() {
           <Route path="/write" element={user ? <Write /> : <Register />} />
           <Route path="/settings" element={user ? <Settings /> : <Register />} />
           <Route path="/post/:postId" element={<Single />} />
+          <Route path="/adminlogin" element={<AdminLogin />} />
         </Routes>
       </Router>
     </div>
