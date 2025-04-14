@@ -1,30 +1,51 @@
-.header{
-    margin-top: 60px;
-}
-
-.headerTitle{
+.header {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-family: "Fredoka", sans-serif;
-    color: #ac0ef0;
+    justify-content: center;
+    height: 60vh;
+    overflow: hidden;
 }
 
-.headerTitleSm{
+.headerOverlay {
     position: absolute;
-    top: 7%;
-    font-size: 27px;
-}
-
-.headerTitleLg{
-    position: absolute;
-    top: 9%;
-    font-size: 100px;
-}
-
-.headerImg{
+    top: 0;
+    left: 0;
     width: 100%;
-    height: 550px;;
-    margin-top: 0px;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent dark overlay */
+    z-index: 1;
+}
+
+.headerTitle {
+    position: absolute;
+    top: 20%;
+    text-align: center;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    z-index: 2; /* Above the overlay */
+}
+
+.headerTitleSm {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.1rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.headerTitleLg {
+    font-size: 4rem;
+    font-weight: 700;
+    letter-spacing: 0.2rem;
+    display: block;
+}
+
+.headerImg {
+    width: 100%;
+    height: 100%;
     object-fit: cover;
+    opacity: 0.8;
+    filter: brightness(0.7); /* Darken the image for better text visibility */
 }

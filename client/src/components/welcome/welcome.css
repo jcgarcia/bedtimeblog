@@ -1,6 +1,6 @@
 .welcome{
     align-items: center;
-    width: 81%;
+
     position: relative;
 }
 
@@ -9,14 +9,16 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 10px;
-    background-color: #000000; /* Optional: background color */
-  }
-  
-  .video-element {
-    width: 100%; /* Adjust width as needed */
+    padding: 0;
+    background-color: transparent; /* No background color */
+    width: 100%;
+    height: auto;
+    margin: 0;
+}
+
+.video-element {
+    width: 100%; /* Full width */
     height: auto; /* Maintain aspect ratio */
-    max-width: 100%; /* Ensure it doesn't exceed container width */
-    border: 5px solid #fff; /* Optional: border for styling */
-  }
-  
+    border: none; /* No border */
+    outline: none; /* No outline */
+}
