@@ -1,36 +1,36 @@
 version: '3.8'
 services:
+  backend:
+    build: ./api
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "mysql://user:password@host:port/dbname"
+      CORS_ORIGIN: "http://localhost:3000"
+      JWT_SECRET: "your_jwt_secret"
+      # Add other backend env vars as needed
+    depends_on:
+      - db
+  frontend:
+    build: ./client
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:3001"
+      # Add other frontend env vars as needed
+    depends_on:
+      - backend
   db:
-    image: mysql:8.0
+    image: mysql:8
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: blogdb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
     ports:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
-
-  blog:
-    build: .
-    restart: always
-    environment:
-      DB_HOST: db
-      DB_USER: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
-      JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-    ports:
-      - "8800:8800"
-      - "5173:5173"
-    depends_on:
-      - db
-    volumes:
-      - ./client/public/upload:/app/client/public/upload
-
 volumes:
   db_data:

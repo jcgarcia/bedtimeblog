@@ -1,9 +1,9 @@
 import mysql from "mysql"
 
 export const db = mysql.createConnection({
-  host:"ingasti-databases-mysql-ingasti.k.aivencloud.com",
-  port:"25306",
-  user:"avnadmin",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
   password: process.env.DB_KEY,
-  database:"blog"
+  database: process.env.DB_NAME
 })
