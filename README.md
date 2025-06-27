@@ -153,4 +153,17 @@ MIT
 
 ---
 
+## Docker Image Versioning (CI/CD Note)
+
+> **Note:**
+> Docker images built in CI/CD are tagged with a unique version for each build, not just `latest`. Common strategies include:
+> - Jenkins build number: `backend:${BUILD_NUMBER}`
+> - Git commit SHA: `backend:${GIT_COMMIT}`
+> - Branch name + build number: `backend:${BRANCH_NAME}-${BUILD_NUMBER}`
+> - Combination for traceability: `backend:${BRANCH_NAME}-${BUILD_NUMBER}-${GIT_COMMIT}`
+>
+> This ensures every image is uniquely identifiable and traceable to a specific build or commit. See the Jenkinsfile for implementation details.
+
+---
+
 *For further improvements and suggestions, see [`docs/Improvements.md`](docs/Improvements.md).*
