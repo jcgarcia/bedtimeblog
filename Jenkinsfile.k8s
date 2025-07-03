@@ -35,9 +35,14 @@ pipeline {
                     env.FRONTEND_IMAGE = "${REGISTRY_URL}/blog-frontend:${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
                     env.BACKEND_IMAGE = "${REGISTRY_URL}/blog-backend:${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
                     
-                    echo "📦 Building images:"
+                    echo "� Building Blog Application"
+                    echo "=============================="
+                    echo "📦 Images to build:"
                     echo "  Frontend: ${env.FRONTEND_IMAGE}"
                     echo "  Backend: ${env.BACKEND_IMAGE}"
+                    echo "🌐 Target URLs:"
+                    echo "  Frontend: https://blog.ingasti.com"
+                    echo "  Backend: https://bapi.ingasti.com"
                 }
             }
         }

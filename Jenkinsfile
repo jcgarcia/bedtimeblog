@@ -1,388 +1,303 @@
 pipeline {
-  agent any
-  environment {
-    // Database credentials for Docker Compose
-    DATABASE_URL = credentials('database-url')
-    CORS_ORIGIN = 'https://blog.ingasti.com'
-    JWT_SECRET = credentials('jwt-secret')
-    NEXT_PUBLIC_API_URL = 'https://bapi.ingasti.com'
+    agent any
     
-    // GitHub Container Registry credentials
-    GITHUB_USER = credentials('github-user')
-    GITHUB_TOKEN = credentials('github-token')
-    REGISTRY = 'ghcr.io/yourusername/your-blog-repo'
-    
-    // Image names with build number for uniqueness
-    FRONTEND_IMAGE = "bedtime-blog-frontend:${env.BUILD_NUMBER}"
-    BACKEND_IMAGE = "bedtime-blog-backend:${env.BUILD_NUMBER}"
-    COMPOSE_PROJECT_NAME = "bedtime-blog-${env.BUILD_NUMBER}"
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-        script {
-          // Compose a unique image tag using branch, build number, and short commit hash
-          env.IMAGE_TAG = "${env.BRANCH_NAME}-${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
-        }
-      }
-    }
-    stage('Build & Test (Docker Compose)') {
-      steps {
-        script {
-          echo "🔧 Building and starting containers with Docker Compose..."
-          
-          // Clean up any existing containers with same project name
-          sh 'docker compose -p $COMPOSE_PROJECT_NAME down --remove-orphans || true'
-          
-          // Build and start containers
-          sh 'docker compose -p $COMPOSE_PROJECT_NAME up --build -d'
-          
-          // Wait for containers to be ready
-          echo "⏳ Waiting for containers to be ready..."
-          sh 'sleep 30'
-          
-          // Check container status
-          sh 'docker compose -p $COMPOSE_PROJECT_NAME ps'
-        }
-      }
-    }
-    stage('Health Check (Docker Compose)') {
-      steps {
-        script {
-          echo "🏥 Running health checks on Docker Compose services..."
-          
-          // Test backend health
-          sh '''
-            echo "Testing backend health via Docker Compose..."
-            for i in {1..15}; do
-              if curl -f -s http://localhost:5000/health || curl -f -s http://localhost:5000; then
-                echo "✅ Backend is responding!"
-                break
-              else
-                echo "⏳ Attempt $i: Backend not ready yet, waiting..."
-                sleep 4
-              fi
-              if [ $i -eq 15 ]; then
-                echo "❌ Backend failed to respond after 15 attempts"
-                docker compose -p $COMPOSE_PROJECT_NAME logs backend
-                exit 1
-              fi
-            done
-          '''
-          
-          // Test frontend health
-          sh '''
-            echo "Testing frontend health via Docker Compose..."
-            for i in {1..15}; do
-              # Test HTTP port (should redirect to HTTPS)
-              if curl -f -s http://localhost:3000; then
-                echo "✅ Frontend HTTP is responding (likely redirecting to HTTPS)!"
-              fi
-              
-              # Test HTTPS port with certificates
-              if curl -k -f -s https://localhost:3443; then
-                echo "✅ Frontend HTTPS is responding!"
-                RESPONSE=$(curl -k -s https://localhost:3443)
-                if echo "$RESPONSE" | grep -q -i "html\\|doctype\\|<title"; then
-                  echo "✅ Frontend is serving HTML content over HTTPS!"
-                else
-                  echo "⚠️  Frontend is responding but content may be missing"
-                  echo "Response preview: ${RESPONSE:0:200}"
-                fi
-                break
-              else
-                echo "⏳ Attempt $i: Frontend HTTPS not ready yet, waiting..."
-                sleep 4
-              fi
-              if [ $i -eq 15 ]; then
-                echo "❌ Frontend HTTPS failed to respond after 15 attempts"
-                docker compose -p $COMPOSE_PROJECT_NAME logs frontend
-                exit 1
-              fi
-            done
-          '''
-          
-          echo "✅ Docker Compose health checks passed!"
-          echo "🌐 Frontend HTTP: http://localhost:3000 (redirects to HTTPS)"
-          echo "🔒 Frontend HTTPS: https://localhost:3443"
-          echo "🔧 Backend API: http://localhost:5000"
-        }
-      }
-    }
-    stage('Build Individual Docker Images') {
-      steps {
-        script {
-          echo "🐳 Building individual Docker images for registry..."
-          
-          // Build frontend image
-          sh 'docker build -t $FRONTEND_IMAGE -f client/Dockerfile ./client'
-          sh 'docker build -t $REGISTRY/frontend:$IMAGE_TAG -f client/Dockerfile ./client'
-          
-          // Build backend image  
-          sh 'docker build -t $BACKEND_IMAGE -f api/Dockerfile ./api'
-          sh 'docker build -t $REGISTRY/backend:$IMAGE_TAG -f api/Dockerfile ./api'
-          
-          echo "✅ Individual Docker images built successfully!"
-        }
-      }
-    }
-    stage('Test Individual Containers') {
-      steps {
-        script {
-          echo "🧪 Testing individual containers..."
-          
-          // Clean up any existing test containers
-          sh 'docker rm -f test-blog-frontend test-blog-backend || true'
-          
-          // Start backend container with real database credentials
-          sh '''
-            docker run -d --name test-blog-backend \\
-              -p 5001:5000 \\
-              -e NODE_ENV=production \\
-              -e DATABASE_URL="$DATABASE_URL" \\
-              -e JWT_SECRET="$JWT_SECRET" \\
-              -e CORS_ORIGIN="http://localhost:3001" \\
-              $BACKEND_IMAGE
-          '''
-          
-          // Start frontend container with SSL certificates
-          sh '''
-            docker run -d --name test-blog-frontend \\
-              -p 3001:80 \\
-              -p 3444:443 \\
-              -v /etc/letsencrypt/live/ingasti.com/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro \\
-              -v /etc/letsencrypt/live/ingasti.com/privkey.pem:/etc/ssl/private/privkey.pem:ro \\
-              -e NEXT_PUBLIC_API_URL="http://localhost:5001" \\
-              $FRONTEND_IMAGE
-          '''
-          
-          // Wait for containers to start
-          echo "⏳ Waiting for individual containers to start..."
-          sh 'sleep 25'
-          
-          // Test backend health with detailed checks
-          sh '''
-            echo "Testing individual backend container..."
-            echo "Checking if backend container is running..."
-            docker ps | grep test-blog-backend
-            
-            echo "Testing backend endpoint..."
-            for i in {1..12}; do
-              if curl -f -s http://localhost:5001/health || curl -f -s http://localhost:5001; then
-                echo "✅ Individual backend is responding!"
-                break
-              else
-                echo "⏳ Attempt $i: Backend not ready yet, waiting..."
-                sleep 3
-              fi
-              if [ $i -eq 12 ]; then
-                echo "❌ Individual backend failed to respond after 12 attempts"
-                echo "Backend container logs:"
-                docker logs test-blog-backend
-                exit 1
-              fi
-            done
-          '''
-          
-          // Test frontend health with detailed checks
-          sh '''
-            echo "Testing individual frontend container..."
-            echo "Checking if frontend container is running..."
-            docker ps | grep test-blog-frontend
-            
-            echo "Testing frontend HTTP endpoint (should redirect)..."
-            if curl -f -s http://localhost:3001; then
-              echo "✅ Individual frontend HTTP is responding!"
-            fi
-            
-            echo "Testing frontend HTTPS endpoint..."
-            for i in {1..12}; do
-              if curl -k -f -s https://localhost:3444; then
-                echo "✅ Individual frontend HTTPS is responding!"
-                echo "Checking if content is being served..."
-                RESPONSE=$(curl -k -s https://localhost:3444)
-                if echo "$RESPONSE" | grep -q -i "html\\|doctype\\|<title"; then
-                  echo "✅ Individual frontend is serving HTML content over HTTPS!"
-                else
-                  echo "⚠️  Frontend is responding but content may be missing"
-                  echo "Response preview: ${RESPONSE:0:200}"
-                fi
-                break
-              else
-                echo "⏳ Attempt $i: Frontend HTTPS not ready yet, waiting..."
-                sleep 3
-              fi
-              if [ $i -eq 12 ]; then
-                echo "❌ Individual frontend HTTPS failed to respond after 12 attempts"
-                echo "Frontend container logs:"
-                docker logs test-blog-frontend
-                exit 1
-              fi
-            done
-          '''
-          
-          echo "✅ Individual container tests passed!"
-          echo "🌐 Frontend HTTP: http://localhost:3001 (redirects to HTTPS)"
-          echo "🔒 Frontend HTTPS: https://localhost:3444"
-          echo "🔧 Backend API: http://localhost:5001"
-        }
-      }
-    }
-    stage('Push to GitHub Container Registry') {
-      when {
-        anyOf {
-          branch 'main'
-          branch 'master'
-          branch 'workinprogress'
-        }
-      }
-      steps {
-        script {
-          echo "📦 Pushing images to GitHub Container Registry..."
-          
-          // Login to GitHub Container Registry
-          sh 'echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin'
-          
-          // Push images
-          sh 'docker push $REGISTRY/backend:$IMAGE_TAG'
-          sh 'docker push $REGISTRY/frontend:$IMAGE_TAG'
-          
-          // Tag and push as latest for main/master branch
-          if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master') {
-            sh 'docker tag $REGISTRY/backend:$IMAGE_TAG $REGISTRY/backend:latest'
-            sh 'docker tag $REGISTRY/frontend:$IMAGE_TAG $REGISTRY/frontend:latest'
-            sh 'docker push $REGISTRY/backend:latest'
-            sh 'docker push $REGISTRY/frontend:latest'
-          }
-          
-          echo "✅ Images pushed to GitHub Container Registry!"
-        }
-      }
-    }
-    stage('Deploy Production Containers') {
-      when {
-        anyOf {
-          branch 'main'
-          branch 'master'
-        }
-      }
-      steps {
-        script {
-          echo "🚀 Deploying to production containers..."
-          
-          // Stop and remove any existing production containers
-          sh 'docker rm -f blog-frontend-prod blog-backend-prod || true'
-          
-          // Deploy backend to production port with real credentials
-          sh '''
-            docker run -d --name blog-backend-prod \\
-              -p 5000:5000 \\
-              -e NODE_ENV=production \\
-              -e DATABASE_URL="$DATABASE_URL" \\
-              -e JWT_SECRET="$JWT_SECRET" \\
-              -e CORS_ORIGIN="https://blog.ingasti.com" \\
-              --restart unless-stopped \\
-              $BACKEND_IMAGE
-          '''
-          
-          // Deploy frontend to production port with HTTPS support
-          sh '''
-            docker run -d --name blog-frontend-prod \\
-              -p 3000:80 \\
-              -p 443:443 \\
-              -v /etc/letsencrypt/live/ingasti.com/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro \\
-              -v /etc/letsencrypt/live/ingasti.com/privkey.pem:/etc/ssl/private/privkey.pem:ro \\
-              -e NEXT_PUBLIC_API_URL="https://bapi.ingasti.com" \\
-              --restart unless-stopped \\
-              $FRONTEND_IMAGE
-          '''
-          
-          // Wait and verify production deployment
-          echo "⏳ Verifying production deployment..."
-          sh 'sleep 15'
-          
-          // Quick production health check
-          sh '''
-            echo "🏥 Production health check..."
-            for i in {1..5}; do
-              BACKEND_OK=false
-              FRONTEND_HTTP_OK=false
-              FRONTEND_HTTPS_OK=false
-              
-              if curl -f -s http://localhost:5000; then
-                BACKEND_OK=true
-              fi
-              
-              if curl -f -s http://localhost:3000; then
-                FRONTEND_HTTP_OK=true
-              fi
-              
-              if curl -k -f -s https://localhost:443; then
-                FRONTEND_HTTPS_OK=true
-              fi
-              
-              if $BACKEND_OK && ($FRONTEND_HTTP_OK || $FRONTEND_HTTPS_OK); then
-                echo "✅ Production containers are healthy!"
-                if $FRONTEND_HTTPS_OK; then
-                  echo "✅ HTTPS is working!"
-                fi
-                break
-              else
-                echo "⏳ Attempt $i: Waiting for production containers..."
-                echo "   Backend: $BACKEND_OK, Frontend HTTP: $FRONTEND_HTTP_OK, Frontend HTTPS: $FRONTEND_HTTPS_OK"
-                sleep 3
-              fi
-              if [ $i -eq 5 ]; then
-                echo "⚠️  Production containers may need more time to start"
-              fi
-            done
-          '''
-          
-          echo "🚀 Blog deployed successfully to production!"
-          echo "🌐 Frontend HTTP: http://blog.ingasti.com (redirects to HTTPS)"
-          echo "🔒 Frontend HTTPS: https://blog.ingasti.com"
-          echo "🔧 Backend API: https://bapi.ingasti.com"
-        }
-      }
-    }
-    // Do not run docker compose down here, so containers remain online after build
-  }
-  post {
-    always {
-      script {
-        echo "🧹 Cleaning up test containers..."
-        // Clean up test containers but keep Docker Compose and production containers running
-        sh 'docker rm -f test-blog-frontend test-blog-backend || true'
+    environment {
+        // Database and security credentials
+        DATABASE_URL = credentials('blog-database-url')
+        JWT_SECRET = credentials('blog-jwt-secret')
         
-        // Clean up Docker Compose containers only if not on main/master branch
-        if (env.BRANCH_NAME != 'main' && env.BRANCH_NAME != 'master') {
-          sh 'docker compose -p $COMPOSE_PROJECT_NAME down || true'
+        // Image configuration
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        GIT_COMMIT_SHORT = ""
+        FRONTEND_IMAGE = "localhost:5000/blog-frontend:${BUILD_NUMBER}"
+        BACKEND_IMAGE = "localhost:5000/blog-backend:${BUILD_NUMBER}"
+        
+        // Environment configuration
+        CORS_ORIGIN = 'https://blog.ingasti.com'
+        VITE_API_URL = 'https://bapi.ingasti.com'
+        
+        // Docker registry
+        REGISTRY_URL = 'localhost:5000'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    // Get short commit hash
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Update image tags with commit hash
+                    env.FRONTEND_IMAGE = "${REGISTRY_URL}/blog-frontend:${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+                    env.BACKEND_IMAGE = "${REGISTRY_URL}/blog-backend:${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+                    
+                    echo "� Building Blog Application"
+                    echo "=============================="
+                    echo "📦 Images to build:"
+                    echo "  Frontend: ${env.FRONTEND_IMAGE}"
+                    echo "  Backend: ${env.BACKEND_IMAGE}"
+                    echo "🌐 Target URLs:"
+                    echo "  Frontend: https://blog.ingasti.com"
+                    echo "  Backend: https://bapi.ingasti.com"
+                }
+            }
         }
-      }
-    }
-    success {
-      script {
-        echo "✅ Pipeline completed successfully!"
-        echo "📋 Summary:"
-        echo "   - Docker Compose tests: ✅ PASSED"
-        echo "   - Individual container tests: ✅ PASSED"
-        if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master') {
-          echo "   - Production deployment: ✅ DEPLOYED"
-          echo "   - GitHub Registry push: ✅ PUSHED"
+        
+        stage('Build Backend Image') {
+            steps {
+                script {
+                    echo "🔨 Building backend Docker image..."
+                    dir('api') {
+                        sh """
+                            docker build -f Dockerfile.k8s -t ${env.BACKEND_IMAGE} .
+                            docker tag ${env.BACKEND_IMAGE} ${REGISTRY_URL}/blog-backend:latest
+                        """
+                    }
+                }
+            }
         }
-        echo "🌐 Access your blog at https://blog.ingasti.com"
-      }
+        
+        stage('Build Frontend Image') {
+            steps {
+                script {
+                    echo "🔨 Building frontend Docker image..."
+                    dir('client') {
+                        sh """
+                            docker build -f Dockerfile.k8s -t ${env.FRONTEND_IMAGE} .
+                            docker tag ${env.FRONTEND_IMAGE} ${REGISTRY_URL}/blog-frontend:latest
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Push Images to Registry') {
+            steps {
+                script {
+                    echo "📤 Pushing images to registry..."
+                    sh """
+                        echo "Pushing backend image..."
+                        docker push ${env.BACKEND_IMAGE}
+                        docker push ${REGISTRY_URL}/blog-backend:latest
+                        
+                        echo "Pushing frontend image..."
+                        docker push ${env.FRONTEND_IMAGE}
+                        docker push ${REGISTRY_URL}/blog-frontend:latest
+                    """
+                }
+            }
+        }
+        
+        stage('Test Backend Container') {
+            steps {
+                script {
+                    echo "🧪 Testing backend container..."
+                    sh """
+                        # Start backend container for testing
+                        docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
+                            -e DATABASE_URL="${DATABASE_URL}" \
+                            -e JWT_SECRET="${JWT_SECRET}" \
+                            -e CORS_ORIGIN="${CORS_ORIGIN}" \
+                            -e NODE_ENV=production \
+                            ${env.BACKEND_IMAGE}
+                        
+                        # Wait for container to start
+                        sleep 15
+                        
+                        # Test health endpoint
+                        curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
+                        
+                        echo "✅ Backend container test passed"
+                    """
+                }
+            }
+            post {
+                always {
+                    script {
+                        // Cleanup test container
+                        sh """
+                            docker stop test-backend-${BUILD_NUMBER} || true
+                            docker rm test-backend-${BUILD_NUMBER} || true
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Test Frontend Container') {
+            steps {
+                script {
+                    echo "🧪 Testing frontend container..."
+                    sh """
+                        # Start frontend container for testing
+                        docker run -d -p 3001:80 --name test-frontend-${BUILD_NUMBER} \
+                            -e VITE_API_URL="${VITE_API_URL}" \
+                            ${env.FRONTEND_IMAGE}
+                        
+                        # Wait for container to start
+                        sleep 15
+                        
+                        # Test health endpoint
+                        curl -f http://localhost:3001/health || (echo "Frontend health check failed" && exit 1)
+                        
+                        echo "✅ Frontend container test passed"
+                    """
+                }
+            }
+            post {
+                always {
+                    script {
+                        // Cleanup test container
+                        sh """
+                            docker stop test-frontend-${BUILD_NUMBER} || true
+                            docker rm test-frontend-${BUILD_NUMBER} || true
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Verify Kubernetes Access') {
+            steps {
+                script {
+                    echo "🔍 Verifying Kubernetes cluster access..."
+                    sh """
+                        kubectl version --client
+                        kubectl cluster-info --request-timeout=10s
+                        kubectl get nodes
+                    """
+                    echo "✅ Kubernetes cluster is accessible"
+                }
+            }
+        }
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    echo "🚀 Deploying blog to Kubernetes..."
+                    
+                    // Update deployment files with current image tags
+                    sh """
+                        cd k8s
+                        
+                        # Update image tags in deployment files
+                        sed -i.bak "s|localhost:5000/blog-frontend:latest|${env.FRONTEND_IMAGE}|g" frontend-deployment.yaml
+                        sed -i.bak "s|localhost:5000/blog-backend:latest|${env.BACKEND_IMAGE}|g" backend-deployment.yaml
+                        
+                        # Apply namespace and secrets
+                        kubectl apply -f namespace.yaml
+                        
+                        # Deploy backend
+                        kubectl apply -f backend-deployment.yaml
+                        
+                        # Deploy frontend  
+                        kubectl apply -f frontend-deployment.yaml
+                        
+                        # Wait for deployments to be ready
+                        echo "⏳ Waiting for deployments to be ready..."
+                        kubectl wait --for=condition=available --timeout=300s deployment/blog-backend -n blog
+                        kubectl wait --for=condition=available --timeout=300s deployment/blog-frontend -n blog
+                        
+                        # Restore original deployment files
+                        mv frontend-deployment.yaml.bak frontend-deployment.yaml
+                        mv backend-deployment.yaml.bak backend-deployment.yaml
+                    """
+                    
+                    echo "✅ Kubernetes deployment completed"
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    echo "🔍 Verifying blog deployment..."
+                    sh """
+                        # Check deployment status
+                        kubectl get all -n blog
+                        
+                        # Check pod status
+                        kubectl get pods -n blog -o wide
+                        
+                        # Check for any issues
+                        kubectl describe pods -n blog -l app=blog-backend | grep -A 10 Events || true
+                        kubectl describe pods -n blog -l app=blog-frontend | grep -A 10 Events || true
+                        
+                        # Internal health checks
+                        echo "🏥 Performing internal health checks..."
+                        kubectl run health-check-backend --image=busybox --rm -i --restart=Never --timeout=60s -- /bin/sh -c "wget -qO- http://blog-backend-service.blog.svc.cluster.local/health && echo 'Backend health check passed'" || echo "Backend health check failed"
+                        
+                        kubectl run health-check-frontend --image=busybox --rm -i --restart=Never --timeout=60s -- /bin/sh -c "wget -qO- http://blog-frontend-service.blog.svc.cluster.local/health && echo 'Frontend health check passed'" || echo "Frontend health check failed"
+                    """
+                }
+            }
+        }
+        
+        stage('Show Recent Logs') {
+            steps {
+                script {
+                    echo "📋 Recent application logs:"
+                    sh """
+                        echo "Backend logs:"
+                        kubectl logs -n blog -l app=blog-backend --tail=20 || echo "Could not fetch backend logs"
+                        
+                        echo "Frontend logs:"
+                        kubectl logs -n blog -l app=blog-frontend --tail=20 || echo "Could not fetch frontend logs"
+                    """
+                }
+            }
+        }
     }
-    failure {
-      script {
-        echo "❌ Pipeline failed!"
-        echo "🔍 Checking logs for debugging..."
-        // Show container logs for debugging
-        sh 'docker compose -p $COMPOSE_PROJECT_NAME logs || true'
-        sh 'docker logs test-blog-backend || true'
-        sh 'docker logs test-blog-frontend || true'
-      }
+    
+    post {
+        always {
+            script {
+                // Cleanup old Docker images to save space
+                sh """
+                    echo "🧹 Cleaning up old Docker images..."
+                    # Keep only the latest 5 images for each service
+                    docker images ${REGISTRY_URL}/blog-backend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
+                    docker images ${REGISTRY_URL}/blog-frontend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
+                """
+            }
+        }
+        success {
+            echo "🎉 Blog deployment pipeline completed successfully!"
+            echo ""
+            echo "📱 Blog services should be available at:"
+            echo "  Frontend: https://blog.ingasti.com"
+            echo "  Backend: https://bapi.ingasti.com"
+            echo ""
+            echo "🔍 Monitor with:"
+            echo "  kubectl get pods -n blog -w"
+            echo "  kubectl logs -f deployment/blog-backend -n blog"
+            echo "  kubectl logs -f deployment/blog-frontend -n blog"
+            
+            script {
+                // Show final status
+                sh """
+                    echo "🌐 Service and Ingress Status:"
+                    kubectl get services -n blog
+                    kubectl get ingress -n blog
+                """
+            }
+        }
+        failure {
+            echo "❌ Blog deployment pipeline failed!"
+            echo ""
+            echo "🔍 Debug information:"
+            script {
+                sh """
+                    echo "Kubernetes cluster status:"
+                    kubectl get nodes || true
+                    kubectl get pods -n blog || true
+                    kubectl get events -n blog --sort-by=.metadata.creationTimestamp | tail -10 || true
+                """
+            }
+        }
     }
-  }
 }
