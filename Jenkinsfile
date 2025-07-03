@@ -3,9 +3,9 @@ pipeline {
   environment {
     // Database credentials for Docker Compose
     DATABASE_URL = credentials('database-url')
-    CORS_ORIGIN = 'http://localhost:3000'
+    CORS_ORIGIN = 'https://blog.ingasti.com'
     JWT_SECRET = credentials('jwt-secret')
-    NEXT_PUBLIC_API_URL = 'http://localhost:5000'
+    NEXT_PUBLIC_API_URL = 'https://bapi.ingasti.com'
     
     // GitHub Container Registry credentials
     GITHUB_USER = credentials('github-user')
@@ -75,22 +75,28 @@ pipeline {
           sh '''
             echo "Testing frontend health via Docker Compose..."
             for i in {1..15}; do
+              # Test HTTP port (should redirect to HTTPS)
               if curl -f -s http://localhost:3000; then
-                echo "✅ Frontend is responding!"
-                RESPONSE=$(curl -s http://localhost:3000)
+                echo "✅ Frontend HTTP is responding (likely redirecting to HTTPS)!"
+              fi
+              
+              # Test HTTPS port with certificates
+              if curl -k -f -s https://localhost:3443; then
+                echo "✅ Frontend HTTPS is responding!"
+                RESPONSE=$(curl -k -s https://localhost:3443)
                 if echo "$RESPONSE" | grep -q -i "html\\|doctype\\|<title"; then
-                  echo "✅ Frontend is serving HTML content!"
+                  echo "✅ Frontend is serving HTML content over HTTPS!"
                 else
                   echo "⚠️  Frontend is responding but content may be missing"
                   echo "Response preview: ${RESPONSE:0:200}"
                 fi
                 break
               else
-                echo "⏳ Attempt $i: Frontend not ready yet, waiting..."
+                echo "⏳ Attempt $i: Frontend HTTPS not ready yet, waiting..."
                 sleep 4
               fi
               if [ $i -eq 15 ]; then
-                echo "❌ Frontend failed to respond after 15 attempts"
+                echo "❌ Frontend HTTPS failed to respond after 15 attempts"
                 docker compose -p $COMPOSE_PROJECT_NAME logs frontend
                 exit 1
               fi
@@ -98,8 +104,9 @@ pipeline {
           '''
           
           echo "✅ Docker Compose health checks passed!"
-          echo "🌐 Frontend: http://localhost:3000"
-          echo "🔧 Backend: http://localhost:5000"
+          echo "🌐 Frontend HTTP: http://localhost:3000 (redirects to HTTPS)"
+          echo "🔒 Frontend HTTPS: https://localhost:3443"
+          echo "🔧 Backend API: http://localhost:5000"
         }
       }
     }
@@ -139,10 +146,13 @@ pipeline {
               $BACKEND_IMAGE
           '''
           
-          // Start frontend container (nginx serves on port 80)
+          // Start frontend container with SSL certificates
           sh '''
             docker run -d --name test-blog-frontend \\
               -p 3001:80 \\
+              -p 3444:443 \\
+              -v /etc/letsencrypt/live/ingasti.com/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro \\
+              -v /etc/letsencrypt/live/ingasti.com/privkey.pem:/etc/ssl/private/privkey.pem:ro \\
               -e NEXT_PUBLIC_API_URL="http://localhost:5001" \\
               $FRONTEND_IMAGE
           '''
@@ -181,25 +191,30 @@ pipeline {
             echo "Checking if frontend container is running..."
             docker ps | grep test-blog-frontend
             
-            echo "Testing frontend endpoint..."
+            echo "Testing frontend HTTP endpoint (should redirect)..."
+            if curl -f -s http://localhost:3001; then
+              echo "✅ Individual frontend HTTP is responding!"
+            fi
+            
+            echo "Testing frontend HTTPS endpoint..."
             for i in {1..12}; do
-              if curl -f -s http://localhost:3001; then
-                echo "✅ Individual frontend is responding!"
+              if curl -k -f -s https://localhost:3444; then
+                echo "✅ Individual frontend HTTPS is responding!"
                 echo "Checking if content is being served..."
-                RESPONSE=$(curl -s http://localhost:3001)
+                RESPONSE=$(curl -k -s https://localhost:3444)
                 if echo "$RESPONSE" | grep -q -i "html\\|doctype\\|<title"; then
-                  echo "✅ Individual frontend is serving HTML content!"
+                  echo "✅ Individual frontend is serving HTML content over HTTPS!"
                 else
                   echo "⚠️  Frontend is responding but content may be missing"
                   echo "Response preview: ${RESPONSE:0:200}"
                 fi
                 break
               else
-                echo "⏳ Attempt $i: Frontend not ready yet, waiting..."
+                echo "⏳ Attempt $i: Frontend HTTPS not ready yet, waiting..."
                 sleep 3
               fi
               if [ $i -eq 12 ]; then
-                echo "❌ Individual frontend failed to respond after 12 attempts"
+                echo "❌ Individual frontend HTTPS failed to respond after 12 attempts"
                 echo "Frontend container logs:"
                 docker logs test-blog-frontend
                 exit 1
@@ -208,8 +223,9 @@ pipeline {
           '''
           
           echo "✅ Individual container tests passed!"
-          echo "🌐 Frontend accessible at: http://localhost:3001"
-          echo "🔧 Backend accessible at: http://localhost:5001"
+          echo "🌐 Frontend HTTP: http://localhost:3001 (redirects to HTTPS)"
+          echo "🔒 Frontend HTTPS: https://localhost:3444"
+          echo "🔧 Backend API: http://localhost:5001"
         }
       }
     }
@@ -265,16 +281,19 @@ pipeline {
               -e NODE_ENV=production \\
               -e DATABASE_URL="$DATABASE_URL" \\
               -e JWT_SECRET="$JWT_SECRET" \\
-              -e CORS_ORIGIN="http://localhost:3000" \\
+              -e CORS_ORIGIN="https://blog.ingasti.com" \\
               --restart unless-stopped \\
               $BACKEND_IMAGE
           '''
           
-          // Deploy frontend to production port (nginx serves on port 80)
+          // Deploy frontend to production port with HTTPS support
           sh '''
             docker run -d --name blog-frontend-prod \\
               -p 3000:80 \\
-              -e NEXT_PUBLIC_API_URL="http://localhost:5000" \\
+              -p 443:443 \\
+              -v /etc/letsencrypt/live/ingasti.com/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro \\
+              -v /etc/letsencrypt/live/ingasti.com/privkey.pem:/etc/ssl/private/privkey.pem:ro \\
+              -e NEXT_PUBLIC_API_URL="https://bapi.ingasti.com" \\
               --restart unless-stopped \\
               $FRONTEND_IMAGE
           '''
@@ -287,11 +306,31 @@ pipeline {
           sh '''
             echo "🏥 Production health check..."
             for i in {1..5}; do
-              if curl -f -s http://localhost:5000 && curl -f -s http://localhost:3000; then
+              BACKEND_OK=false
+              FRONTEND_HTTP_OK=false
+              FRONTEND_HTTPS_OK=false
+              
+              if curl -f -s http://localhost:5000; then
+                BACKEND_OK=true
+              fi
+              
+              if curl -f -s http://localhost:3000; then
+                FRONTEND_HTTP_OK=true
+              fi
+              
+              if curl -k -f -s https://localhost:443; then
+                FRONTEND_HTTPS_OK=true
+              fi
+              
+              if $BACKEND_OK && ($FRONTEND_HTTP_OK || $FRONTEND_HTTPS_OK); then
                 echo "✅ Production containers are healthy!"
+                if $FRONTEND_HTTPS_OK; then
+                  echo "✅ HTTPS is working!"
+                fi
                 break
               else
                 echo "⏳ Attempt $i: Waiting for production containers..."
+                echo "   Backend: $BACKEND_OK, Frontend HTTP: $FRONTEND_HTTP_OK, Frontend HTTPS: $FRONTEND_HTTPS_OK"
                 sleep 3
               fi
               if [ $i -eq 5 ]; then
@@ -301,8 +340,9 @@ pipeline {
           '''
           
           echo "🚀 Blog deployed successfully to production!"
-          echo "🌐 Frontend: http://localhost:3000"
-          echo "🔧 Backend API: http://localhost:5000"
+          echo "🌐 Frontend HTTP: http://blog.ingasti.com (redirects to HTTPS)"
+          echo "🔒 Frontend HTTPS: https://blog.ingasti.com"
+          echo "🔧 Backend API: https://bapi.ingasti.com"
         }
       }
     }
@@ -331,7 +371,7 @@ pipeline {
           echo "   - Production deployment: ✅ DEPLOYED"
           echo "   - GitHub Registry push: ✅ PUSHED"
         }
-        echo "🌐 Access your blog at http://localhost:3000"
+        echo "🌐 Access your blog at https://blog.ingasti.com"
       }
     }
     failure {

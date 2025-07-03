@@ -9,9 +9,20 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app = express();
 
-// CORS middleware
+// CORS middleware with support for HTTPS domains
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "http://localhost:3000");
+  const allowedOrigins = [
+    process.env.CORS_ORIGIN || "http://localhost:3000",
+    "https://blog.ingasti.com",
+    "http://localhost:3000",
+    "http://localhost:3001"
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");

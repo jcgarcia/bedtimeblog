@@ -1,0 +1,53 @@
+// API configuration for the blog frontend
+// This file centralizes all API-related configuration
+
+// Get API base URL from environment variable, fallback to production URL
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://bapi.ingasti.com";
+
+// Ensure the URL ends with a slash for consistent concatenation
+export const API_URL = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+
+// Common API endpoints
+export const API_ENDPOINTS = {
+  // Authentication
+  AUTH: {
+    GOOGLE: `${API_URL}api/auth/google`,
+    FACEBOOK: `${API_URL}api/auth/facebook`,
+    TWITTER: `${API_URL}api/auth/twitter`,
+    LOGOUT: `${API_URL}api/auth/logout`,
+    VERIFY: `${API_URL}api/auth/verify`,
+  },
+  
+  // Posts
+  POSTS: {
+    LIST: `${API_URL}api/posts`,
+    CREATE: `${API_URL}api/posts`,
+    GET: (id) => `${API_URL}api/posts/${id}`,
+    UPDATE: (id) => `${API_URL}api/posts/${id}`,
+    DELETE: (id) => `${API_URL}api/posts/${id}`,
+  },
+  
+  // Users
+  USERS: {
+    PROFILE: `${API_URL}api/users/profile`,
+    UPDATE: `${API_URL}api/users/profile`,
+  },
+  
+  // Upload
+  UPLOAD: `${API_URL}api/upload`,
+  
+  // Health check
+  HEALTH: `${API_URL}health`,
+};
+
+// Helper function to build API URLs
+export const buildApiUrl = (endpoint) => {
+  return endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+};
+
+// Export for debugging
+console.log('API Configuration:', {
+  API_BASE_URL,
+  API_URL,
+  NODE_ENV: import.meta.env.MODE || 'development'
+});

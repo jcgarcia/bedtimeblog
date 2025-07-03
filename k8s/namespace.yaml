@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blog
+  labels:
+    name: blog
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blog-secrets
+  namespace: blog
+type: Opaque
+data:
+  # These are example base64 encoded values - replace with your actual secrets
+  # To encode: echo -n "your-secret-value" | base64
+  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQGhvc3Q6cG9ydC9kYm5hbWU= # Replace with your actual database URL
+  jwt-secret: eW91ci1qd3Qtc2VjcmV0LWhlcmU= # Replace with your actual JWT secret
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blog-config
+  namespace: blog
+data:
+  cors-origin: "https://blog.ingasti.com"
+  api-url: "https://bapi.ingasti.com"
+  node-env: "production"
