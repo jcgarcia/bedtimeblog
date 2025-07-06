@@ -103,10 +103,20 @@ pipeline {
                         # Wait for container to start
                         sleep 15
                         
-                        # Test health endpoint
-                        curl -f http://localhost:5002/health || (echo "Backend health check failed" && exit 1)
+                        # Check container logs
+                        echo "Container logs:"
+                        docker logs test-backend-${BUILD_NUMBER}
                         
-                        echo "✅ Backend container test passed"
+                        # Check if container is still running
+                        if docker ps | grep test-backend-${BUILD_NUMBER}; then
+                            echo "Container is running, testing health endpoint..."
+                            # Test health endpoint
+                            curl -f http://localhost:5002/health || (echo "Backend health check failed" && exit 1)
+                            echo "✅ Backend container test passed"
+                        else
+                            echo "❌ Container failed to start or exited"
+                            exit 1
+                        fi
                     """
                 }
             }
