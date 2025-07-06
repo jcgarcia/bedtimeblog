@@ -6,8 +6,20 @@ pipeline {
         DATABASE_URL = credentials('blog-database-url')
         JWT_SECRET = credentials('jwt-secret')
         
-        // Image configuration
-        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        // Image config    post {
+        always {
+            script {
+                node('any') {
+                    // Cleanup old Docker images to save space
+                    sh """
+                        echo "🧹 Cleaning up old Docker images..."
+                        # Keep only the latest 5 images for each service
+                        docker images localhost:5000/blog-backend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
+                        docker images localhost:5000/blog-frontend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
+                    """
+                }
+            }
+        }  BUILD_NUMBER = "${env.BUILD_NUMBER}"
         GIT_COMMIT_SHORT = ""
         FRONTEND_IMAGE = "localhost:5000/blog-frontend:${BUILD_NUMBER}"
         BACKEND_IMAGE = "localhost:5000/blog-backend:${BUILD_NUMBER}"
@@ -258,8 +270,8 @@ pipeline {
     
     post {
         always {
-            node {
-                script {
+            script {
+                node('any') {
                     // Cleanup old Docker images to save space
                     sh """
                         echo "🧹 Cleaning up old Docker images..."
@@ -282,8 +294,8 @@ pipeline {
             echo "  kubectl logs -f deployment/blog-backend -n blog"
             echo "  kubectl logs -f deployment/blog-frontend -n blog"
             
-            node {
-                script {
+            script {
+                node('any') {
                     // Show final status
                     sh """
                         echo "🌐 Service and Ingress Status:"
@@ -297,8 +309,8 @@ pipeline {
             echo "❌ Blog deployment pipeline failed!"
             echo ""
             echo "🔍 Debug information:"
-            node {
-                script {
+            script {
+                node('any') {
                     try {
                         sh """
                             echo "Kubernetes cluster status:"
