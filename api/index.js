@@ -2,10 +2,30 @@ import express from "express";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
+import publishRoutes from "./routes/publish.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import fs from "fs";
+import dotenv from "dotenv";
+
+// Load environment variables securely
+// Load .env.local first (higher priority), then .env
+dotenv.config({ path: '.env.local' });
+dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = ['PUBLISH_API_KEY'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars);
+  console.error('📝 Please set these variables in your environment or .env.local file');
+  process.exit(1);
+}
+
+console.log('✅ Environment variables loaded successfully');
 
 const app = express();
 
@@ -80,6 +100,18 @@ passport.deserializeUser((user, done) => {
 // Initialize Passport.js middleware
 app.use(passport.initialize());
 
+// Create uploads directories if they don't exist
+const uploadsDir = "./uploads";
+const markdownDir = "./uploads/markdown";
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+if (!fs.existsSync(markdownDir)) {
+  fs.mkdirSync(markdownDir, { recursive: true });
+}
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ 
@@ -100,6 +132,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/publish", publishRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

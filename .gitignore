@@ -15,9 +15,26 @@ api/build
 
 # Ignore any system-specific or editor-specific files
 *.log
-*.env
-.env
 .DS_Store
+
+# 🔐 SECURITY: Environment files with secrets
+.env
+.env.local
+.env.*.local
+*.env
+.envrc
+
+# 🔐 SECURITY: Secret files and directories
+secrets/
+config/secrets
+private/
+keys/
+certificates/
+
+# 🔐 SECURITY: Backup files that might contain secrets
+*.bak
+*.backup
+*.orig
 .vscode/
 .idea/
 .vite/

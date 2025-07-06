@@ -1,0 +1,26 @@
+{
+  "name": "blog-publish-tools",
+  "version": "1.0.0",
+  "description": "CLI tools for publishing blog posts",
+  "type": "module",
+  "main": "blog-publish.js",
+  "bin": {
+    "blog-publish": "./blog-publish.js"
+  },
+  "scripts": {
+    "install-global": "pnpm install -g .",
+    "test": "node blog-publish.js --help"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "keywords": [
+    "blog",
+    "publish",
+    "markdown",
+    "cli"
+  ],
+  "author": "jcgarcia",
+  "license": "ISC"
+}
