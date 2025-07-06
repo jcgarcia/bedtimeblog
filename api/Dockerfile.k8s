@@ -6,12 +6,13 @@ RUN apk add --no-cache curl
 
 # Copy workspace files from parent directory
 COPY package*.json ./
-COPY ../pnpm-workspace.yaml ./
-COPY ../pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml ./
+COPY api/package*.json ./api/
 RUN npm install -g pnpm && pnpm install --frozen-lockfile --filter=api
 
 # Copy source code
-COPY . .
+COPY api/ ./
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
