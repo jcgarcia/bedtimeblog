@@ -273,12 +273,12 @@ ssh oraclecode "kubectl get services -n blog"
 ```bash
 # Production Jenkins
 jenkins-prod() {
-    java -jar ~/jenkins-cli.jar -s https://jenkins.ingasti.com/ -http -auth jcgarcia:1114d0da65898cd401d6349f8923ce5baf "$@"
+    java -jar ~/jenkins-cli.jar -s https://jenkins.ingasti.com/ -http -auth jcgarcia:YOUR_JENKINS_API_TOKEN_PROD "$@"
 }
 
 # Home Jenkins
 jenkins-home() {
-    java -jar ~/jenkins-cli-home.jar -s https://lfactory.ingasti.com:8445/ -http -auth jcgarcia:111ff8b8a2d2147aea73fc033d679a35b9 "$@"
+    java -jar ~/jenkins-cli-home.jar -s https://lfactory.ingasti.com:8445/ -http -auth jcgarcia:YOUR_JENKINS_API_TOKEN_HOME "$@"
 }
 ```
 
