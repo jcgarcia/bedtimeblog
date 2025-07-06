@@ -2,9 +2,9 @@ pipeline {
     agent any
     
     environment {
-        // Database and security credentials
+        // Database and security credentials - will be set in the pipeline
         DATABASE_URL = credentials('blog-database-url')
-        JWT_SECRET = credentials('blog-jwt-secret')
+        JWT_SECRET = credentials('jwt-secret')
         
         // Image configuration
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
@@ -258,14 +258,16 @@ pipeline {
     
     post {
         always {
-            script {
-                // Cleanup old Docker images to save space
-                sh """
-                    echo "🧹 Cleaning up old Docker images..."
-                    # Keep only the latest 5 images for each service
-                    docker images ${REGISTRY_URL}/blog-backend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
-                    docker images ${REGISTRY_URL}/blog-frontend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
-                """
+            node {
+                script {
+                    // Cleanup old Docker images to save space
+                    sh """
+                        echo "🧹 Cleaning up old Docker images..."
+                        # Keep only the latest 5 images for each service
+                        docker images localhost:5000/blog-backend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
+                        docker images localhost:5000/blog-frontend --format "table {{.Tag}}\t{{.ID}}" | tail -n +2 | grep -v latest | awk '{print \$2}' | tail -n +6 | xargs -r docker rmi || true
+                    """
+                }
             }
         }
         success {
@@ -280,26 +282,34 @@ pipeline {
             echo "  kubectl logs -f deployment/blog-backend -n blog"
             echo "  kubectl logs -f deployment/blog-frontend -n blog"
             
-            script {
-                // Show final status
-                sh """
-                    echo "🌐 Service and Ingress Status:"
-                    kubectl get services -n blog
-                    kubectl get ingress -n blog
-                """
+            node {
+                script {
+                    // Show final status
+                    sh """
+                        echo "🌐 Service and Ingress Status:"
+                        kubectl get services -n blog
+                        kubectl get ingress -n blog
+                    """
+                }
             }
         }
         failure {
             echo "❌ Blog deployment pipeline failed!"
             echo ""
             echo "🔍 Debug information:"
-            script {
-                sh """
-                    echo "Kubernetes cluster status:"
-                    kubectl get nodes || true
-                    kubectl get pods -n blog || true
-                    kubectl get events -n blog --sort-by=.metadata.creationTimestamp | tail -10 || true
-                """
+            node {
+                script {
+                    try {
+                        sh """
+                            echo "Kubernetes cluster status:"
+                            kubectl get nodes || true
+                            kubectl get pods -n blog || true
+                            kubectl get events -n blog --sort-by=.metadata.creationTimestamp | tail -10 || true
+                        """
+                    } catch (Exception e) {
+                        echo "Could not retrieve debug information: ${e.getMessage()}"
+                    }
+                }
             }
         }
     }
