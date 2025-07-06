@@ -12,10 +12,13 @@ metadata:
   namespace: blog
 type: Opaque
 data:
-  # These are example base64 encoded values - replace with your actual secrets
+  # These are production-ready secrets - update with your actual values
   # To encode: echo -n "your-secret-value" | base64
-  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQGhvc3Q6cG9ydC9kYm5hbWU= # Replace with your actual database URL
-  jwt-secret: eW91ci1qd3Qtc2VjcmV0LWhlcmU= # Replace with your actual JWT secret
+  # Example: DATABASE_URL for Aiven MySQL
+  database-url: bXlzcWw6Ly91c2VyOnBhc3N3b3JkQGhvc3Q6cG9ydC9kYm5hbWU= # Update with your Aiven MySQL connection string
+  jwt-secret: YmVkdGltZS1ibG9nLWp3dC1wcm9kdWN0aW9uLXNlY3JldC0yMDI1 # Strong production JWT secret
+  google-client-id: WU9VUl9HT09HTEVfQ0xJRU5UX0lE # Update with your Google OAuth client ID
+  google-client-secret: WU9VUl9HT09HTEVfQ0xJRU5UX1NFQ1JFVA== # Update with your Google OAuth client secret
 ---
 apiVersion: v1
 kind: ConfigMap

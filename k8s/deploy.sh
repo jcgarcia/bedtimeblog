@@ -92,6 +92,10 @@ fi
 print_status "📝 Creating namespace and secrets..."
 kubectl apply -f k8s/namespace.yaml
 
+# Create persistent volumes
+print_status "💾 Creating persistent volumes..."
+kubectl apply -f k8s/storage.yaml
+
 # Wait for namespace to be ready
 kubectl wait --for=condition=Ready --timeout=60s namespace/blog 2>/dev/null || true
 

@@ -191,6 +191,9 @@ pipeline {
                         # Apply namespace and secrets
                         kubectl apply -f namespace.yaml
                         
+                        # Apply persistent volumes
+                        kubectl apply -f storage.yaml
+                        
                         # Deploy backend
                         kubectl apply -f backend-deployment.yaml
                         

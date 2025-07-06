@@ -36,9 +36,14 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Serve uploaded files statically
+app.use("/uploads", express.static("uploads"));
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "../client/public/upload");
+    // Use a local uploads directory inside the container
+    cb(null, "./uploads");
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + file.originalname);
@@ -54,8 +59,8 @@ app.post("/api/upload", upload.single("file"), function (req, res) {
 
 // Configure Passport.js with Google OAuth strategy
 passport.use(new GoogleStrategy({
-  clientID: "YOUR_GOOGLE_CLIENT_ID",
-  clientSecret: "YOUR_GOOGLE_CLIENT_SECRET",
+  clientID: process.env.GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID",
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || "YOUR_GOOGLE_CLIENT_SECRET",
   callbackURL: "/api/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => {
   // Pass the user profile to the next middleware

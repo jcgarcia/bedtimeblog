@@ -88,8 +88,13 @@ metadata:
   namespace: blog
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
+  tls:
+  - hosts:
+    - blog.ingasti.com
+    secretName: blog-ingasti-tls
   rules:
   - host: blog.ingasti.com
     http:
@@ -98,6 +103,9 @@ spec:
         pathType: Prefix
         backend:
           service:
+            name: blog-frontend-service
+            port:
+              number: 80
             name: blog-frontend-service
             port:
               number: 80
