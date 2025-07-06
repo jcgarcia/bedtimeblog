@@ -2,9 +2,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copy package files
-COPY package*.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+# Copy workspace files from parent directory
+COPY package*.json ./
+COPY ../pnpm-workspace.yaml ./
+COPY ../pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile --filter=client
 
 # Copy source code
 COPY . .
