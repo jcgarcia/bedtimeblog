@@ -9,7 +9,7 @@ COPY package*.json ./
 COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
 COPY api/package*.json ./api/
-RUN npm install -g pnpm && pnpm install --frozen-lockfile --filter=api
+RUN npm install -g pnpm && pnpm install --no-frozen-lockfile --filter=api
 
 # Copy source code
 COPY api/ ./

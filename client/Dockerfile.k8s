@@ -7,7 +7,7 @@ COPY package*.json ./
 COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
 COPY client/package*.json ./client/
-RUN npm install -g pnpm && pnpm install --frozen-lockfile --filter=client
+RUN npm install -g pnpm && pnpm install --no-frozen-lockfile --filter=client
 
 # Copy source code
 COPY client/ ./
