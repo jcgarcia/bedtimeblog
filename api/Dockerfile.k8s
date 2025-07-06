@@ -4,22 +4,29 @@ WORKDIR /app
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy workspace files from parent directory
-COPY package*.json ./
+# Copy workspace configuration
 COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
+COPY package*.json ./
+
+# Copy individual package files
 COPY api/package*.json ./api/
-RUN npm install -g pnpm && pnpm install --no-frozen-lockfile --filter=api
+
+# Install pnpm and dependencies for the entire workspace
+RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
 
 # Copy source code
-COPY api/ ./
+COPY api/ ./api/
+
+# Change to the API directory
+WORKDIR /app/api
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 # Create uploads directory
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/api/uploads
 
 # Change ownership of the app directory
 RUN chown -R nodejs:nodejs /app
