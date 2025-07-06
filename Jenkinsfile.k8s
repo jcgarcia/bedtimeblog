@@ -10,9 +10,6 @@ pipeline {
         
         // Image configuration
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
-        GIT_COMMIT_SHORT = ""
-        FRONTEND_IMAGE = "localhost:5000/blog-frontend:${BUILD_NUMBER}"
-        BACKEND_IMAGE = "localhost:5000/blog-backend:${BUILD_NUMBER}"
         
         // Environment configuration
         CORS_ORIGIN = 'https://blog.ingasti.com'
@@ -33,11 +30,11 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     
-                    // Update image tags with commit hash
-                    env.FRONTEND_IMAGE = "${REGISTRY_URL}/blog-frontend:${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
-                    env.BACKEND_IMAGE = "${REGISTRY_URL}/blog-backend:${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+                    // Set image names with commit hash
+                    env.FRONTEND_IMAGE = "${REGISTRY_URL}/blog-frontend:${BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
+                    env.BACKEND_IMAGE = "${REGISTRY_URL}/blog-backend:${BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
                     
-                    echo "� Building Blog Application"
+                    echo "🚀 Building Blog Application"
                     echo "=============================="
                     echo "📦 Images to build:"
                     echo "  Frontend: ${env.FRONTEND_IMAGE}"
@@ -100,7 +97,7 @@ pipeline {
                     echo "🧪 Testing backend container..."
                     sh """
                         # Start backend container for testing
-                        docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
+                        docker run -d -p 5002:5000 --name test-backend-${BUILD_NUMBER} \
                             -e DATABASE_URL="${DATABASE_URL}" \
                             -e JWT_SECRET="${JWT_SECRET}" \
                             -e CORS_ORIGIN="${CORS_ORIGIN}" \
@@ -111,7 +108,7 @@ pipeline {
                         sleep 15
                         
                         # Test health endpoint
-                        curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
+                        curl -f http://localhost:5002/health || (echo "Backend health check failed" && exit 1)
                         
                         echo "✅ Backend container test passed"
                     """
