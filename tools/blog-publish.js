@@ -32,7 +32,8 @@ async function loadConfig() {
     
     CONFIG.API_BASE_URL = await configManager.getConfig('blog_api_url').catch(() => CONFIG.API_BASE_URL);
     CONFIG.DEFAULT_USER_ID = await configManager.getConfig('blog_user_id').catch(() => CONFIG.DEFAULT_USER_ID);
-    CONFIG.API_KEY = await configManager.getApiKey('blog_publish_api_key').catch(() => CONFIG.API_KEY);
+    const dbApiKey = await configManager.getApiKey('blog_publish_api_key').catch(() => null);
+    CONFIG.API_KEY = dbApiKey || process.env.BLOG_API_KEY || CONFIG.API_KEY;
     
     log('✅ Configuration loaded from database', 'green');
   } catch (error) {
