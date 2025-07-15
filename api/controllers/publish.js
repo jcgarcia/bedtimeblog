@@ -150,14 +150,13 @@ export const publishMarkdownPost = (req, res) => {
       const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
       
       if (apiKey) {
-        // For automated publishing, you can set a specific user ID
-        // or validate the API key against a stored value
-        const validApiKey = process.env.PUBLISH_API_KEY || 'your-api-key-here';
-        if (apiKey !== validApiKey) {
+        // Use API key from database configuration
+        const validApiKey = req.apiKeys?.publishApiKey;
+        if (!validApiKey || apiKey !== validApiKey) {
           return res.status(401).json({ error: 'Invalid API key' });
         }
-        // Use a default user ID for API key publishing (adjust as needed)
-        userId = 1; // Or get from environment variable
+        // Use default user ID from system configuration
+        userId = parseInt(req.systemConfig?.blogUserId) || 1;
       } else if (token) {
         // JWT token authentication
         try {
@@ -242,11 +241,13 @@ export const publishMarkdownContent = (req, res) => {
     const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
     
     if (apiKey) {
-      const validApiKey = process.env.PUBLISH_API_KEY || 'your-api-key-here';
-      if (apiKey !== validApiKey) {
+      // Use API key from database configuration
+      const validApiKey = req.apiKeys?.publishApiKey;
+      if (!validApiKey || apiKey !== validApiKey) {
         return res.status(401).json({ error: 'Invalid API key' });
       }
-      userId = 1; // Default user for API key publishing
+      // Use default user ID from system configuration
+      userId = parseInt(req.systemConfig?.blogUserId) || 1;
     } else if (token) {
       try {
         const userInfo = jwt.verify(token, "jwtkey");

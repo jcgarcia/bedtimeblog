@@ -9,23 +9,24 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import fs from "fs";
 import dotenv from "dotenv";
+import { loadSystemConfig } from "./middleware/systemConfig.js";
 
-// Load environment variables securely
-// Load .env.local first (higher priority), then .env
+// Load environment variables for database connection only
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-// Validate required environment variables
-const requiredEnvVars = ['PUBLISH_API_KEY'];
+// Validate required database environment variables
+const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USER'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingVars);
-  console.error('📝 Please set these variables in your environment or .env.local file');
+  console.error('❌ Missing required database environment variables:', missingVars);
+  console.error('📝 Please set these variables in your environment or .env file');
   process.exit(1);
 }
 
-console.log('✅ Environment variables loaded successfully');
+console.log('✅ Database environment variables loaded successfully');
+console.log('🔧 System configuration will be loaded from database');
 
 const app = express();
 
@@ -56,6 +57,9 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Load system configuration from database
+app.use(loadSystemConfig);
 
 // Serve uploaded files statically
 app.use("/uploads", express.static("uploads"));

@@ -5,16 +5,41 @@ import path from 'path';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import SystemConfigManager from '../api/utils/systemConfig.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configuration
-const CONFIG = {
+// Load environment variables (for database connection)
+dotenv.config({ path: path.join(__dirname, '.env.local') });
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+// Initialize system configuration manager
+const configManager = new SystemConfigManager();
+
+// Configuration (will be loaded from database)
+let CONFIG = {
   API_BASE_URL: process.env.BLOG_API_URL || 'https://bapi.ingasti.com/api',
   API_KEY: process.env.BLOG_API_KEY || '',
   DEFAULT_USER_ID: process.env.BLOG_USER_ID || '1'
 };
+
+// Load configuration from database
+async function loadConfig() {
+  try {
+    await configManager.connect();
+    
+    CONFIG.API_BASE_URL = await configManager.getConfig('blog_api_url').catch(() => CONFIG.API_BASE_URL);
+    CONFIG.DEFAULT_USER_ID = await configManager.getConfig('blog_user_id').catch(() => CONFIG.DEFAULT_USER_ID);
+    CONFIG.API_KEY = await configManager.getApiKey('blog_publish_api_key').catch(() => CONFIG.API_KEY);
+    
+    log('✅ Configuration loaded from database', 'green');
+  } catch (error) {
+    log('⚠️  Using fallback configuration (database unavailable)', 'yellow');
+    console.error('Database error:', error.message);
+  }
+}
 
 // Colors for console output
 const colors = {
@@ -160,6 +185,9 @@ async function main() {
     return;
   }
 
+  // Load configuration from database first
+  await loadConfig();
+
   const filePath = args[0];
   const options = {};
 
@@ -188,7 +216,20 @@ async function main() {
   await validateMarkdownFile(filePath);
 
   // Publish
-  await publishMarkdownFile(filePath, options);
+  try {
+    const result = await publishMarkdownFile(filePath, options);
+    log(`\n🎉 ${result.message}`, 'green');
+    log(`📝 Post ID: ${result.postId}`, 'blue');
+    log(`📌 Title: ${result.title}`, 'blue');
+    log(`🏷️  Category: ${result.category}`, 'blue');
+    log(`📅 Published: ${result.publishedAt}`, 'blue');
+  } catch (error) {
+    log(`\n❌ Publishing failed: ${error.message}`, 'red');
+    process.exit(1);
+  } finally {
+    // Close database connection
+    await configManager.close();
+  }
 }
 
 // Handle uncaught errors

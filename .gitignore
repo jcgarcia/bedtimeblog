@@ -21,8 +21,18 @@ api/build
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
 *.env
 .envrc
+
+# 🔐 SECURITY: Database and API credentials
+database-credentials.txt
+api-keys.txt
+secrets.json
+config/production.json
+config/staging.json
 
 # 🔐 SECURITY: Secret files and directories
 secrets/
@@ -30,11 +40,31 @@ config/secrets
 private/
 keys/
 certificates/
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
 
 # 🔐 SECURITY: Backup files that might contain secrets
 *.bak
 *.backup
 *.orig
+backup-*.sql
+dump-*.sql
+
+# 🔐 SECURITY: Temporary files that might contain credentials
+temp-*
+tmp-*
+*-temp
+*-tmp
+*.tmp
+
+# 🔐 SECURITY: Archive files that might contain secrets
+*.zip
+*.tar.gz
+*.7z
+archive-*
 .vscode/
 .idea/
 .vite/
