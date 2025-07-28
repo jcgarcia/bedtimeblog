@@ -16,25 +16,25 @@ echo "Using Existing Aiven PostgreSQL Database"
 echo "========================================="
 echo ""
 
-# Database connection details from environment variables
-PG_HOST="${PG_HOST:-ingasti-pg-ingasti.c.aivencloud.com}"
-PG_PORT="${PG_PORT:-25306}"
-PG_DB="${PG_DB:-blog}"
-PG_USER="${PG_USER:-avnadmin}"
-PG_PASS="${PG_PASS:-}" # Should be set securely before running
-PG_SSLMODE="${PG_SSLMODE:-require}"
+# Database connection details from environment variables (standard PostgreSQL names)
+PGHOST="${PGHOST:-ingasti-pg-ingasti.c.aivencloud.com}"
+PGPORT="${PGPORT:-25306}"
+PGDATABASE="${PGDATABASE:-blog}"
+PGUSER="${PGUSER:-avnadmin}"
+PGPASSWORD="${PGPASSWORD:-}" # Should be set securely before running
+PGSSLMODE="${PGSSLMODE:-require}"
 
 echo -e "${GREEN}✅ Database Connection Details:${NC}"
-echo "Host: $PG_HOST"
-echo "Port: $PG_PORT"
-echo "Database: $PG_DB"
-echo "User: $PG_USER"
-echo "SSL Mode: $PG_SSLMODE"
+echo "Host: $PGHOST"
+echo "Port: $PGPORT"
+echo "Database: $PGDATABASE"
+echo "User: $PGUSER"
+echo "SSL Mode: $PGSSLMODE"
 echo ""
 
 # Step 1: Test database connection
 echo -e "${YELLOW}🔍 Step 1: Testing database connection...${NC}"
-PGPASSWORD="$PG_PASS" psql "postgresql://$PG_USER@$PG_HOST:$PG_PORT/$PG_DB?sslmode=$PG_SSLMODE" -c "SELECT 'Connection successful!' as status;" >/dev/null 2>&1
+PGPASSWORD="$PGPASSWORD" psql "postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE?sslmode=$PGSSLMODE" -c "SELECT 'Connection successful!' as status;" >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Database connection successful${NC}"
 else
@@ -45,7 +45,7 @@ fi
 
 # Step 2: Create configuration tables
 echo -e "${YELLOW}📋 Step 2: Creating configuration tables...${NC}"
-PGPASSWORD="$PG_PASS" psql "postgresql://$PG_USER@$PG_HOST:$PG_PORT/$PG_DB?sslmode=$PG_SSLMODE" -f system_config_schema_postgresql.sql
+PGPASSWORD="$PGPASSWORD" psql "postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE?sslmode=$PGSSLMODE" -f system_config_schema_postgresql.sql
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Configuration tables created successfully${NC}"
 else
@@ -60,7 +60,7 @@ echo "Generated API key: ${SECURE_API_KEY:0:16}..."
 
 # Step 4: Store API key in database
 echo -e "${YELLOW}💾 Step 4: Storing API key in database...${NC}"
-PGPASSWORD="$PG_PASS" psql "postgresql://$PG_USER@$PG_HOST:$PG_PORT/$PG_DB?sslmode=$PG_SSLMODE" -c "UPDATE sys_api_keys SET key_value = '$SECURE_API_KEY' WHERE name = 'blog_publish_api_key';"
+PGPASSWORD="$PGPASSWORD" psql "postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE?sslmode=$PGSSLMODE" -c "UPDATE sys_api_keys SET key_value = '$SECURE_API_KEY' WHERE service_name = 'blog_publish_api_key';"
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ API key stored successfully${NC}"
 else
@@ -70,8 +70,8 @@ fi
 
 # Step 5: Verify configuration
 echo -e "${YELLOW}🔍 Step 5: Verifying configuration...${NC}"
-CONFIG_COUNT=$(PGPASSWORD="$PG_PASS" psql "postgresql://$PG_USER@$PG_HOST:$PG_PORT/$PG_DB?sslmode=$PG_SSLMODE" -t -c "SELECT COUNT(*) FROM sys_config_values;" | xargs)
-API_KEY_COUNT=$(PGPASSWORD="$PG_PASS" psql "postgresql://$PG_USER@$PG_HOST:$PG_PORT/$PG_DB?sslmode=$PG_SSLMODE" -t -c "SELECT COUNT(*) FROM sys_api_keys WHERE is_active = TRUE;" | xargs)
+CONFIG_COUNT=$(PGPASSWORD="$PGPASSWORD" psql "postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE?sslmode=$PGSSLMODE" -t -c "SELECT COUNT(*) FROM sys_config_values;" | xargs)
+API_KEY_COUNT=$(PGPASSWORD="$PGPASSWORD" psql "postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE?sslmode=$PGSSLMODE" -t -c "SELECT COUNT(*) FROM sys_api_keys WHERE is_active = TRUE;" | xargs)
 
 echo "Configuration entries: $CONFIG_COUNT"
 echo "Active API keys: $API_KEY_COUNT"

@@ -13,12 +13,12 @@ class SystemConfigManager {
   }
   constructor() {
     this.pool = new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'blog',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || process.env.DB_KEY,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      host: process.env.PGHOST || 'localhost',
+      port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
+      database: process.env.PGDATABASE || 'blog',
+      user: process.env.PGUSER || 'postgres',
+      password: process.env.PGPASSWORD || '',
+      ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
