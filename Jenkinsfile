@@ -5,17 +5,25 @@ pipeline {
         // Database and security credentials
         DATABASE_URL = credentials('blog-database-url')
         JWT_SECRET = credentials('blog-jwt-secret')
-        
+
+        // PostgreSQL connection variables (replace with Jenkins credentials or static values as needed)
+        PGHOST = credentials('db-host')
+        PGPORT = credentials('db-port')
+        PGUSER = credentials('db-user')
+        PGPASSWORD = credentials('db-key')
+        PGDATABASE = credentials('db-name')
+        PGSSLMODE = 'require'
+
         // Image configuration
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
         GIT_COMMIT_SHORT = ""
         FRONTEND_IMAGE = "localhost:5000/blog-frontend:${BUILD_NUMBER}"
         BACKEND_IMAGE = "localhost:5000/blog-backend:${BUILD_NUMBER}"
-        
+
         // Environment configuration
         CORS_ORIGIN = 'https://blog.ingasti.com'
         VITE_API_URL = 'https://bapi.ingasti.com'
-        
+
         // Docker registry
         REGISTRY_URL = 'localhost:5000'
     }
