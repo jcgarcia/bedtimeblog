@@ -107,7 +107,12 @@ pipeline {
                     sh """
                         # Start backend container for testing
                         docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e DATABASE_URL="${DATABASE_URL}" \
+                            -e PGHOST="${PGHOST}" \
+                            -e PGPORT="${PGPORT}" \
+                            -e PGUSER="${PGUSER}" \
+                            -e PGPASSWORD="${PGPASSWORD}" \
+                            -e PGDATABASE="${PGDATABASE}" \
+                            -e PGSSLMODE="${PGSSLMODE}" \
                             -e JWT_SECRET="${JWT_SECRET}" \
                             -e CORS_ORIGIN="${CORS_ORIGIN}" \
                             -e NODE_ENV=production \
