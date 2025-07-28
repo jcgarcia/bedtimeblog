@@ -102,30 +102,38 @@ pipeline {
         
         stage('Test Backend Container') {
             steps {
-                script {
-                    echo "🧪 Testing backend container..."
-                    sh """
-                        # Start backend container for testing
-                        docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e PGHOST="${PGHOST}" \
-                            -e PGPORT="${PGPORT}" \
-                            -e PGUSER="${PGUSER}" \
-                            -e PGPASSWORD="${PGPASSWORD}" \
-                            -e PGDATABASE="${PGDATABASE}" \
-                            -e PGSSLMODE="${PGSSLMODE}" \
-                            -e JWT_SECRET="${JWT_SECRET}" \
-                            -e CORS_ORIGIN="${CORS_ORIGIN}" \
-                            -e NODE_ENV=production \
-                            ${env.BACKEND_IMAGE}
-                        
-                        # Wait for container to start
-                        sleep 15
-                        
-                        # Test health endpoint
-                        curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
-                        
-                        echo "✅ Backend container test passed"
-                    """
+                withCredentials([
+                    string(credentialsId: 'db-host', variable: 'PGHOST'),
+                    string(credentialsId: 'db-port', variable: 'PGPORT'),
+                    string(credentialsId: 'db-user', variable: 'PGUSER'),
+                    string(credentialsId: 'db-key', variable: 'PGPASSWORD'),
+                    string(credentialsId: 'db-name', variable: 'PGDATABASE')
+                ]) {
+                    script {
+                        echo "🧪 Testing backend container..."
+                        sh """
+                            # Start backend container for testing
+                            docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
+                                -e PGHOST="${PGHOST}" \
+                                -e PGPORT="${PGPORT}" \
+                                -e PGUSER="${PGUSER}" \
+                                -e PGPASSWORD="${PGPASSWORD}" \
+                                -e PGDATABASE="${PGDATABASE}" \
+                                -e PGSSLMODE="${PGSSLMODE}" \
+                                -e JWT_SECRET="${JWT_SECRET}" \
+                                -e CORS_ORIGIN="${CORS_ORIGIN}" \
+                                -e NODE_ENV=production \
+                                ${env.BACKEND_IMAGE}
+                            
+                            # Wait for container to start
+                            sleep 15
+                            
+                            # Test health endpoint
+                            curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
+                            
+                            echo "✅ Backend container test passed"
+                        """
+                    }
                 }
             }
             post {
