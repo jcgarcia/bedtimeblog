@@ -92,10 +92,14 @@ pipeline {
                 script {
                     echo "🧪 Testing backend container..."
                     sh """
-                        # Start backend container for testing
+                        # Start backend container for testing with all required PG* env vars
                         docker run -d -p 5002:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e DATABASE_URL="${DATABASE_URL}" \
-                            -e JWT_SECRET="${JWT_SECRET}" \
+                            -e PGHOST='ingasti-pg-ingasti.c.aivencloud.com' \
+                            -e PGPORT='25306' \
+                            -e PGDATABASE='blog' \
+                            -e PGUSER='avnadmin' \
+                            -e PGPASSWORD='your_postgres_password' \
+                            -e PGSSLMODE='require' \
                             -e CORS_ORIGIN="${CORS_ORIGIN}" \
                             -e NODE_ENV=production \
                             ${env.BACKEND_IMAGE}
