@@ -1,9 +1,11 @@
-import mysql from "mysql"
+import pkg from 'pg';
+const { Pool } = pkg;
 
-export const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_KEY,
-  database: process.env.DB_NAME
-})
+export const db = new Pool({
+  host: process.env.PGHOST,
+  port: process.env.PGPORT,
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false
+});
