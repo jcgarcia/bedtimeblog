@@ -154,27 +154,22 @@ pipeline {
                 script {
                     echo "🧪 Testing frontend container..."
                     sh """
-                        # Start backend container for testing
-                        docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e PGHOST=\"${PGHOST}\" \
-                            -e PGPORT=\"${PGPORT}\" \
-                            -e PGUSER=\"${PGUSER}\" \
-                            -e PGPASSWORD=\"${PGPASSWORD}\" \
-                            -e PGDATABASE=\"${PGDATABASE}\" \
-                            -e PGSSLMODE=\"${PGSSLMODE}\" \
-                            -e JWT_SECRET=\"${JWT_SECRET}\" \
-                            -e CORS_ORIGIN=\"${CORS_ORIGIN}\" \
-                            -e NODE_ENV=production \
-                            ${env.BACKEND_IMAGE}
+                        # Start frontend container for testing
+                        docker run -d -p 3001:80 --name test-frontend-${BUILD_NUMBER} \
+                            -e VITE_API_URL="${VITE_API_URL}" \
+                            ${env.FRONTEND_IMAGE}
                         
                         # Wait for container to start
                         sleep 15
                         
                         # Test health endpoint
-                        curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
+                        curl -f http://localhost:3001/health || (echo "Frontend health check failed" && exit 1)
                         
-                        echo "✅ Backend container test passed"
+                        echo "✅ Frontend container test passed"
                     """
+                }
+            }
+            post {
                 always {
                     script {
                         // Cleanup test container
