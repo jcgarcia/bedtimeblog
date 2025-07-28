@@ -15,17 +15,17 @@ import { loadSystemConfig } from "./middleware/systemConfig.js";
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-// Validate required database environment variables
-const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USER'];
+// Validate required PostgreSQL environment variables
+const requiredEnvVars = ['PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGDATABASE'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  console.error('❌ Missing required database environment variables:', missingVars);
+  console.error('❌ Missing required PostgreSQL environment variables:', missingVars);
   console.error('📝 Please set these variables in your environment or .env file');
   process.exit(1);
 }
 
-console.log('✅ Database environment variables loaded successfully');
+console.log('✅ PostgreSQL environment variables loaded successfully');
 console.log('🔧 System configuration will be loaded from database');
 
 const app = express();
