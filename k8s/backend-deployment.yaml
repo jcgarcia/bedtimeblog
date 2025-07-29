@@ -30,26 +30,42 @@ spec:
         - containerPort: 5000
           name: http
         env:
-        - name: DATABASE_URL
+        - name: PGHOST
           valueFrom:
             secretKeyRef:
               name: blog-secrets
-              key: database-url
-        - name: JWT_SECRET
+              key: PGHOST
+        - name: PGPORT
           valueFrom:
             secretKeyRef:
               name: blog-secrets
-              key: jwt-secret
-        - name: GOOGLE_CLIENT_ID
+              key: PGPORT
+        - name: PGDATABASE
           valueFrom:
             secretKeyRef:
               name: blog-secrets
-              key: google-client-id
-        - name: GOOGLE_CLIENT_SECRET
+              key: PGDATABASE
+        - name: PGUSER
           valueFrom:
             secretKeyRef:
               name: blog-secrets
-              key: google-client-secret
+              key: PGUSER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: blog-secrets
+              key: PGPASSWORD
+        - name: PGSSLMODE
+          value: "require"
+        - name: BLOG_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: blog-secrets
+              key: BLOG_API_KEY
+        - name: BLOG_API_URL
+          value: "https://bapi.ingasti.com/api"
+        - name: BLOG_USER_ID
+          value: "1"
         - name: CORS_ORIGIN
           valueFrom:
             configMapKeyRef:
