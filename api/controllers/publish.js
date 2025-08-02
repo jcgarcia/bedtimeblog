@@ -1,4 +1,4 @@
-import { db } from "../db.js";
+import { getDbPool } from "../db.js";
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
@@ -117,42 +117,37 @@ function generateSlug(title) {
 export const publishMarkdownPost = (req, res) => {
   const uploadSingle = upload.single('markdown');
   
-  uploadSingle(req, res, (err) => {
+  uploadSingle(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
-    
     if (!req.file) {
       return res.status(400).json({ error: 'No markdown file provided' });
     }
-    
+    const pool = getDbPool();
     try {
       // Read the uploaded file
       const filePath = req.file.path;
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      
       // Parse frontmatter and content
       const { frontmatter, content } = parseFrontmatter(fileContent);
-      
       // Validate frontmatter
       validateFrontmatter(frontmatter);
-      
       // Extract post data
       const title = frontmatter.title;
       const description = frontmatter.description;
       const category = extractCategory(frontmatter);
       const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
       const slug = generateSlug(title);
-      
       // Handle authentication (allow API key or JWT token)
       let userId = null;
       const apiKey = req.headers['x-api-key'];
       const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
-      
       if (apiKey) {
         // Use API key from database configuration
         const validApiKey = req.apiKeys?.publishApiKey;
         if (!validApiKey || apiKey !== validApiKey) {
+          await pool.end();
           return res.status(401).json({ error: 'Invalid API key' });
         }
         // Use default user ID from system configuration
@@ -163,51 +158,36 @@ export const publishMarkdownPost = (req, res) => {
           const userInfo = jwt.verify(token, "jwtkey");
           userId = userInfo.id;
         } catch (jwtErr) {
+          await pool.end();
           return res.status(403).json({ error: 'Invalid token' });
         }
       } else {
+        await pool.end();
         return res.status(401).json({ error: 'Authentication required' });
       }
-      
       // Prepare database query
-      const q = "INSERT INTO posts(`title`, `postcont`, `img`, `cat`, `postdate`, `userid`) VALUES (?)";
-      
-      const values = [
-        title,
-        content,
-        frontmatter.image || '', // Optional image from frontmatter
-        category,
-        postDate,
-        userId
-      ];
-      
+      const q = "INSERT INTO posts(`title`, `postcont`, `img`, `cat`, `postdate`, `userid`) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;";
+      const values = [title, content, frontmatter.image || '', category, postDate, userId];
       // Insert into database
-      db.query(q, [values], (dbErr, data) => {
-        if (dbErr) {
-          console.error('Database error:', dbErr);
-          return res.status(500).json({ error: 'Database error', details: dbErr.message });
-        }
-        
-        // Clean up uploaded file
-        fs.unlinkSync(filePath);
-        
-        // Return success response
-        res.status(201).json({
-          success: true,
-          message: 'Post published successfully',
-          postId: data.insertId,
-          title: title,
-          category: category,
-          publishedAt: postDate
-        });
+      const result = await pool.query(q, values);
+      // Clean up uploaded file
+      fs.unlinkSync(filePath);
+      // Return success response
+      await pool.end();
+      res.status(201).json({
+        success: true,
+        message: 'Post published successfully',
+        postId: result.rows[0].id,
+        title: title,
+        category: category,
+        publishedAt: postDate
       });
-      
     } catch (parseErr) {
       console.error('Parse error:', parseErr);
-      // Clean up uploaded file on error
       if (req.file && req.file.path) {
         fs.unlinkSync(req.file.path);
       }
+      await pool.end();
       return res.status(400).json({ error: parseErr.message });
     }
   });
@@ -215,82 +195,68 @@ export const publishMarkdownPost = (req, res) => {
 
 // Alternative endpoint for publishing via raw markdown content (no file upload)
 export const publishMarkdownContent = (req, res) => {
-  try {
-    const { markdownContent } = req.body;
-    
-    if (!markdownContent) {
-      return res.status(400).json({ error: 'Markdown content is required' });
-    }
-    
-    // Parse frontmatter and content
-    const { frontmatter, content } = parseFrontmatter(markdownContent);
-    
-    // Validate frontmatter
-    validateFrontmatter(frontmatter);
-    
-    // Extract post data
-    const title = frontmatter.title;
-    const description = frontmatter.description;
-    const category = extractCategory(frontmatter);
-    const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
-    const slug = generateSlug(title);
-    
-    // Handle authentication
-    let userId = null;
-    const apiKey = req.headers['x-api-key'];
-    const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
-    
-    if (apiKey) {
-      // Use API key from database configuration
-      const validApiKey = req.apiKeys?.publishApiKey;
-      if (!validApiKey || apiKey !== validApiKey) {
-        return res.status(401).json({ error: 'Invalid API key' });
+  (async () => {
+    const pool = getDbPool();
+    try {
+      const { markdownContent } = req.body;
+      if (!markdownContent) {
+        await pool.end();
+        return res.status(400).json({ error: 'Markdown content is required' });
       }
-      // Use default user ID from system configuration
-      userId = parseInt(req.systemConfig?.blogUserId) || 1;
-    } else if (token) {
-      try {
-        const userInfo = jwt.verify(token, "jwtkey");
-        userId = userInfo.id;
-      } catch (jwtErr) {
-        return res.status(403).json({ error: 'Invalid token' });
+      // Parse frontmatter and content
+      const { frontmatter, content } = parseFrontmatter(markdownContent);
+      // Validate frontmatter
+      validateFrontmatter(frontmatter);
+      // Extract post data
+      const title = frontmatter.title;
+      const description = frontmatter.description;
+      const category = extractCategory(frontmatter);
+      const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
+      const slug = generateSlug(title);
+      // Handle authentication
+      let userId = null;
+      const apiKey = req.headers['x-api-key'];
+      const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
+      if (apiKey) {
+        // Use API key from database configuration
+        const validApiKey = req.apiKeys?.publishApiKey;
+        if (!validApiKey || apiKey !== validApiKey) {
+          await pool.end();
+          return res.status(401).json({ error: 'Invalid API key' });
+        }
+        // Use default user ID from system configuration
+        userId = parseInt(req.systemConfig?.blogUserId) || 1;
+      } else if (token) {
+        try {
+          const userInfo = jwt.verify(token, "jwtkey");
+          userId = userInfo.id;
+        } catch (jwtErr) {
+          await pool.end();
+          return res.status(403).json({ error: 'Invalid token' });
+        }
+      } else {
+        await pool.end();
+        return res.status(401).json({ error: 'Authentication required' });
       }
-    } else {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    // Prepare database query
-    const q = "INSERT INTO posts(`title`, `postcont`, `img`, `cat`, `postdate`, `userid`) VALUES (?)";
-    
-    const values = [
-      title,
-      content,
-      frontmatter.image || '',
-      category,
-      postDate,
-      userId
-    ];
-    
-    // Insert into database
-    db.query(q, [values], (dbErr, data) => {
-      if (dbErr) {
-        console.error('Database error:', dbErr);
-        return res.status(500).json({ error: 'Database error', details: dbErr.message });
-      }
-      
+      // Prepare database query
+      const q = "INSERT INTO posts(`title`, `postcont`, `img`, `cat`, `postdate`, `userid`) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;";
+      const values = [title, content, frontmatter.image || '', category, postDate, userId];
+      // Insert into database
+      const result = await pool.query(q, values);
+      await pool.end();
       // Return success response
       res.status(201).json({
         success: true,
         message: 'Post published successfully',
-        postId: data.insertId,
+        postId: result.rows[0].id,
         title: title,
         category: category,
         publishedAt: postDate
       });
-    });
-    
-  } catch (parseErr) {
-    console.error('Parse error:', parseErr);
-    return res.status(400).json({ error: parseErr.message });
-  }
+    } catch (parseErr) {
+      console.error('Parse error:', parseErr);
+      await pool.end();
+      return res.status(400).json({ error: parseErr.message });
+    }
+  })();
 };

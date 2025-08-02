@@ -137,7 +137,6 @@ metadata:
   name: blog-backend-ingress
   namespace: blog
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
@@ -149,7 +148,7 @@ spec:
   - host: bapi.ingasti.com
     http:
       paths:
-      - path: /
+      - path: /api
         pathType: Prefix
         backend:
           service:
