@@ -180,67 +180,83 @@ async function validateMarkdownFile(filePath) {
 // Main function
 async function main() {
   const args = process.argv.slice(2);
-  
-  if (args.length === 0 || args.includes('--help')) {
-    showUsage();
-    return;
-  }
-
-  // Load configuration from database first
-  await loadConfig();
-
-  const filePath = args[0];
-  const options = {};
-
-  // Parse command line options
-  for (let i = 1; i < args.length; i += 2) {
-    const flag = args[i];
-    const value = args[i + 1];
-
-    switch (flag) {
-      case '--api-url':
-        options.apiUrl = value;
-        break;
-      case '--api-key':
-        options.apiKey = value;
-        break;
-      case '--content':
-        options.content = true;
-        i--; // This flag doesn't take a value
-        break;
-      default:
-        log(`⚠️  Unknown option: ${flag}`, 'yellow');
-    }
-  }
-
-  // Validate file
-  await validateMarkdownFile(filePath);
-
-  // Publish
+  let skipDbConfig = false;
+  let filePath, options = {};
+  let configLoaded = false;
   try {
+    if (args.length === 0 || args.includes('--help')) {
+      showUsage();
+      // Always close DB if opened
+      if (!skipDbConfig && configLoaded) await configManager.close();
+      return;
+    }
+
+    filePath = args[0];
+    options = {};
+    // Parse command line options
+    for (let i = 1; i < args.length; i += 2) {
+      const flag = args[i];
+      const value = args[i + 1];
+      switch (flag) {
+        case '--api-url':
+          options.apiUrl = value;
+          skipDbConfig = true;
+          break;
+        case '--api-key':
+          options.apiKey = value;
+          skipDbConfig = true;
+          break;
+        case '--content':
+          options.content = true;
+          i--; // This flag doesn't take a value
+          break;
+        default:
+          log(`⚠️  Unknown option: ${flag}`, 'yellow');
+      }
+    }
+
+    // Only load config from DB if not provided via CLI
+    if (!skipDbConfig) {
+      await loadConfig();
+      configLoaded = true;
+    } else {
+      if (options.apiUrl) CONFIG.API_BASE_URL = options.apiUrl;
+      if (options.apiKey) CONFIG.API_KEY = options.apiKey;
+    }
+
+    // Validate file
+    const valid = await validateMarkdownFile(filePath);
+    if (!valid) {
+      log('❌ Markdown validation failed. Exiting.', 'red');
+      if (!skipDbConfig && configLoaded) await configManager.close();
+      process.exit(1);
+    }
+
+    // Publish
     const result = await publishMarkdownFile(filePath, options);
     log(`\n🎉 ${result.message}`, 'green');
     log(`📝 Post ID: ${result.postId}`, 'blue');
     log(`📌 Title: ${result.title}`, 'blue');
     log(`🏷️  Category: ${result.category}`, 'blue');
     log(`📅 Published: ${result.publishedAt}`, 'blue');
+    if (!skipDbConfig && configLoaded) await configManager.close();
   } catch (error) {
     log(`\n❌ Publishing failed: ${error.message}`, 'red');
+    if (!skipDbConfig && configLoaded) await configManager.close();
     process.exit(1);
-  } finally {
-    // Close database connection
-    await configManager.close();
   }
 }
 
 // Handle uncaught errors
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
   log(`❌ Uncaught Exception: ${error.message}`, 'red');
+  try { await configManager.close(); } catch (e) {}
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', async (reason, promise) => {
   log(`❌ Unhandled Rejection: ${reason}`, 'red');
+  try { await configManager.close(); } catch (e) {}
   process.exit(1);
 });
 
