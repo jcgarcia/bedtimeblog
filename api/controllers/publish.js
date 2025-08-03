@@ -147,7 +147,6 @@ export const publishMarkdownPost = (req, res) => {
         // Use API key from database configuration
         const validApiKey = req.apiKeys?.publishApiKey;
         if (!validApiKey || apiKey !== validApiKey) {
-          await pool.end();
           return res.status(401).json({ error: 'Invalid API key' });
         }
         // Use default user ID from system configuration
@@ -158,11 +157,9 @@ export const publishMarkdownPost = (req, res) => {
           const userInfo = jwt.verify(token, "jwtkey");
           userId = userInfo.id;
         } catch (jwtErr) {
-          await pool.end();
           return res.status(403).json({ error: 'Invalid token' });
         }
       } else {
-        await pool.end();
         return res.status(401).json({ error: 'Authentication required' });
       }
       // Prepare database query
@@ -173,7 +170,6 @@ export const publishMarkdownPost = (req, res) => {
       // Clean up uploaded file
       fs.unlinkSync(filePath);
       // Return success response
-      await pool.end();
       res.status(201).json({
         success: true,
         message: 'Post published successfully',
@@ -187,7 +183,6 @@ export const publishMarkdownPost = (req, res) => {
       if (req.file && req.file.path) {
         fs.unlinkSync(req.file.path);
       }
-      await pool.end();
       return res.status(400).json({ error: parseErr.message });
     }
   });
@@ -200,7 +195,6 @@ export const publishMarkdownContent = (req, res) => {
     try {
       const { markdownContent } = req.body;
       if (!markdownContent) {
-        await pool.end();
         return res.status(400).json({ error: 'Markdown content is required' });
       }
       // Parse frontmatter and content
@@ -221,7 +215,6 @@ export const publishMarkdownContent = (req, res) => {
         // Use API key from database configuration
         const validApiKey = req.apiKeys?.publishApiKey;
         if (!validApiKey || apiKey !== validApiKey) {
-          await pool.end();
           return res.status(401).json({ error: 'Invalid API key' });
         }
         // Use default user ID from system configuration
@@ -231,11 +224,9 @@ export const publishMarkdownContent = (req, res) => {
           const userInfo = jwt.verify(token, "jwtkey");
           userId = userInfo.id;
         } catch (jwtErr) {
-          await pool.end();
           return res.status(403).json({ error: 'Invalid token' });
         }
       } else {
-        await pool.end();
         return res.status(401).json({ error: 'Authentication required' });
       }
       // Prepare database query
@@ -243,7 +234,6 @@ export const publishMarkdownContent = (req, res) => {
       const values = [title, content, frontmatter.image || '', category, postDate, userId];
       // Insert into database
       const result = await pool.query(q, values);
-      await pool.end();
       // Return success response
       res.status(201).json({
         success: true,
@@ -255,7 +245,6 @@ export const publishMarkdownContent = (req, res) => {
       });
     } catch (parseErr) {
       console.error('Parse error:', parseErr);
-      await pool.end();
       return res.status(400).json({ error: parseErr.message });
     }
   })();
