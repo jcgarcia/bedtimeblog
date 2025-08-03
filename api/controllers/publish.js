@@ -139,27 +139,19 @@ export const publishMarkdownPost = (req, res) => {
       const category = extractCategory(frontmatter);
       const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
       const slug = generateSlug(title);
-      // Handle authentication (allow API key or JWT token)
       let userId = null;
       const apiKey = req.headers['x-api-key'];
       const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
       if (apiKey) {
-        // Use API key from database configuration
         const validApiKey = req.apiKeys?.publishApiKey;
-        console.log('[DEBUG] Received API key:', apiKey);
-        console.log('[DEBUG] Expected API key from DB:', validApiKey);
         if (!validApiKey) {
-          console.error('[ERROR] No valid API key loaded from DB');
           return res.status(401).json({ error: 'Invalid API key (no key loaded)'});
         }
         if (apiKey !== validApiKey) {
-          console.error('[ERROR] API key mismatch. Received:', apiKey, 'Expected:', validApiKey);
           return res.status(401).json({ error: 'Invalid API key (mismatch)'});
         }
-        // Use default user ID from system configuration
         userId = parseInt(req.systemConfig?.blogUserId) || 1;
       } else if (token) {
-        // JWT token authentication
         try {
           const userInfo = jwt.verify(token, "jwtkey");
           userId = userInfo.id;
@@ -169,14 +161,11 @@ export const publishMarkdownPost = (req, res) => {
       } else {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      // Prepare database query
-      const q = "INSERT INTO posts(`title`, `postcont`, `img`, `cat`, `postdate`, `userid`) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;";
-      const values = [title, content, frontmatter.image || '', category, postDate, userId];
-      // Insert into database
+      // Prepare database query for new schema
+      const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+      const values = [title, slug, content, userId, postDate];
       const result = await pool.query(q, values);
-      // Clean up uploaded file
       fs.unlinkSync(filePath);
-      // Return success response
       res.status(201).json({
         success: true,
         message: 'Post published successfully',
@@ -214,17 +203,14 @@ export const publishMarkdownContent = (req, res) => {
       const category = extractCategory(frontmatter);
       const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
       const slug = generateSlug(title);
-      // Handle authentication
       let userId = null;
       const apiKey = req.headers['x-api-key'];
       const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
       if (apiKey) {
-        // Use API key from database configuration
         const validApiKey = req.apiKeys?.publishApiKey;
         if (!validApiKey || apiKey !== validApiKey) {
           return res.status(401).json({ error: 'Invalid API key' });
         }
-        // Use default user ID from system configuration
         userId = parseInt(req.systemConfig?.blogUserId) || 1;
       } else if (token) {
         try {
@@ -236,12 +222,10 @@ export const publishMarkdownContent = (req, res) => {
       } else {
         return res.status(401).json({ error: 'Authentication required' });
       }
-      // Prepare database query
-      const q = "INSERT INTO posts(`title`, `postcont`, `img`, `cat`, `postdate`, `userid`) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;";
-      const values = [title, content, frontmatter.image || '', category, postDate, userId];
-      // Insert into database
+      // Prepare database query for new schema
+      const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+      const values = [title, slug, content, userId, postDate];
       const result = await pool.query(q, values);
-      // Return success response
       res.status(201).json({
         success: true,
         message: 'Post published successfully',

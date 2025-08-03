@@ -70,7 +70,7 @@ class SystemConfigManager {
   async getConfig(key) {
     try {
       const result = await this.pool.query(
-        'SELECT config_value, config_type, is_encrypted FROM sys_config WHERE config_key = $1 AND is_active = true',
+        'SELECT id, config_value, config_type, is_encrypted FROM sys_config WHERE config_key = $1 AND is_active = true',
         [key]
       );
       
@@ -78,10 +78,10 @@ class SystemConfigManager {
         return null;
       }
 
-      const { config_value, config_type, is_encrypted } = result.rows[0];
+      const { id, config_value, config_type, is_encrypted } = result.rows[0];
       
-      // Log access
-      await this.logAudit('sys_config', key, 'ACCESS');
+      // Log access (use integer id)
+      await this.logAudit('sys_config', id, 'ACCESS');
       
       let value = config_value;
       
@@ -178,7 +178,7 @@ class SystemConfigManager {
   async getApiKey(serviceName) {
     try {
       const result = await this.pool.query(
-        'SELECT api_key_encrypted, description FROM sys_api_keys WHERE service_name = $1 AND is_active = true',
+        'SELECT id, api_key_encrypted, description FROM sys_api_keys WHERE service_name = $1 AND is_active = true',
         [serviceName]
       );
       
@@ -186,7 +186,7 @@ class SystemConfigManager {
         return null;
       }
 
-      const { api_key_encrypted } = result.rows[0];
+      const { id, api_key_encrypted } = result.rows[0];
       
       // Update usage count and last used
       await this.pool.query(
@@ -194,8 +194,8 @@ class SystemConfigManager {
         [serviceName]
       );
       
-      // Log access
-      await this.logAudit('sys_api_keys', serviceName, 'ACCESS');
+      // Log access (use the integer ID)
+      await this.logAudit('sys_api_keys', id, 'ACCESS');
       
       // Try to decrypt if it looks encrypted
       if (api_key_encrypted.includes(':')) {
