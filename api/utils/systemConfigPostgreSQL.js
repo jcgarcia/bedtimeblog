@@ -1,5 +1,4 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import { getDbPool } from '../db.js';
 import crypto from 'crypto';
 
 /**
@@ -8,18 +7,7 @@ import crypto from 'crypto';
  */
 class SystemConfigManager {
   constructor() {
-    this.pool = new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'blog',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || process.env.DB_KEY,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
-    
+    this.pool = getDbPool();
     this.encryptionKey = process.env.CONFIG_ENCRYPTION_KEY || this.generateEncryptionKey();
   }
 
