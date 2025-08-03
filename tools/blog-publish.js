@@ -186,8 +186,7 @@ async function main() {
   try {
     if (args.length === 0 || args.includes('--help')) {
       showUsage();
-      // Always close DB if opened
-      if (!skipDbConfig && configLoaded) await configManager.close();
+      // No DB close needed
       return;
     }
 
@@ -228,7 +227,7 @@ async function main() {
     const valid = await validateMarkdownFile(filePath);
     if (!valid) {
       log('❌ Markdown validation failed. Exiting.', 'red');
-      if (!skipDbConfig && configLoaded) await configManager.close();
+      // No DB close needed
       process.exit(1);
     }
 
@@ -239,10 +238,10 @@ async function main() {
     log(`📌 Title: ${result.title}`, 'blue');
     log(`🏷️  Category: ${result.category}`, 'blue');
     log(`📅 Published: ${result.publishedAt}`, 'blue');
-    if (!skipDbConfig && configLoaded) await configManager.close();
+    // No DB close needed
   } catch (error) {
     log(`\n❌ Publishing failed: ${error.message}`, 'red');
-    if (!skipDbConfig && configLoaded) await configManager.close();
+    // No DB close needed
     process.exit(1);
   }
 }
@@ -250,13 +249,13 @@ async function main() {
 // Handle uncaught errors
 process.on('uncaughtException', async (error) => {
   log(`❌ Uncaught Exception: ${error.message}`, 'red');
-  try { await configManager.close(); } catch (e) {}
+  // No DB close needed
   process.exit(1);
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
   log(`❌ Unhandled Rejection: ${reason}`, 'red');
-  try { await configManager.close(); } catch (e) {}
+  // No DB close needed
   process.exit(1);
 });
 
