@@ -146,8 +146,15 @@ export const publishMarkdownPost = (req, res) => {
       if (apiKey) {
         // Use API key from database configuration
         const validApiKey = req.apiKeys?.publishApiKey;
-        if (!validApiKey || apiKey !== validApiKey) {
-          return res.status(401).json({ error: 'Invalid API key' });
+        console.log('[DEBUG] Received API key:', apiKey);
+        console.log('[DEBUG] Expected API key from DB:', validApiKey);
+        if (!validApiKey) {
+          console.error('[ERROR] No valid API key loaded from DB');
+          return res.status(401).json({ error: 'Invalid API key (no key loaded)'});
+        }
+        if (apiKey !== validApiKey) {
+          console.error('[ERROR] API key mismatch. Received:', apiKey, 'Expected:', validApiKey);
+          return res.status(401).json({ error: 'Invalid API key (mismatch)'});
         }
         // Use default user ID from system configuration
         userId = parseInt(req.systemConfig?.blogUserId) || 1;
