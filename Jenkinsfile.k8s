@@ -7,6 +7,7 @@ pipeline {
         // Database and security credentials - will be set in the pipeline
         DATABASE_URL = credentials('db-connection-string')
         JWT_SECRET = credentials('jwt-secret')
+        DB_PASSWORD = credentials('db-key')
         
         // Image configuration
         BUILD_NUMBER = "${env.BUILD_NUMBER}"
@@ -98,7 +99,7 @@ pipeline {
                             -e PGPORT='25306' \
                             -e PGDATABASE='blog' \
                             -e PGUSER='avnadmin' \
-                            -e PGPASSWORD='your_postgres_password' \
+                            -e PGPASSWORD="${DB_PASSWORD}" \
                             -e PGSSLMODE='require' \
                             -e CORS_ORIGIN="${CORS_ORIGIN}" \
                             -e NODE_ENV=production \
