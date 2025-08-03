@@ -362,12 +362,6 @@ class SystemConfigManager {
     }
   }
 
-  /**
-   * Close database connection
-   */
-  async close() {
-    await this.pool.end();
-  }
 }
 
 export default SystemConfigManager;
