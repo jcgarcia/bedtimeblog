@@ -23,7 +23,7 @@ export default function TopBar() {
         <li className="topListItem"><Link className="link" to="/"  > Home </Link></li>
         <li className="topListItem"><Link className="link" to="/"  > About </Link></li>
         <li className="topListItem"><Link className="link" to="/"  > Contact </Link></li>
-        <li className="topListItem"><Link className="link" to="/write"  > Write </Link></li>
+        <li className="topListItem"><Link className="link" to="/write"  > Ops </Link></li>
         <li className="topListItem"> { user &&  "Logout" } </li>
 
         </ul>
