@@ -19,13 +19,17 @@ class SystemConfigManager {
    * Test database connection
    */
   async testConnection() {
+    let client;
     try {
-      const client = await this.pool.connect();
+      client = await this.pool.connect();
       const result = await client.query('SELECT NOW() as current_time, version() as pg_version');
-      client.release();
       return { success: true, data: result.rows[0] };
     } catch (error) {
       return { success: false, error: error.message };
+    } finally {
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -319,7 +323,15 @@ class SystemConfigManager {
       );
     } catch (error) {
       console.error('Error logging audit:', error);
+      // Don't throw error to prevent audit failures from breaking main operations
     }
+  }
+
+  /**
+   * Alternative method for audit logging with proper access tracking
+   */
+  async logAccess(tableName, recordId, operation, oldValues = null, newValues = null, userId = null, ipAddress = null, userAgent = null) {
+    return this.logAudit(tableName, recordId, operation, oldValues, newValues, userId, ipAddress, userAgent);
   }
 
   /**

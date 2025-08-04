@@ -9,19 +9,19 @@ async function loadSystemConfig(req, res, next) {
     
     // Load essential configuration
     const config = {
-      blogApiUrl: await configManager.getConfig('blog_api_url'),
-      blogUserId: await configManager.getConfig('blog_user_id'),
-      maxFileSize: parseInt(await configManager.getConfig('max_file_size')),
-      allowedFileTypes: await configManager.getConfig('allowed_file_types'),
-      rateLimitRequests: parseInt(await configManager.getConfig('rate_limit_requests')),
-      rateLimitWindow: parseInt(await configManager.getConfig('rate_limit_window')),
-      jwtExpiry: await configManager.getConfig('jwt_expiry'),
-      sessionTimeout: parseInt(await configManager.getConfig('session_timeout'))
+      blogApiUrl: await configManager.getConfig('blog_api_url').catch(() => null),
+      blogUserId: await configManager.getConfig('blog_user_id').catch(() => '1'),
+      maxFileSize: parseInt(await configManager.getConfig('max_file_size').catch(() => '5242880')),
+      allowedFileTypes: await configManager.getConfig('allowed_file_types').catch(() => 'md,txt'),
+      rateLimitRequests: parseInt(await configManager.getConfig('rate_limit_requests').catch(() => '100')),
+      rateLimitWindow: parseInt(await configManager.getConfig('rate_limit_window').catch(() => '900000')),
+      jwtExpiry: await configManager.getConfig('jwt_expiry').catch(() => '24h'),
+      sessionTimeout: parseInt(await configManager.getConfig('session_timeout').catch(() => '3600000'))
     };
 
-    // Load API keys
+    // Load API keys with fallback
     const apiKeys = {
-      publishApiKey: await configManager.getApiKey('blog_publish_api_key'),
+      publishApiKey: await configManager.getApiKey('blog_publish_api_key').catch(() => null),
       githubWebhookSecret: await configManager.getApiKey('github_webhook_secret').catch(() => null),
       monitoringApiKey: await configManager.getApiKey('monitoring_api_key').catch(() => null)
     };
@@ -34,10 +34,18 @@ async function loadSystemConfig(req, res, next) {
     next();
   } catch (error) {
     console.error('Failed to load system configuration:', error);
-    res.status(500).json({ 
-      error: 'System configuration error',
-      message: 'Failed to load system configuration. Please check database connection.'
-    });
+    // Continue with defaults rather than failing the request
+    req.systemConfig = {
+      blogUserId: '1',
+      maxFileSize: 5242880,
+      allowedFileTypes: 'md,txt',
+      rateLimitRequests: 100,
+      rateLimitWindow: 900000,
+      jwtExpiry: '24h',
+      sessionTimeout: 3600000
+    };
+    req.apiKeys = {};
+    next();
   }
 }
 

@@ -10,6 +10,8 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import fs from "fs";
 import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
+import { closeDbPool } from "./db.js";
+import { createHealthCheckEndpoint, createConnectionInfoEndpoint } from "./utils/dbHealthCheck.js";
 
 // Load environment variables for database connection only
 dotenv.config({ path: '.env.local' });
@@ -125,6 +127,12 @@ app.get("/health", (req, res) => {
   });
 });
 
+// Database health check endpoint
+app.get("/health/db", createHealthCheckEndpoint());
+
+// Database connection info endpoint (for debugging)
+app.get("/health/db/connections", createConnectionInfoEndpoint());
+
 // Root endpoint
 app.get("/", (req, res) => {
   res.status(200).json({ 
@@ -139,6 +147,43 @@ app.use("/api/posts", postRoutes);
 app.use("/api/publish", publishRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Connected! Server running on port ${PORT}`);
 });
+
+// Graceful shutdown handling
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received. Starting graceful shutdown...');
+  await gracefulShutdown();
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received. Starting graceful shutdown...');
+  await gracefulShutdown();
+});
+
+async function gracefulShutdown() {
+  console.log('Closing server...');
+  server.close(async (err) => {
+    if (err) {
+      console.error('Error during server close:', err);
+      process.exit(1);
+    }
+    
+    try {
+      console.log('Server closed. Cleaning up database connections...');
+      await closeDbPool();
+      console.log('Graceful shutdown complete.');
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      process.exit(1);
+    }
+  });
+
+  // Force exit after 30 seconds if graceful shutdown fails
+  setTimeout(() => {
+    console.error('Graceful shutdown timeout. Forcing exit...');
+    process.exit(1);
+  }, 30000);
+}

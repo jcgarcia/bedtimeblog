@@ -124,15 +124,19 @@ export const publishMarkdownPost = (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No markdown file provided' });
     }
+    
     const pool = getDbPool();
     try {
       // Read the uploaded file
       const filePath = req.file.path;
       const fileContent = fs.readFileSync(filePath, 'utf8');
+      
       // Parse frontmatter and content
       const { frontmatter, content } = parseFrontmatter(fileContent);
+      
       // Validate frontmatter
       validateFrontmatter(frontmatter);
+      
       // Extract post data
       const title = frontmatter.title;
       const description = frontmatter.description;
@@ -140,8 +144,10 @@ export const publishMarkdownPost = (req, res) => {
       const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
       const slug = generateSlug(title);
       let userId = null;
+      
       const apiKey = req.headers['x-api-key'];
       const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
+      
       if (apiKey) {
         const validApiKey = req.apiKeys?.publishApiKey;
         if (!validApiKey) {
@@ -161,11 +167,15 @@ export const publishMarkdownPost = (req, res) => {
       } else {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      
       // Prepare database query for new schema
       const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
       const values = [title, slug, content, userId, postDate];
       const result = await pool.query(q, values);
+      
+      // Clean up uploaded file
       fs.unlinkSync(filePath);
+      
       res.status(201).json({
         success: true,
         message: 'Post published successfully',
@@ -176,8 +186,13 @@ export const publishMarkdownPost = (req, res) => {
       });
     } catch (parseErr) {
       console.error('Parse error:', parseErr);
+      // Clean up uploaded file in case of error
       if (req.file && req.file.path) {
-        fs.unlinkSync(req.file.path);
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (unlinkErr) {
+          console.error('Error cleaning up file:', unlinkErr);
+        }
       }
       return res.status(400).json({ error: parseErr.message });
     }
@@ -185,58 +200,64 @@ export const publishMarkdownPost = (req, res) => {
 };
 
 // Alternative endpoint for publishing via raw markdown content (no file upload)
-export const publishMarkdownContent = (req, res) => {
-  (async () => {
-    const pool = getDbPool();
-    try {
-      const { markdownContent } = req.body;
-      if (!markdownContent) {
-        return res.status(400).json({ error: 'Markdown content is required' });
-      }
-      // Parse frontmatter and content
-      const { frontmatter, content } = parseFrontmatter(markdownContent);
-      // Validate frontmatter
-      validateFrontmatter(frontmatter);
-      // Extract post data
-      const title = frontmatter.title;
-      const description = frontmatter.description;
-      const category = extractCategory(frontmatter);
-      const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
-      const slug = generateSlug(title);
-      let userId = null;
-      const apiKey = req.headers['x-api-key'];
-      const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
-      if (apiKey) {
-        const validApiKey = req.apiKeys?.publishApiKey;
-        if (!validApiKey || apiKey !== validApiKey) {
-          return res.status(401).json({ error: 'Invalid API key' });
-        }
-        userId = parseInt(req.systemConfig?.blogUserId) || 1;
-      } else if (token) {
-        try {
-          const userInfo = jwt.verify(token, "jwtkey");
-          userId = userInfo.id;
-        } catch (jwtErr) {
-          return res.status(403).json({ error: 'Invalid token' });
-        }
-      } else {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      // Prepare database query for new schema
-      const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-      const values = [title, slug, content, userId, postDate];
-      const result = await pool.query(q, values);
-      res.status(201).json({
-        success: true,
-        message: 'Post published successfully',
-        postId: result.rows[0].id,
-        title: title,
-        category: category,
-        publishedAt: postDate
-      });
-    } catch (parseErr) {
-      console.error('Parse error:', parseErr);
-      return res.status(400).json({ error: parseErr.message });
+export const publishMarkdownContent = async (req, res) => {
+  const pool = getDbPool();
+  
+  try {
+    const { markdownContent } = req.body;
+    if (!markdownContent) {
+      return res.status(400).json({ error: 'Markdown content is required' });
     }
-  })();
+    
+    // Parse frontmatter and content
+    const { frontmatter, content } = parseFrontmatter(markdownContent);
+    
+    // Validate frontmatter
+    validateFrontmatter(frontmatter);
+    
+    // Extract post data
+    const title = frontmatter.title;
+    const description = frontmatter.description;
+    const category = extractCategory(frontmatter);
+    const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
+    const slug = generateSlug(title);
+    let userId = null;
+    
+    const apiKey = req.headers['x-api-key'];
+    const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (apiKey) {
+      const validApiKey = req.apiKeys?.publishApiKey;
+      if (!validApiKey || apiKey !== validApiKey) {
+        return res.status(401).json({ error: 'Invalid API key' });
+      }
+      userId = parseInt(req.systemConfig?.blogUserId) || 1;
+    } else if (token) {
+      try {
+        const userInfo = jwt.verify(token, "jwtkey");
+        userId = userInfo.id;
+      } catch (jwtErr) {
+        return res.status(403).json({ error: 'Invalid token' });
+      }
+    } else {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    // Prepare database query for new schema
+    const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+    const values = [title, slug, content, userId, postDate];
+    const result = await pool.query(q, values);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Post published successfully',
+      postId: result.rows[0].id,
+      title: title,
+      category: category,
+      publishedAt: postDate
+    });
+  } catch (parseErr) {
+    console.error('Parse error:', parseErr);
+    return res.status(400).json({ error: parseErr.message });
+  }
 };
