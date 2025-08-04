@@ -21,7 +21,7 @@ export default function TopBar() {
       <div className="topCenter">
         <ul className={`topList ${menuOpen ? "open" : ""}`}>
         <li className="topListItem"><Link className="link" to="/"  > Home </Link></li>
-        <li className="topListItem"><Link className="link" to="/"  > About </Link></li>
+        <li className="topListItem"><Link className="link" to="/about"  > About </Link></li>
         <li className="topListItem"><Link className="link" to="/"  > Contact </Link></li>
         <li className="topListItem"><Link className="link" to="/write"  > Ops </Link></li>
         <li className="topListItem"> { user &&  "Logout" } </li>
