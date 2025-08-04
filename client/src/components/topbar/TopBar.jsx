@@ -74,13 +74,9 @@ export default function TopBar() {
             alt="Julio Cesar Garcia"
             />          
           ) : (
-            <ul className="topItem">
-              <li className="topListItem">
-                <Link className="link" to="/login">
-                  <i className="fa-solid fa-right-to-bracket"></i>
-                </Link>
-              </li>
-            </ul>
+            <Link className="link loginIcon" to="/login">
+              <i className="fa-solid fa-right-to-bracket"></i>
+            </Link>
           )
         }
 
