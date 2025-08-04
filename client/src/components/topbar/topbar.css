@@ -133,40 +133,36 @@
         min-width: 0;
     }
 
-    /* Completely hide the desktop menu on mobile */
+    /* Desktop menu is not rendered on mobile, so no styles needed */
     .topCenter {
-        position: absolute;
-        top: -9999px; /* Move completely off screen */
-        left: -9999px;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        display: none !important;
+        display: none;
     }
 
-    /* Mobile menu that slides down when opened */
-    .topCenter.open {
+    /* Mobile menu styles */
+    .mobileMenu {
         position: fixed;
         top: 50px; /* Right below the nav bar */
         left: 0;
         right: 0;
         width: 100vw;
-        height: auto;
         z-index: 9999;
         background-color: white;
         border-top: 1px solid #eee;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         max-height: calc(100vh - 50px);
         overflow-y: auto;
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-        display: block !important;
-        transform: translateY(0);
-        transition: all 0.3s ease;
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
     .topList {
