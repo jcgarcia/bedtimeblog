@@ -110,16 +110,20 @@
     .top {
         flex-wrap: wrap;
         position: relative;
+        width: 100%;
+        overflow-x: hidden; /* Prevent horizontal scroll */
     }
 
     .topLeft {
         order: 1;
         flex: 1;
+        min-width: 0; /* Prevent flex items from overflowing */
     }
 
     .topRight {
         order: 2;
         flex: 0 0 auto;
+        min-width: 0;
     }
 
     .topCenter {
@@ -127,34 +131,61 @@
         flex: 1 1 100%;
         display: none; /* Hidden by default on mobile */
         margin-top: 10px;
+        width: 100%;
+        max-width: 100%;
+        position: relative;
+        left: 0;
+        right: 0;
     }
 
     .topCenter.open {
         display: flex; /* Show when menu is open */
         flex-direction: column;
         width: 100%;
+        max-width: 100%;
         background-color: white;
         border-top: 1px solid #eee;
         padding: 10px 0;
+        box-sizing: border-box;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
     .topList {
         flex-direction: column;
         width: 100%;
+        max-width: 100%;
         align-items: center;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
     }
 
     .topListItem {
-        margin: 10px 0;
+        margin: 0;
         font-size: 24px;
         text-align: center;
         width: 100%;
-        padding: 10px 0;
+        max-width: 100%;
+        padding: 15px 20px;
         border-bottom: 1px solid #f0f0f0;
+        box-sizing: border-box;
+        display: block;
     }
 
     .topListItem:last-child {
         border-bottom: none;
+    }
+
+    .topListItem .link {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+        color: inherit;
     }
 
     .hamburgerIcon {
@@ -169,6 +200,11 @@
     .topSearchIcon {
         font-size: 20px;
         margin-left: 10px;
+    }
+
+    /* Ensure the body doesn't scroll horizontally */
+    body {
+        overflow-x: hidden;
     }
 }
 

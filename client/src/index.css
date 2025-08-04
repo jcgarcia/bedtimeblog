@@ -5,29 +5,27 @@ body {
   padding: 0;
   box-sizing: border-box;
   color: #4a4a4a; /* Updated font color to dark grey */
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+}
+
+html {
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.link:hover {
+  color: #eb0bba;
 }
 
 @media (max-width: 768px) {
-  .top {
-    flex-direction: column;
-    align-items: center;
-    padding: 10px;
-  }
-
-  .topLeft, .topRight {
-    justify-content: center;
-    margin-bottom: 10px;
-  }
-
-  .topList {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .topListItem {
-    margin: 5px 0;
-  }
-
   .home {
     flex-direction: column;
     align-items: center;
