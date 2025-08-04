@@ -22,7 +22,8 @@
 }
 
 .topCenter {
-    display: none;
+    display: flex;
+    justify-content: center;
 }
 
 .topRight {
@@ -97,10 +98,78 @@
     font-size: 24px;
     cursor: pointer;
     margin-left: 15px;
+    color: #444;
 }
 
-.hamburgerIcon, .topListItem .fa-right-to-bracket {
-    display: none; /* Remove the login icon */
+.hamburgerIcon:hover {
+    color: #eb0bba;
+}
+
+/* Mobile Styles */
+@media (max-width: 767px) {
+    .top {
+        flex-wrap: wrap;
+        position: relative;
+    }
+
+    .topLeft {
+        order: 1;
+        flex: 1;
+    }
+
+    .topRight {
+        order: 2;
+        flex: 0 0 auto;
+    }
+
+    .topCenter {
+        order: 3;
+        flex: 1 1 100%;
+        display: none; /* Hidden by default on mobile */
+        margin-top: 10px;
+    }
+
+    .topCenter.open {
+        display: flex; /* Show when menu is open */
+        flex-direction: column;
+        width: 100%;
+        background-color: white;
+        border-top: 1px solid #eee;
+        padding: 10px 0;
+    }
+
+    .topList {
+        flex-direction: column;
+        width: 100%;
+        align-items: center;
+    }
+
+    .topListItem {
+        margin: 10px 0;
+        font-size: 24px;
+        text-align: center;
+        width: 100%;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .topListItem:last-child {
+        border-bottom: none;
+    }
+
+    .hamburgerIcon {
+        display: block; /* Show hamburger on mobile */
+    }
+
+    .topIcon {
+        font-size: 30px; /* Smaller icons on mobile */
+        margin-right: 8px;
+    }
+
+    .topSearchIcon {
+        font-size: 20px;
+        margin-left: 10px;
+    }
 }
 
 
@@ -110,6 +179,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 10px;
+        flex-wrap: nowrap;
     }
 
     .topLeft {
@@ -117,12 +187,17 @@
         align-items: center;
         justify-content: flex-start; /* Align social media icons to the left */
         flex: 1 1 auto;
+        order: 1;
     }
 
     .topCenter {
         flex: 2;
-        display: flex;
+        display: flex !important; /* Always show on desktop */
         justify-content: center;
+        order: 2;
+        margin-top: 0;
+        border-top: none;
+        padding: 0;
     }
 
     .topRight {
@@ -130,10 +205,29 @@
         align-items: center;
         justify-content: flex-end; /* Align other components to the right */
         flex: 1 1 auto;
+        order: 3;
     }
 
     .topIcon {
-        font-size: 45px; /* Ensure visibility on mobile */
+        font-size: 45px; /* Ensure visibility on desktop */
         margin-right: 10px;
+    }
+
+    .topList {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .topListItem {
+        margin: 0 20px 0 0;
+        font-size: 36px;
+        text-align: left;
+        width: auto;
+        padding: 0;
+        border-bottom: none;
+    }
+
+    .hamburgerIcon {
+        display: none !important; /* Hide hamburger on desktop */
     }
 }

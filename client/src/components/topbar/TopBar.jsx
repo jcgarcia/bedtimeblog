@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./topbar.css"
 
 export default function TopBar() {
@@ -10,6 +10,29 @@ export default function TopBar() {
     setMenuOpen(!menuOpen);
   };
 
+  // Close menu when clicking outside or on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMenuOpen(false);
+      }
+    };
+
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.top')) {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className='top'>
       <div className="topLeft">
@@ -18,16 +41,14 @@ export default function TopBar() {
         <i className="topIcon fa-brands fa-square-instagram"></i>
         <i className="topIcon fa-brands fa-square-threads"></i>
       </div>
-      <div className="topCenter">
+      <div className={`topCenter ${menuOpen ? "open" : ""}`}>
         <ul className={`topList ${menuOpen ? "open" : ""}`}>
-        <li className="topListItem"><Link className="link" to="/"  > Home </Link></li>
-        <li className="topListItem"><Link className="link" to="/about"  > About </Link></li>
-        <li className="topListItem"><Link className="link" to="/"  > Contact </Link></li>
-        <li className="topListItem"><Link className="link" to="/write"  > Ops </Link></li>
+        <li className="topListItem"><Link className="link" to="/" onClick={() => setMenuOpen(false)} > Home </Link></li>
+        <li className="topListItem"><Link className="link" to="/about" onClick={() => setMenuOpen(false)} > About </Link></li>
+        <li className="topListItem"><Link className="link" to="/" onClick={() => setMenuOpen(false)} > Contact </Link></li>
+        <li className="topListItem"><Link className="link" to="/write" onClick={() => setMenuOpen(false)} > Ops </Link></li>
         <li className="topListItem"> { user &&  "Logout" } </li>
-
         </ul>
-
       </div>
       <div className="topRight">
         {
