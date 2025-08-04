@@ -12,6 +12,7 @@
     padding: 10px;
     font-family: "Oswald", sans-serif;
     z-index: 999;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Add subtle shadow */
 }
 
 .topLeft {
@@ -108,10 +109,12 @@
 /* Mobile Styles */
 @media (max-width: 767px) {
     .top {
-        flex-wrap: wrap;
+        flex-wrap: nowrap; /* Keep items in single row */
         position: relative;
         width: 100%;
-        overflow: visible; /* Allow menu to be visible */
+        background-color: white;
+        z-index: 1000;
+        overflow: visible;
     }
 
     .topLeft {
@@ -126,24 +129,30 @@
         min-width: 0;
     }
 
+    /* Hide the menu completely on mobile by default */
     .topCenter {
-        order: 3;
-        width: 100vw; /* Full viewport width */
-        position: fixed; /* Fixed positioning to avoid layout issues */
-        top: 70px; /* Below the navbar */
+        display: none !important;
+        position: fixed;
+        top: 60px; /* Below the navbar */
         left: 0;
         right: 0;
-        display: none; /* Hidden by default */
+        width: 100vw;
         z-index: 9999;
         background-color: white;
         border-top: 1px solid #eee;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        max-height: calc(100vh - 70px); /* Don't exceed viewport */
+        max-height: calc(100vh - 60px);
         overflow-y: auto;
+        transform: translateY(-100%);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
     }
 
+    /* Only show when explicitly opened */
     .topCenter.open {
-        display: block !important; /* Force show when open */
+        display: block !important;
+        transform: translateY(0);
+        opacity: 1;
     }
 
     .topList {
