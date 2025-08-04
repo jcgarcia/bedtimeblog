@@ -37,6 +37,15 @@
 
 }
 
+.link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.link:hover .postTitle {
+    color: #be9656;
+}
+
 .postDate{
     font-family: "Poppins", sans-serif;
     font-style: italic;
