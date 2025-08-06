@@ -6,10 +6,21 @@ export const getPosts = async (req, res) => {
   try {
     let q, result;
     if (req.query.cat) {
-      q = "SELECT * FROM posts WHERE cat=$1";
+      q = `
+        SELECT p.*, u.username, u.first_name, u.last_name, u.email
+        FROM posts p
+        LEFT JOIN users u ON p.author_id = u.id
+        WHERE p.category_id = $1
+        ORDER BY p.created_at DESC
+      `;
       result = await pool.query(q, [req.query.cat]);
     } else {
-      q = "SELECT * FROM posts";
+      q = `
+        SELECT p.*, u.username, u.first_name, u.last_name, u.email
+        FROM posts p
+        LEFT JOIN users u ON p.author_id = u.id
+        ORDER BY p.created_at DESC
+      `;
       result = await pool.query(q);
     }
     return res.status(200).json(result.rows);
@@ -22,8 +33,13 @@ export const getPosts = async (req, res) => {
 export const getPost = async (req, res) => {
   const pool = getDbPool();
   try {
-    // Use the actual database schema - just select from posts table
-    const q = "SELECT * FROM posts WHERE id = $1";
+    // Join with users table to get author information
+    const q = `
+      SELECT p.*, u.username, u.first_name, u.last_name, u.email
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      WHERE p.id = $1
+    `;
     const result = await pool.query(q, [req.params.id]);
     
     if (result.rows.length === 0) {

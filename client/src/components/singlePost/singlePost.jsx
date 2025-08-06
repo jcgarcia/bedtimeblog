@@ -127,7 +127,7 @@ export default function SinglePost() {
             </h1>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>
-                    Author: <b>Author {post.author_id || 'Unknown'}</b>
+                    Author: <b>{post.username || post.first_name || `Author ${post.author_id}` || 'Unknown'}</b>
                 </span>
                 <span className='singlePostDate'>
                   {post.published_at ? formatDate(post.published_at) : 
