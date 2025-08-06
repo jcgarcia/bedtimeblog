@@ -1,8 +1,35 @@
 .posts{
     flex: 9;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 30px;
     margin: 20px;
+    align-items: start;
+}
+
+/* On very wide screens, limit to 3 columns to maintain readability */
+@media (min-width: 1400px) {
+    .posts {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 1200px;
+        margin: 20px auto;
+    }
+}
+
+/* On medium screens, ensure 2 columns */
+@media (min-width: 768px) and (max-width: 1399px) {
+    .posts {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}
+
+/* On mobile, single column */
+@media (max-width: 767px) {
+    .posts {
+        grid-template-columns: 1fr;
+        margin: 10px;
+        gap: 20px;
+    }
 }
 
 .category-header {

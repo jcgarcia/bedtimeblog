@@ -5,13 +5,13 @@ import Welcome from '../welcome/Welcome'
 export default function Sidebar() {
   const location = useLocation();
   
-  // Define available categories
+  // Define available categories (matching database categories)
   const categories = [
-    { name: 'Life', slug: 'life' },
-    { name: 'Kitchen', slug: 'kitchen' },
-    { name: 'Style', slug: 'style' },
-    { name: 'Show', slug: 'show' },
-    { name: 'Tech', slug: 'tech' }
+    { name: 'Technology', slug: 'technology' },
+    { name: 'Lifestyle', slug: 'lifestyle' },
+    { name: 'Tutorial', slug: 'tutorial' },
+    { name: 'News', slug: 'news' },
+    { name: 'Review', slug: 'review' }
   ];
 
   // Get current category from URL
