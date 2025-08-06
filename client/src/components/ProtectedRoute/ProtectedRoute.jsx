@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAdmin } from '../contexts/AdminContext';
+import { useAdmin } from '../../contexts/AdminContext';
 import './protectedroute.css';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
