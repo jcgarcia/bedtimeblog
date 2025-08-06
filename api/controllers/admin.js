@@ -1,6 +1,6 @@
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../db.js';
+import { getDbPool } from '../db.js';
 
 // Simple in-memory rate limiting (in production, use Redis or similar)
 const loginAttempts = new Map();
@@ -74,7 +74,7 @@ export const adminLogin = async (req, res) => {
       AND is_active = true
     `;
 
-    const result = await db.query(query, [username]);
+    const result = await getDbPool().query(query, [username]);
 
     if (result.rows.length === 0) {
       trackFailedAttempt(ip);
@@ -103,7 +103,7 @@ export const adminLogin = async (req, res) => {
     clearAttempts(ip);
 
     // Update last login
-    await db.query(
+    await getDbPool().query(
       'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
       [user.id]
     );
@@ -163,7 +163,7 @@ export const verifyAdminToken = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
     // Get current user data
-    const result = await db.query(
+    const result = await getDbPool().query(
       `SELECT id, username, email, first_name, last_name, role, is_active, last_login_at
        FROM users 
        WHERE id = $1 AND role IN ('admin', 'super_admin', 'editor') AND is_active = true`,
@@ -241,7 +241,7 @@ export const requireAdminAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
     // Verify user still exists and has admin privileges
-    const result = await db.query(
+    const result = await getDbPool().query(
       `SELECT id, username, role, is_active
        FROM users 
        WHERE id = $1 AND role IN ('admin', 'super_admin', 'editor') AND is_active = true`,
