@@ -15,7 +15,7 @@ PGSSLMODE_B64=$(echo -n "require" | base64 -w 0)
 
 # Application Secrets  
 JWT_SECRET_B64=$(echo -n "your-jwt-secret-here" | base64 -w 0)
-BLOG_API_KEY_B64=$(echo -n "81128b70915fe2d690a4e55eebeb13cedf069659e8e524c1198426d7665462b0" | base64 -w 0)
+BLOG_API_KEY_B64=$(echo -n "${BLOG_API_KEY:-YOUR_API_KEY_HERE}" | base64 -w 0)
 BLOG_API_URL_B64=$(echo -n "https://bapi.ingasti.com/" | base64 -w 0)
 BLOG_USER_ID_B64=$(echo -n "1" | base64 -w 0)
 

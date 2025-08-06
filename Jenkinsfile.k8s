@@ -204,7 +204,7 @@ pipeline {
                                 --from-literal=PGDATABASE='blog' \
                                 --from-literal=PGUSER='avnadmin' \
                                 --from-literal=PGPASSWORD="\${PGPASSWORD}" \
-                                --from-literal=BLOG_API_KEY='81128b70915fe2d690a4e55eebeb13cedf069659e8e524c1198426d7665462b0' \
+                                --from-literal=BLOG_API_KEY='${BLOG_API_KEY}' \
                                 --from-literal=GOOGLE_CLIENT_ID='dummy-google-client-id' \
                                 --from-literal=GOOGLE_CLIENT_SECRET='dummy-google-client-secret'
                             

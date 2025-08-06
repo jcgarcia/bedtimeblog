@@ -168,7 +168,7 @@ node create-admin-user.js generate-password 20
 {
   "success": true,
   "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "[JWT_TOKEN_HERE]",
   "user": {
     "id": 1,
     "username": "sysop_x4k9",
@@ -193,7 +193,7 @@ node create-admin-user.js generate-password 20
 
 **Headers:**
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer [JWT_TOKEN_HERE]
 ```
 
 **Response:**
