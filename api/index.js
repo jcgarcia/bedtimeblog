@@ -4,6 +4,7 @@ import adminRoutes from "./routes/admin.js";
 import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
 import publishRoutes from "./routes/publish.js";
+import settingsRoutes from "./routes/settings.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import passport from "passport";
@@ -150,6 +151,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/publish", publishRoutes);
+app.use("/api/settings", settingsRoutes);
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Search from "../search/Search";
+import { useSocialLinks } from "../../hooks/useSocialLinks";
 import "./topbar.css"
 
 export default function TopBar() {
@@ -8,6 +9,7 @@ export default function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { socialLinks, loading } = useSocialLinks();
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -62,10 +64,26 @@ export default function TopBar() {
   return (
     <div className='top'>
       <div className="topLeft">
-        <i className="topIcon fa-brands fa-square-facebook"></i>
-        <i className="topIcon fa-brands fa-square-x-twitter"></i>   
-        <i className="topIcon fa-brands fa-square-instagram"></i>
-        <i className="topIcon fa-brands fa-square-threads"></i>
+        {!loading && socialLinks.facebook && (
+          <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-facebook"></i>
+          </a>
+        )}
+        {!loading && socialLinks.twitter && (
+          <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-x-twitter"></i>
+          </a>
+        )}
+        {!loading && socialLinks.instagram && (
+          <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-instagram"></i>
+          </a>
+        )}
+        {!loading && socialLinks.threads && (
+          <a href={socialLinks.threads} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-threads"></i>
+          </a>
+        )}
       </div>
       
       {/* Desktop menu - only render on desktop */}
