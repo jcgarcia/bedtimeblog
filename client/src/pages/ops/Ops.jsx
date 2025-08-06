@@ -1,20 +1,10 @@
 import React, { useState } from 'react';
+import { useAdmin } from '../../contexts/AdminContext';
 import './ops.css';
 
 export default function Ops() {
   const [activeTab, setActiveTab] = useState('posts');
-
-  // Check if user is admin (you'll implement this logic)
-  const isAdmin = true; // This should come from your auth context
-
-  if (!isAdmin) {
-    return (
-      <div className="ops-unauthorized">
-        <h2>Unauthorized Access</h2>
-        <p>You need admin privileges to access this page.</p>
-      </div>
-    );
-  }
+  const { adminUser, adminLogout } = useAdmin();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -38,6 +28,12 @@ export default function Ops() {
       <div className="ops-header">
         <h1>Blog Operations Center</h1>
         <p>Manage your blog content and settings</p>
+        <div className="admin-info">
+          <span>Welcome, {adminUser?.username || 'Admin'}</span>
+          <button className="btn-logout" onClick={adminLogout}>
+            <i className="fa-solid fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
       </div>
 
       <div className="ops-navigation">

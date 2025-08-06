@@ -9,25 +9,33 @@ import Register from "./pages/register/Register";
 import Home from "./pages/home/Home";
 import About from "./pages/about/About";
 import AdminLogin from "./pages/adminlogin/AdminLogin";
+import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
+import { AdminProvider } from "./contexts/AdminContext";
 
 function App() {
   const user = false;
   return (
     <div className="App">
-      <Router>
-        <TopBar />
-        <Routes>
-          <Route exact path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/register" element={user ? <Home /> : <Register />} />
-          <Route path="/login" element={user ? <Home /> : <Login />} />
-          <Route path="/write" element={user ? <Write /> : <Register />} />
-          <Route path="/ops" element={<Ops />} />
-          <Route path="/settings" element={user ? <Settings /> : <Register />} />
-          <Route path="/post/:postId" element={<Single />} />
-          <Route path="/adminlogin" element={<AdminLogin />} />
-        </Routes>
-      </Router>
+      <AdminProvider>
+        <Router>
+          <TopBar />
+          <Routes>
+            <Route exact path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/register" element={user ? <Home /> : <Register />} />
+            <Route path="/login" element={user ? <Home /> : <Login />} />
+            <Route path="/write" element={user ? <Write /> : <Register />} />
+            <Route path="/ops" element={
+              <ProtectedRoute requireAdmin={true}>
+                <Ops />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={user ? <Settings /> : <Register />} />
+            <Route path="/post/:postId" element={<Single />} />
+            <Route path="/adminlogin" element={<AdminLogin />} />
+          </Routes>
+        </Router>
+      </AdminProvider>
     </div>
   );
 }
