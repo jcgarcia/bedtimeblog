@@ -1,0 +1,69 @@
+# Security Files - DO NOT COMMIT TO VERSION CONTROL
+
+# Environment Files (contain sensitive data)
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+*.env
+
+# API Keys and Secrets
+api-keys.txt
+secrets.txt
+credentials.json
+config.json
+
+# Database Files
+*.sql.backup
+database.dump
+*.db
+
+# SSL Certificates and Keys
+*.key
+*.crt
+*.pem
+*.p12
+*.pfx
+certs/
+ssl/
+
+# Kubernetes Secrets (when filled with real data)
+*-secrets-filled.yaml
+secrets-production.yaml
+
+# Temporary Security Files
+temp-keys/
+.secrets/
+private/
+
+# Logs that might contain sensitive data
+*.log
+logs/
+access.log
+error.log
+
+# Backup files that might contain secrets
+*.bak
+*.backup
+*-backup.*
+
+# IDE/Editor files that might store secrets
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node modules (may contain cached secrets)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker files with secrets
+docker-compose.override.yml
+Dockerfile.local

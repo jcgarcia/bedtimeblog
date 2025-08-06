@@ -29,21 +29,33 @@ export const AdminProvider = ({ children }) => {
         return;
       }
 
-      // TODO: Validate token with backend
-      // For now, we'll check if it's a valid token format
-      if (adminToken === 'admin-authenticated') {
-        setIsAdmin(true);
-        setAdminUser({
-          id: 1,
-          username: 'admin',
-          email: 'admin@ingasti.com',
-          role: 'super_admin'
-        });
+      // Verify token with backend
+      const response = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setIsAdmin(true);
+          setAdminUser(data.user);
+        } else {
+          localStorage.removeItem('adminToken');
+          setIsAdmin(false);
+        }
+      } else {
+        localStorage.removeItem('adminToken');
+        setIsAdmin(false);
       }
       
       setIsLoading(false);
     } catch (error) {
       console.error('Admin auth check failed:', error);
+      localStorage.removeItem('adminToken');
       setIsAdmin(false);
       setIsLoading(false);
     }
@@ -53,36 +65,31 @@ export const AdminProvider = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(credentials)
-      // });
+      // Call the real API
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
       
-      // Mock authentication - replace with real logic
-      if (credentials.username === 'admin' && credentials.password === 'admin123') {
-        const mockToken = 'admin-authenticated';
-        localStorage.setItem('adminToken', mockToken);
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        localStorage.setItem('adminToken', data.token);
         
         setIsAdmin(true);
-        setAdminUser({
-          id: 1,
-          username: 'admin',
-          email: 'admin@ingasti.com',
-          role: 'super_admin'
-        });
+        setAdminUser(data.user);
         
         setIsLoading(false);
-        return { success: true, message: 'Login successful' };
+        return { success: true, message: data.message };
       } else {
         setIsLoading(false);
-        return { success: false, message: 'Invalid credentials' };
+        return { success: false, message: data.message || 'Login failed' };
       }
     } catch (error) {
       console.error('Admin login failed:', error);
       setIsLoading(false);
-      return { success: false, message: 'Login failed. Please try again.' };
+      return { success: false, message: 'Network error. Please try again.' };
     }
   };
 
