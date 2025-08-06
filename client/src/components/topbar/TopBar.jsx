@@ -1,14 +1,24 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
+import Search from "../search/Search";
 import "./topbar.css"
 
 export default function TopBar() {
   const user = false;
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
+  };
+
+  const toggleSearch = () => {
+    setSearchOpen(!searchOpen);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
   };
 
   // Check if we're on mobile and handle responsive behavior
@@ -80,7 +90,7 @@ export default function TopBar() {
           )
         }
 
-        <i className="topSearchIcon fa-brands fa-searchengin"></i>
+        <i className="topSearchIcon fa-brands fa-searchengin" onClick={toggleSearch}></i>
         {/* Only show hamburger on mobile */}
         {isMobile && <i className="hamburgerIcon fa-solid fa-bars" onClick={toggleMenu}></i>}
       </div>
@@ -91,6 +101,9 @@ export default function TopBar() {
           <MenuItems />
         </div>
       )}
+
+      {/* Search Modal */}
+      <Search isOpen={searchOpen} onClose={closeSearch} />
     </div>
   )
 }
