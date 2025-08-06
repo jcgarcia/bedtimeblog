@@ -1,7 +1,30 @@
-import  './sidebar.css'
+import './sidebar.css'
+import { Link, useLocation } from 'react-router-dom'
 import Welcome from '../welcome/Welcome'
 
 export default function Sidebar() {
+  const location = useLocation();
+  
+  // Define available categories
+  const categories = [
+    { name: 'Life', slug: 'life' },
+    { name: 'Kitchen', slug: 'kitchen' },
+    { name: 'Style', slug: 'style' },
+    { name: 'Show', slug: 'show' },
+    { name: 'Tech', slug: 'tech' }
+  ];
+
+  // Get current category from URL
+  const getCurrentCategory = () => {
+    const pathParts = location.pathname.split('/');
+    if (pathParts[1] === 'category' && pathParts[2]) {
+      return pathParts[2];
+    }
+    return null;
+  };
+
+  const currentCategory = getCurrentCategory();
+
   return (
     <div className='sidebar'>
       <div className="sidebarItem">
@@ -16,12 +39,23 @@ export default function Sidebar() {
       <div className='sidebarItem'>
         <span className='sidebarTitle'>Categories</span> 
         <ul className='sidebarList'>
-            <li className="sidebarListItem"> Life  </li>
-            <li className="sidebarListItem"> Kitchen  </li>
-            <li className="sidebarListItem"> Style  </li>
-            <li className="sidebarListItem"> Show  </li>
-            <li className="sidebarListItem"> Tech  </li>
-            </ul>
+          <li className={`sidebarListItem ${!currentCategory ? 'active' : ''}`}>
+            <Link to="/" className="sidebar-link">All Posts</Link>
+          </li>
+          {categories.map((category) => (
+            <li 
+              key={category.slug} 
+              className={`sidebarListItem ${currentCategory === category.slug ? 'active' : ''}`}
+            >
+              <Link 
+                to={`/category/${category.slug}`} 
+                className="sidebar-link"
+              >
+                {category.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="sidebarItem">
@@ -35,4 +69,4 @@ export default function Sidebar() {
       </div>
     </div>
   )
-} 
+}

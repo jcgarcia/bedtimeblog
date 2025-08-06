@@ -43,10 +43,14 @@ apiClient.interceptors.response.use(
 
 // Posts API functions
 export const postsAPI = {
-  // Get all posts with optional pagination
-  getAllPosts: async (page = 1, limit = 10) => {
+  // Get all posts with optional pagination and category filtering
+  getAllPosts: async (page = 1, limit = 10, category = null) => {
     try {
-      const response = await apiClient.get(`/api/posts?page=${page}&limit=${limit}`);
+      let url = `/api/posts?page=${page}&limit=${limit}`;
+      if (category) {
+        url += `&cat=${encodeURIComponent(category)}`;
+      }
+      const response = await apiClient.get(url);
       // The API returns an array directly, so we wrap it in a success structure
       return {
         success: true,
@@ -59,6 +63,11 @@ export const postsAPI = {
         error: error.response?.data?.error || 'Failed to fetch posts'
       };
     }
+  },
+
+  // Get posts by category
+  getPostsByCategory: async (category, page = 1, limit = 10) => {
+    return postsAPI.getAllPosts(page, limit, category);
   },
 
   // Get a specific post by ID

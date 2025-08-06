@@ -262,10 +262,11 @@ INSERT INTO settings (key, value, type, group_name, description, is_public) VALU
 ('maintenance_mode', 'false', 'boolean', 'system', 'Enable maintenance mode', FALSE)
 ON CONFLICT (key) DO NOTHING;
 
--- Insert default admin user (password: admin123 - change this!)
-INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, email_verified) VALUES
-('admin', 'admin@blog.local', '$2a$10$rWbkKzS8Zx2KXVqLLvLbYeYQXhQSxZQqXYbM5VlGg8WKqL9KeZg6G', 'Admin', 'User', 'admin', TRUE, TRUE)
-ON CONFLICT (username) DO NOTHING;
+-- Do not insert default admin user for security reasons
+-- Use the create-admin-user.js tool to create secure admin users
+-- INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active, email_verified) VALUES
+-- ('admin', 'admin@blog.local', '$2a$10$rWbkKzS8Zx2KXVqLLvLbYeYQXhQSxZQqXYbM5VlGg8WKqL9KeZg6G', 'Admin', 'User', 'admin', TRUE, TRUE)
+-- ON CONFLICT (username) DO NOTHING;
 
 -- Display schema creation results
 SELECT 'Blog Database Schema Created Successfully' AS status;
