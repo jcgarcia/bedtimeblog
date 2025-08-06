@@ -6,19 +6,22 @@ export const getPosts = async (req, res) => {
   try {
     let q, result;
     if (req.query.cat) {
+      // Filter by category slug (name) instead of ID
       q = `
-        SELECT p.*, u.username, u.first_name, u.last_name, u.email
+        SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
         FROM posts p
         LEFT JOIN users u ON p.author_id = u.id
-        WHERE p.category_id = $1
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE LOWER(c.slug) = LOWER($1) OR LOWER(c.name) = LOWER($1)
         ORDER BY p.created_at DESC
       `;
       result = await pool.query(q, [req.query.cat]);
     } else {
       q = `
-        SELECT p.*, u.username, u.first_name, u.last_name, u.email
+        SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
         FROM posts p
         LEFT JOIN users u ON p.author_id = u.id
+        LEFT JOIN categories c ON p.category_id = c.id
         ORDER BY p.created_at DESC
       `;
       result = await pool.query(q);
@@ -33,11 +36,12 @@ export const getPosts = async (req, res) => {
 export const getPost = async (req, res) => {
   const pool = getDbPool();
   try {
-    // Join with users table to get author information
+    // Join with users table and categories table to get author and category information
     const q = `
-      SELECT p.*, u.username, u.first_name, u.last_name, u.email
+      SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
       FROM posts p
       LEFT JOIN users u ON p.author_id = u.id
+      LEFT JOIN categories c ON p.category_id = c.id
       WHERE p.id = $1
     `;
     const result = await pool.query(q, [req.params.id]);
