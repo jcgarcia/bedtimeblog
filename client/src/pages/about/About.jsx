@@ -114,7 +114,7 @@ export default function About() {
           <div className="aboutSection">
             <h2>Building Something New</h2>
             <div className="aboutImageContainer">
-              <img src="/images/about/IMG-20250804-WA0010.jpg" alt="The journey continues" className="aboutImageFull" />
+              <img src="/images/about/IMG-20250804-WA0011.jpg" alt="The journey continues" className="aboutImageFull" />
             </div>
             <p>
               It took time to make everything work. Building a blog from scratch, developing the right tone, creating content that felt authentic - 
