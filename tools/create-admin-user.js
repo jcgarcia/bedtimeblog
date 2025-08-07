@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import argon2 from 'argon2';
+import bcrypt from 'bcryptjs';
 import pg from 'pg';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
@@ -48,7 +48,8 @@ class AdminUserCreator {
   }
 
   async hashPassword(password) {
-    return await argon2.hash(password);
+    const salt = bcrypt.genSaltSync(10);
+    return bcrypt.hashSync(password, salt);
   }
 
   async createAdminUser(userData) {
@@ -291,7 +292,8 @@ class AdminUserCreator {
       }
 
       if (updates.password) {
-        const hashedPassword = await argon2.hash(updates.password);
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(updates.password, salt);
         updateFields.push(`password_hash = $${paramCount}`);
         updateValues.push(hashedPassword);
         paramCount++;
