@@ -160,6 +160,12 @@ curl -s https://bapi.ingasti.com/api/posts/8
 
 ## Settings API
 
+### Overview
+
+The Settings API allows configuration of various blog settings including social media links, contact email, and SMTP server settings. Most of these settings can also be configured through the **Operations Panel** (`/ops`) in the blog's admin interface.
+
+**Admin Access**: Log in at `/adminlogin` and go to `/ops` → Settings tab for a user-friendly interface.
+
 ### 1. Get Social Media Links
 **Endpoint**: `GET /api/settings/social`
 
@@ -248,6 +254,124 @@ curl -X PUT https://bapi.ingasti.com/api/settings/contact \
 {
   "message": "Contact email updated successfully",
   "email": "contact@myblog.com"
+}
+```
+
+### 5. Get SMTP Settings
+**Endpoint**: `GET /api/settings/smtp`
+
+**Description**: Retrieves SMTP email server configuration settings.
+
+**Example**:
+```bash
+curl -s https://bapi.ingasti.com/api/settings/smtp
+```
+
+**Response**:
+```json
+{
+  "host": "smtp.gmail.com",
+  "port": "587",
+  "user": "your-email@gmail.com",
+  "password": "••••••••",
+  "from": "your-email@gmail.com",
+  "secure": false
+}
+```
+
+### 6. Update SMTP Settings
+**Endpoint**: `PUT /api/settings/smtp`
+
+**Description**: Updates SMTP email server configuration.
+
+**Headers**: `Content-Type: application/json`
+
+**Request Body**:
+```json
+{
+  "host": "smtp.gmail.com",
+  "port": "587",
+  "user": "your-email@gmail.com",
+  "password": "your-app-password",
+  "from": "your-email@gmail.com",
+  "secure": false
+}
+```
+
+**Example**:
+```bash
+curl -X PUT https://bapi.ingasti.com/api/settings/smtp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "smtp.gmail.com",
+    "port": "587",
+    "user": "blog@example.com",
+    "password": "your-app-password",
+    "from": "blog@example.com",
+    "secure": false
+  }'
+```
+
+**Response**:
+```json
+{
+  "message": "SMTP settings updated successfully",
+  "settings": {
+    "host": "smtp.gmail.com",
+    "port": "587",
+    "user": "blog@example.com",
+    "from": "blog@example.com",
+    "secure": false,
+    "password": "Updated"
+  }
+}
+```
+
+### 7. Test SMTP Connection
+**Endpoint**: `POST /api/settings/smtp/test`
+
+**Description**: Tests SMTP connection with provided settings.
+
+**Headers**: `Content-Type: application/json`
+
+**Request Body**:
+```json
+{
+  "host": "smtp.gmail.com",
+  "port": "587",
+  "user": "your-email@gmail.com",
+  "password": "your-app-password",
+  "secure": false
+}
+```
+
+**Example**:
+```bash
+curl -X POST https://bapi.ingasti.com/api/settings/smtp/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "smtp.gmail.com",
+    "port": "587",
+    "user": "blog@example.com",
+    "password": "your-app-password",
+    "secure": false
+  }'
+```
+
+**Response (Success)**:
+```json
+{
+  "success": true,
+  "message": "SMTP connection test successful!"
+}
+```
+
+**Response (Error)**:
+```json
+{
+  "success": false,
+  "error": "SMTP connection test failed",
+  "details": "Invalid login: 535-5.7.8 Username and Password not accepted"
 }
 ```
 
