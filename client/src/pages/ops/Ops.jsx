@@ -552,9 +552,24 @@ function SiteSettings() {
   const [isLoading, setIsLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
 
-  // Load contact email on component mount
+  // SMTP Settings State
+  const [smtpSettings, setSmtpSettings] = useState({
+    host: 'smtp.gmail.com',
+    port: '587',
+    user: '',
+    password: '',
+    from: '',
+    secure: false
+  });
+  const [smtpLoading, setSmtpLoading] = useState(false);
+  const [smtpSaveStatus, setSmtpSaveStatus] = useState(null);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+
+  // Load settings on component mount
   useEffect(() => {
     loadContactEmail();
+    loadSmtpSettings();
   }, []);
 
   const loadContactEmail = async () => {
@@ -566,6 +581,18 @@ function SiteSettings() {
       }
     } catch (error) {
       console.error('Error loading contact email:', error);
+    }
+  };
+
+  const loadSmtpSettings = async () => {
+    try {
+      const response = await fetch('/api/settings/smtp');
+      if (response.ok) {
+        const data = await response.json();
+        setSmtpSettings(data);
+      }
+    } catch (error) {
+      console.error('Error loading SMTP settings:', error);
     }
   };
 
@@ -593,6 +620,105 @@ function SiteSettings() {
       setSaveStatus('error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const saveSmtpSettings = async () => {
+    setSmtpLoading(true);
+    setSmtpSaveStatus(null);
+    setTestResult(null);
+
+    try {
+      const response = await fetch('/api/settings/smtp', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(smtpSettings),
+      });
+
+      if (response.ok) {
+        setSmtpSaveStatus('success');
+        setTimeout(() => setSmtpSaveStatus(null), 3000);
+        // Reload settings to get the masked password
+        await loadSmtpSettings();
+      } else {
+        const errorData = await response.json();
+        setSmtpSaveStatus('error');
+        console.error('SMTP save error:', errorData);
+      }
+    } catch (error) {
+      console.error('Error saving SMTP settings:', error);
+      setSmtpSaveStatus('error');
+    } finally {
+      setSmtpLoading(false);
+    }
+  };
+
+  const testSmtpConnection = async () => {
+    setTestingConnection(true);
+    setTestResult(null);
+
+    try {
+      const response = await fetch('/api/settings/smtp/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(smtpSettings),
+      });
+
+      const data = await response.json();
+      setTestResult(data);
+    } catch (error) {
+      console.error('Error testing SMTP connection:', error);
+      setTestResult({
+        success: false,
+        error: 'Network error during connection test'
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleSmtpInputChange = (field, value) => {
+    setSmtpSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setTestResult(null); // Clear test results when settings change
+  };
+
+  const getSmtpPreset = (provider) => {
+    const presets = {
+      gmail: {
+        host: 'smtp.gmail.com',
+        port: '587',
+        secure: false
+      },
+      outlook: {
+        host: 'smtp-mail.outlook.com',
+        port: '587',
+        secure: false
+      },
+      yahoo: {
+        host: 'smtp.mail.yahoo.com',
+        port: '587',
+        secure: false
+      },
+      sendgrid: {
+        host: 'smtp.sendgrid.net',
+        port: '587',
+        secure: false
+      }
+    };
+    
+    if (presets[provider]) {
+      setSmtpSettings(prev => ({
+        ...prev,
+        ...presets[provider]
+      }));
+      setTestResult(null);
     }
   };
 
@@ -645,6 +771,189 @@ function SiteSettings() {
               Failed to update contact email. Please try again.
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3>📧 Email Configuration (SMTP)</h3>
+        <p className="setting-description">
+          Configure the email server settings to enable contact form functionality.
+          These settings will be used to send contact form messages to your email.
+        </p>
+
+        <div className="smtp-presets">
+          <label>Quick Setup:</label>
+          <div className="preset-buttons">
+            <button onClick={() => getSmtpPreset('gmail')} className="preset-btn">
+              <i className="fa-brands fa-google"></i> Gmail
+            </button>
+            <button onClick={() => getSmtpPreset('outlook')} className="preset-btn">
+              <i className="fa-brands fa-microsoft"></i> Outlook
+            </button>
+            <button onClick={() => getSmtpPreset('yahoo')} className="preset-btn">
+              <i className="fa-brands fa-yahoo"></i> Yahoo
+            </button>
+            <button onClick={() => getSmtpPreset('sendgrid')} className="preset-btn">
+              <i className="fa-solid fa-envelope"></i> SendGrid
+            </button>
+          </div>
+        </div>
+
+        <div className="smtp-form">
+          <div className="smtp-row">
+            <div className="setting-item">
+              <label>SMTP Host</label>
+              <input
+                type="text"
+                value={smtpSettings.host}
+                onChange={(e) => handleSmtpInputChange('host', e.target.value)}
+                placeholder="smtp.gmail.com"
+              />
+            </div>
+            <div className="setting-item">
+              <label>Port</label>
+              <input
+                type="number"
+                value={smtpSettings.port}
+                onChange={(e) => handleSmtpInputChange('port', e.target.value)}
+                placeholder="587"
+                min="1"
+                max="65535"
+              />
+            </div>
+          </div>
+
+          <div className="setting-item">
+            <label>Email Username</label>
+            <input
+              type="email"
+              value={smtpSettings.user}
+              onChange={(e) => handleSmtpInputChange('user', e.target.value)}
+              placeholder="your-email@gmail.com"
+            />
+          </div>
+
+          <div className="setting-item">
+            <label>Email Password / App Password</label>
+            <input
+              type="password"
+              value={smtpSettings.password}
+              onChange={(e) => handleSmtpInputChange('password', e.target.value)}
+              placeholder="your-password-or-app-password"
+            />
+            <small className="help-text">
+              💡 For Gmail, use an App Password instead of your regular password. 
+              Generate one at: <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">Google App Passwords</a>
+            </small>
+          </div>
+
+          <div className="setting-item">
+            <label>From Email Address (optional)</label>
+            <input
+              type="email"
+              value={smtpSettings.from}
+              onChange={(e) => handleSmtpInputChange('from', e.target.value)}
+              placeholder="Leave blank to use username"
+            />
+          </div>
+
+          <div className="setting-item">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={smtpSettings.secure}
+                onChange={(e) => handleSmtpInputChange('secure', e.target.checked)}
+              />
+              Use SSL/TLS (typically for port 465)
+            </label>
+          </div>
+        </div>
+
+        <div className="smtp-actions">
+          <button
+            onClick={testSmtpConnection}
+            disabled={testingConnection || !smtpSettings.host || !smtpSettings.user || !smtpSettings.password}
+            className="test-btn"
+          >
+            {testingConnection ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin"></i>
+                Testing Connection...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-plug"></i>
+                Test Connection
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={saveSmtpSettings}
+            disabled={smtpLoading || !smtpSettings.host || !smtpSettings.user}
+            className="save-smtp-btn"
+          >
+            {smtpLoading ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin"></i>
+                Saving...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-save"></i>
+                Save SMTP Settings
+              </>
+            )}
+          </button>
+        </div>
+
+        {testResult && (
+          <div className={`test-result ${testResult.success ? 'success' : 'error'}`}>
+            <i className={`fa-solid ${testResult.success ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
+            <div>
+              <strong>{testResult.success ? 'Connection Successful!' : 'Connection Failed'}</strong>
+              <p>{testResult.message || testResult.error}</p>
+              {testResult.details && <small>{testResult.details}</small>}
+            </div>
+          </div>
+        )}
+
+        {smtpSaveStatus === 'success' && (
+          <div className="save-message success">
+            <i className="fa-solid fa-check-circle"></i>
+            SMTP settings saved successfully! Contact form emails will now be sent using these settings.
+          </div>
+        )}
+        {smtpSaveStatus === 'error' && (
+          <div className="save-message error">
+            <i className="fa-solid fa-exclamation-triangle"></i>
+            Failed to save SMTP settings. Please check your configuration and try again.
+          </div>
+        )}
+
+        <div className="smtp-info-box">
+          <h4>🔧 SMTP Configuration Guide</h4>
+          <div className="config-guide">
+            <div className="guide-section">
+              <strong>Gmail Setup:</strong>
+              <ul>
+                <li>Enable 2-factor authentication on your Google account</li>
+                <li>Generate an App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">Google App Passwords</a></li>
+                <li>Use your email address as username and the App Password as password</li>
+                <li>Host: smtp.gmail.com, Port: 587, SSL/TLS: Off</li>
+              </ul>
+            </div>
+            
+            <div className="guide-section">
+              <strong>Security Notes:</strong>
+              <ul>
+                <li>🔒 All SMTP passwords are encrypted and stored securely</li>
+                <li>🔐 Use app-specific passwords when available (recommended for Gmail)</li>
+                <li>⚡ Test the connection before saving to ensure settings work</li>
+                <li>📧 The "From" address should match your SMTP provider requirements</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 

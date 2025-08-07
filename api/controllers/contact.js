@@ -7,20 +7,68 @@ const query = async (text, params) => {
   return await pool.query(text, params);
 };
 
-// Create email transporter
-const createTransporter = () => {
-  // For production, you'll want to use environment variables for email configuration
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
+// Create email transporter with database settings
+const createTransporter = async () => {
+  try {
+    // Get SMTP settings from database
+    const smtpResult = await query(
+      `SELECT key, value FROM settings 
+       WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_secure')`
+    );
+
+    const smtpSettings = {
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: process.env.SMTP_PORT || 587,
       user: process.env.SMTP_USER || process.env.EMAIL_USER,
       pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-    },
-  });
+      from: process.env.SMTP_FROM,
+      secure: false
+    };
 
-  return transporter;
+    // Override with database settings if available
+    smtpResult.rows.forEach(row => {
+      switch(row.key) {
+        case 'smtp_host':
+          if (row.value) smtpSettings.host = row.value;
+          break;
+        case 'smtp_port':
+          if (row.value) smtpSettings.port = parseInt(row.value);
+          break;
+        case 'smtp_user':
+          if (row.value) smtpSettings.user = row.value;
+          break;
+        case 'smtp_pass':
+          if (row.value) smtpSettings.pass = row.value;
+          break;
+        case 'smtp_from':
+          if (row.value) smtpSettings.from = row.value;
+          break;
+        case 'smtp_secure':
+          if (row.value) smtpSettings.secure = row.value === 'true';
+          break;
+      }
+    });
+
+    // Validate that we have the minimum required settings
+    if (!smtpSettings.user || !smtpSettings.pass) {
+      throw new Error("SMTP user and password are required. Please configure email settings in the operations panel.");
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpSettings.host,
+      port: smtpSettings.port,
+      secure: smtpSettings.secure, // true for 465, false for other ports
+      auth: {
+        user: smtpSettings.user,
+        pass: smtpSettings.pass,
+      },
+    });
+
+    return { transporter, from: smtpSettings.from || smtpSettings.user };
+  } catch (error) {
+    console.error("Error creating email transporter:", error);
+    throw error;
+  }
 };
 
 export const sendContactMessage = async (req, res) => {
@@ -69,10 +117,10 @@ export const sendContactMessage = async (req, res) => {
     }
 
     // Send email notification
-    const transporter = createTransporter();
+    const { transporter, from } = await createTransporter();
     
     const mailOptions = {
-      from: process.env.SMTP_FROM || `"Blog Contact Form" <${process.env.SMTP_USER}>`,
+      from: from || `"Blog Contact Form" <${process.env.SMTP_USER}>`,
       to: contactEmail,
       subject: `Contact Form: ${subject}`,
       html: `
