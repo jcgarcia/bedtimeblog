@@ -548,10 +548,106 @@ function CategoryManagement() {
 
 // Site Settings Component
 function SiteSettings() {
+  const [contactEmail, setContactEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+
+  // Load contact email on component mount
+  useEffect(() => {
+    loadContactEmail();
+  }, []);
+
+  const loadContactEmail = async () => {
+    try {
+      const response = await fetch('/api/settings/contact');
+      if (response.ok) {
+        const data = await response.json();
+        setContactEmail(data.email || '');
+      }
+    } catch (error) {
+      console.error('Error loading contact email:', error);
+    }
+  };
+
+  const saveContactEmail = async () => {
+    setIsLoading(true);
+    setSaveStatus(null);
+
+    try {
+      const response = await fetch('/api/settings/contact', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: contactEmail }),
+      });
+
+      if (response.ok) {
+        setSaveStatus('success');
+        setTimeout(() => setSaveStatus(null), 3000);
+      } else {
+        setSaveStatus('error');
+      }
+    } catch (error) {
+      console.error('Error saving contact email:', error);
+      setSaveStatus('error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="site-settings">
       <h2>Site Settings</h2>
       
+      <div className="settings-section">
+        <h3>Contact Settings</h3>
+        <div className="setting-item">
+          <label>Contact Email Address</label>
+          <p className="setting-description">
+            Email address where contact form messages will be sent
+          </p>
+          <div className="contact-email-setting">
+            <input 
+              type="email" 
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="blog@example.com"
+              className="contact-email-input"
+            />
+            <button 
+              onClick={saveContactEmail}
+              disabled={isLoading || !contactEmail}
+              className="save-contact-btn"
+            >
+              {isLoading ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-save"></i>
+                  Save
+                </>
+              )}
+            </button>
+          </div>
+          {saveStatus === 'success' && (
+            <div className="save-message success">
+              <i className="fa-solid fa-check-circle"></i>
+              Contact email updated successfully!
+            </div>
+          )}
+          {saveStatus === 'error' && (
+            <div className="save-message error">
+              <i className="fa-solid fa-exclamation-triangle"></i>
+              Failed to update contact email. Please try again.
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="settings-section">
         <h3>General Settings</h3>
         <div className="setting-item">

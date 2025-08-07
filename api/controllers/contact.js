@@ -37,6 +37,19 @@ export const sendContactMessage = async (req, res) => {
       });
     }
 
+    // Get contact email from settings
+    let contactEmail = "blog@ingasti.com"; // default fallback
+    try {
+      const settingsResult = await query(
+        "SELECT value FROM settings WHERE key = 'contact_email'"
+      );
+      if (settingsResult.rows.length > 0) {
+        contactEmail = settingsResult.rows[0].value;
+      }
+    } catch (settingsError) {
+      console.log("Could not fetch contact email from settings, using default:", settingsError.message);
+    }
+
     // Store the contact message in database (optional)
     try {
       await query(
@@ -54,7 +67,7 @@ export const sendContactMessage = async (req, res) => {
     
     const mailOptions = {
       from: process.env.SMTP_FROM || `"Blog Contact Form" <${process.env.SMTP_USER}>`,
-      to: "blog@ingasti.com",
+      to: contactEmail,
       subject: `Contact Form: ${subject}`,
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -90,7 +103,8 @@ export const sendContactMessage = async (req, res) => {
               
               <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;">
                 <small style="color: #888;">
-                  Sent from Blog Contact Form on ${new Date().toLocaleString()}
+                  Sent from Blog Contact Form on ${new Date().toLocaleString()}<br>
+                  Sent to: ${contactEmail}
                 </small>
               </div>
             </div>
@@ -116,6 +130,7 @@ Message:
 ${message}
 
 Sent from Blog Contact Form on ${new Date().toLocaleString()}
+Sent to: ${contactEmail}
       `
     };
 

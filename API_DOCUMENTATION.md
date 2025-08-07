@@ -6,6 +6,7 @@
 - [Health & Status Endpoints](#health--status-endpoints)
 - [Posts API](#posts-api)
 - [Settings API](#settings-api)
+- [Contact API](#contact-api)
 - [Authentication API](#authentication-api)
 - [Publishing API](#publishing-api)
 - [Users API](#users-api)
@@ -209,6 +210,107 @@ curl -X PUT https://bapi.ingasti.com/api/settings/social \
 }
 ```
 
+### 3. Get Contact Settings
+**Endpoint**: `GET /api/settings/contact`
+
+**Description**: Retrieves contact form configuration including email address.
+
+**Example**:
+```bash
+curl -s https://bapi.ingasti.com/api/settings/contact
+```
+
+**Response**:
+```json
+{
+  "email": "blog@ingasti.com"
+}
+```
+
+### 4. Update Contact Settings
+**Endpoint**: `PUT /api/settings/contact`
+
+**Description**: Updates contact email configuration.
+
+**Headers**: `Content-Type: application/json`
+
+**Example**:
+```bash
+curl -X PUT https://bapi.ingasti.com/api/settings/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "contact@myblog.com"
+  }'
+```
+
+**Response**:
+```json
+{
+  "message": "Contact email updated successfully",
+  "email": "contact@myblog.com"
+}
+```
+
+---
+
+## Contact API
+
+### 1. Send Contact Message
+**Endpoint**: `POST /api/contact`
+
+**Description**: Sends a contact form message via email to the configured contact address.
+
+**Headers**: `Content-Type: application/json`
+
+**Request Body**:
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com", 
+  "subject": "Question about your blog",
+  "message": "I have a question about..."
+}
+```
+
+**Example**:
+```bash
+curl -X POST https://bapi.ingasti.com/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "subject": "Question about your blog", 
+    "message": "I really enjoyed your latest post about technology trends. Could you share more resources on this topic?"
+  }'
+```
+
+**Response (Success)**:
+```json
+{
+  "message": "Message sent successfully",
+  "success": true
+}
+```
+
+**Response (Error)**:
+```json
+{
+  "error": "All fields are required",
+  "fields": {
+    "name": "John Doe",
+    "email": "",
+    "subject": "Test",
+    "message": "Test message"
+  }
+}
+```
+
+**Validation Rules**:
+- All fields are required (name, email, subject, message)
+- Email must be in valid format
+- Messages are stored in database and sent via email
+- Email is sent to address configured in `/api/settings/contact`
+
 ---
 
 ## Publishing API
@@ -293,6 +395,30 @@ curl -s https://bapi.ingasti.com/api/settings/social
 curl -X PUT https://bapi.ingasti.com/api/settings/social \
   -H "Content-Type: application/json" \
   -d '{"facebook":"https://facebook.com/test","twitter":"https://twitter.com/test"}'
+```
+
+### Contact Settings Testing
+```bash
+# Get current contact settings
+curl -s https://bapi.ingasti.com/api/settings/contact
+
+# Update contact email (requires authentication)
+curl -X PUT https://bapi.ingasti.com/api/settings/contact \
+  -H "Content-Type: application/json" \
+  -d '{"email":"contact@example.com"}'
+```
+
+### Contact Form Testing
+```bash
+# Send a test contact message
+curl -X POST https://bapi.ingasti.com/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "subject": "Test Contact Form",
+    "message": "This is a test message to verify the contact form is working."
+  }'
 ```
 
 ### Performance Testing
