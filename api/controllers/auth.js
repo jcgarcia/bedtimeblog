@@ -1,5 +1,5 @@
 import { getDbPool } from "../db.js";
-import bcrypt from "bcryptjs";
+import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
@@ -14,9 +14,8 @@ export const register = async (req, res) => {
       return res.status(409).json("User already exists!");
     }
     
-    // Hash the password with bcrypt and create a user
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(req.body.password, salt);
+    // Hash the password with Argon2 and create a user
+    const hash = await argon2.hash(req.body.password);
     const q2 = "INSERT INTO users(username,email,password_hash) VALUES ($1,$2,$3)";
     await pool.query(q2, [req.body.username, req.body.email, hash]);
     
@@ -38,11 +37,11 @@ export const login = async (req, res) => {
       return res.status(404).json("User not found!");
     }
     
-    // Check password with bcrypt
+    // Check password with Argon2
     const user = result.rows[0];
-    const isPasswordCorrect = bcrypt.compareSync(
-      req.body.password,
-      user.password_hash
+    const isPasswordCorrect = await argon2.verify(
+      user.password_hash,
+      req.body.password
     );
     
     if (!isPasswordCorrect) {
