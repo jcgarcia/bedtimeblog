@@ -10,7 +10,7 @@ const query = async (text, params) => {
 // Create email transporter
 const createTransporter = () => {
   // For production, you'll want to use environment variables for email configuration
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: process.env.SMTP_PORT || 587,
     secure: false, // true for 465, false for other ports
