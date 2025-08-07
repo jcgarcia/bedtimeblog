@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL } from '../../config/api.js';
 import './contact.css';
 
 export default function Contact() {
@@ -24,7 +25,7 @@ export default function Contact() {
     setSubmitStatus(null);
 
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch(`${API_URL}api/contact`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../config/api.js';
 
 export const useSocialLinks = () => {
   const [socialLinks, setSocialLinks] = useState({
@@ -12,7 +13,7 @@ export const useSocialLinks = () => {
   useEffect(() => {
     const fetchSocialLinks = async () => {
       try {
-        const response = await fetch('/api/settings/social');
+        const response = await fetch(`${API_URL}api/settings/social`);
         if (response.ok) {
           const data = await response.json();
           setSocialLinks(data);
