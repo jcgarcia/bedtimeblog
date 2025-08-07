@@ -1,4 +1,10 @@
-import { query } from "../db.js";
+import { getDbPool } from "../db.js";
+
+// Helper function to execute queries
+const query = async (text, params) => {
+  const pool = getDbPool();
+  return await pool.query(text, params);
+};
 
 // Get social media links
 export const getSocialMediaLinks = async (req, res) => {
