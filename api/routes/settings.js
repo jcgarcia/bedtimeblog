@@ -1,7 +1,5 @@
 import express from "express";
 import {
-  getSettings,
-  updateSettings,
   getSocialMediaLinks,
   updateSocialMediaLinks,
   getContactSettings,
@@ -9,12 +7,6 @@ import {
 } from "../controllers/settings.js";
 
 const router = express.Router();
-
-// Get all public settings
-router.get("/", getSettings);
-
-// Update settings (admin only)
-router.put("/", updateSettings);
 
 // Get social media links
 router.get("/social", getSocialMediaLinks);
