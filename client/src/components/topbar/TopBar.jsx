@@ -2,19 +2,15 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Search from "../search/Search";
 import { useSocialLinks } from "../../hooks/useSocialLinks";
+import { useUser } from "../../contexts/UserContext";
 import "./topbar.css"
 
 export default function TopBar() {
-  const user = false;
+  const { user, logout } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { socialLinks, loading } = useSocialLinks();
-
-  // Debug logging to help troubleshoot
-  useEffect(() => {
-    console.log('TopBar - Social links loaded:', socialLinks, 'Loading:', loading);
-  }, [socialLinks, loading]);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -26,6 +22,11 @@ export default function TopBar() {
 
   const closeSearch = () => {
     setSearchOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setMenuOpen(false);
   };
 
   // Check if we're on mobile and handle responsive behavior
@@ -62,16 +63,17 @@ export default function TopBar() {
       <li className="topListItem"><Link className="link" to="/about" onClick={() => setMenuOpen(false)} > About </Link></li>
       <li className="topListItem"><Link className="link" to="/contact" onClick={() => setMenuOpen(false)} > Contact </Link></li>
       <li className="topListItem"><Link className="link" to="/ops" onClick={() => setMenuOpen(false)} > Ops </Link></li>
-      <li className="topListItem"> { user &&  "Logout" } </li>
+      {user && (
+        <li className="topListItem">
+          <span className="link logoutButton" onClick={handleLogout}>Logout</span>
+        </li>
+      )}
     </ul>
   );
 
   return (
     <div className='top'>
     <div className="topLeft">
-      {/* Debug: Show loading state */}
-      {loading && <span style={{color: 'red', fontSize: '12px'}}>Loading social links...</span>}
-      
       {!loading && socialLinks.facebook && (
         <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
           <i className="topIcon fa-brands fa-square-facebook"></i>
@@ -92,16 +94,6 @@ export default function TopBar() {
           <i className="topIcon fa-brands fa-square-threads"></i>
         </a>
       )}
-      
-      {/* Debug: Show what we got */}
-      {!loading && (
-        <div style={{fontSize: '10px', color: 'blue'}}>
-          FB: {socialLinks.facebook ? '✓' : '✗'} | 
-          TW: {socialLinks.twitter ? '✓' : '✗'} | 
-          IG: {socialLinks.instagram ? '✓' : '✗'} | 
-          TH: {socialLinks.threads ? '✓' : '✗'}
-        </div>
-      )}
     </div>      {/* Desktop menu - only render on desktop */}
       {!isMobile && (
         <div className="topCenter">
@@ -112,11 +104,15 @@ export default function TopBar() {
       <div className="topRight">
         {
           user ? (
-            <img 
-            className="topImg"
-            src="https://lh3.googleusercontent.com/a/ACg8ocKyzBlZ6G6WI8BZQpstO_hcA3hhfSuyesOerch4wMn0ISfAXY8v=s96-c"
-            alt="Julio Cesar Garcia"
-            />          
+            <div className="userInfo">
+              <img 
+                className="topImg"
+                src={user.avatar || "https://via.placeholder.com/40"}
+                alt={user.name}
+                title={user.name}
+              />
+              <span className="userName">{user.name}</span>
+            </div>
           ) : (
             <Link className="link loginIcon" to="/login">
               <i className="fa-solid fa-right-to-bracket"></i>

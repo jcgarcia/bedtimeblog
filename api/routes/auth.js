@@ -15,7 +15,7 @@ router.get("/google", passport.authenticate("google", {
 
 // Route for handling Google OAuth callback
 router.get("/google/callback", passport.authenticate("google", {
-  failureRedirect: "/login",
+  failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=auth_failed`,
   session: false
 }), (req, res) => {
   try {
@@ -26,21 +26,66 @@ router.get("/google/callback", passport.authenticate("google", {
       avatar: photos[0]?.value || null
     };
 
-    // For API consistency, return JSON instead of redirect
-    // Frontend can handle this response and redirect appropriately
-    res.status(200).json({
-      success: true,
-      message: "Google authentication successful",
-      user: user,
-      redirectUrl: `/welcome?user=${encodeURIComponent(JSON.stringify(user))}`
-    });
+    // Redirect to frontend with user data in query params
+    const userParam = encodeURIComponent(JSON.stringify(user));
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/?user=${userParam}&login=success`);
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    res.status(500).json({
-      success: false,
-      error: "Authentication callback failed",
-      message: error.message
-    });
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/login?error=auth_callback_failed`);
+  }
+});
+
+// Route for initiating Facebook OAuth
+router.get("/facebook", passport.authenticate("facebook", {
+  scope: ["public_profile"]
+}));
+
+// Route for handling Facebook OAuth callback
+router.get("/facebook/callback", passport.authenticate("facebook", {
+  failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=auth_failed`,
+  session: false
+}), (req, res) => {
+  try {
+    const { displayName, photos } = req.user;
+    const user = {
+      name: displayName,
+      avatar: photos[0]?.value || null
+    };
+
+    const userParam = encodeURIComponent(JSON.stringify(user));
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/?user=${userParam}&login=success`);
+  } catch (error) {
+    console.error('Facebook OAuth callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/login?error=auth_callback_failed`);
+  }
+});
+
+// Route for initiating Twitter OAuth
+router.get("/twitter", passport.authenticate("twitter"));
+
+// Route for handling Twitter OAuth callback
+router.get("/twitter/callback", passport.authenticate("twitter", {
+  failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=auth_failed`,
+  session: false
+}), (req, res) => {
+  try {
+    const { displayName, photos } = req.user;
+    const user = {
+      name: displayName,
+      avatar: photos[0]?.value || null
+    };
+
+    const userParam = encodeURIComponent(JSON.stringify(user));
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/?user=${userParam}&login=success`);
+  } catch (error) {
+    console.error('Twitter OAuth callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/login?error=auth_callback_failed`);
   }
 });
 

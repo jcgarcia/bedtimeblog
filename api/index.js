@@ -10,6 +10,8 @@ import cookieParser from "cookie-parser";
 import multer from "multer";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Strategy as TwitterStrategy } from "passport-twitter";
 import fs from "fs";
 import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
@@ -94,7 +96,7 @@ app.post("/api/upload", upload.single("file"), function (req, res) {
   res.status(200).json(file.filename);
 });
 
-// Configure Passport.js with Google OAuth strategy
+// Configure Passport.js with OAuth strategies
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID",
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || "YOUR_GOOGLE_CLIENT_SECRET",
@@ -103,6 +105,27 @@ passport.use(new GoogleStrategy({
     : "/api/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => {
   // Pass the user profile to the next middleware
+  done(null, profile);
+}));
+
+passport.use(new FacebookStrategy({
+  clientID: process.env.FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID",
+  clientSecret: process.env.FACEBOOK_APP_SECRET || "YOUR_FACEBOOK_APP_SECRET",
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? "https://bapi.ingasti.com/api/auth/facebook/callback"
+    : "/api/auth/facebook/callback",
+  profileFields: ['id', 'displayName', 'photos']
+}, (accessToken, refreshToken, profile, done) => {
+  done(null, profile);
+}));
+
+passport.use(new TwitterStrategy({
+  consumerKey: process.env.TWITTER_CONSUMER_KEY || "YOUR_TWITTER_CONSUMER_KEY",
+  consumerSecret: process.env.TWITTER_CONSUMER_SECRET || "YOUR_TWITTER_CONSUMER_SECRET",
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? "https://bapi.ingasti.com/api/auth/twitter/callback"
+    : "/api/auth/twitter/callback"
+}, (token, tokenSecret, profile, done) => {
   done(null, profile);
 }));
 

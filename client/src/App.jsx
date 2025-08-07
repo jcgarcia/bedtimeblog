@@ -12,33 +12,35 @@ import Contact from "./pages/contact/Contact";
 import AdminLogin from "./pages/adminlogin/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import { AdminProvider } from "./contexts/AdminContext";
+import { UserProvider } from "./contexts/UserContext";
 
 function App() {
-  const user = false;
   return (
     <div className="App">
-      <AdminProvider>
-        <Router>
-          <TopBar />
-          <Routes>
-            <Route exact path="/" element={<Home />} />
-            <Route path="/category/:categoryName" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/register" element={user ? <Home /> : <Register />} />
-            <Route path="/login" element={user ? <Home /> : <Login />} />
-            <Route path="/write" element={user ? <Write /> : <Register />} />
-            <Route path="/ops" element={
-              <ProtectedRoute requireAdmin={true}>
-                <Ops />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={user ? <Settings /> : <Register />} />
-            <Route path="/post/:postId" element={<Single />} />
-            <Route path="/adminlogin" element={<AdminLogin />} />
-          </Routes>
-        </Router>
-      </AdminProvider>
+      <UserProvider>
+        <AdminProvider>
+          <Router>
+            <TopBar />
+            <Routes>
+              <Route exact path="/" element={<Home />} />
+              <Route path="/category/:categoryName" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/write" element={<Write />} />
+              <Route path="/ops" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Ops />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/post/:postId" element={<Single />} />
+              <Route path="/adminlogin" element={<AdminLogin />} />
+            </Routes>
+          </Router>
+        </AdminProvider>
+      </UserProvider>
     </div>
   );
 }
