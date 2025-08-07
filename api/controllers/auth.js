@@ -49,7 +49,7 @@ export const login = async (req, res) => {
     }
     
     const token = jwt.sign({ id: user.id }, "jwtkey");
-    const { password, ...other } = user;
+    const { password_hash, ...other } = user;
     
     res
       .cookie("access_token", token, {
