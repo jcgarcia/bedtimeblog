@@ -1,5 +1,11 @@
-import { query } from "../db.js";
+import { getDbPool } from "../db.js";
 import nodemailer from "nodemailer";
+
+// Helper function to execute queries
+const query = async (text, params) => {
+  const pool = getDbPool();
+  return await pool.query(text, params);
+};
 
 // Create email transporter
 const createTransporter = () => {
