@@ -55,7 +55,8 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   
   if (req.method === "OPTIONS") {
-    res.sendStatus(200);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({ message: "CORS preflight successful" });
   } else {
     next();
   }
@@ -63,6 +64,12 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Middleware to ensure all API responses have JSON content type
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
 
 // Load system configuration from database
 app.use(loadSystemConfig);
@@ -154,6 +161,31 @@ app.use("/api/posts", postRoutes);
 app.use("/api/publish", publishRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/contact", contactRoutes);
+
+// Global error handler to ensure JSON responses
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  
+  // Set JSON content type
+  res.setHeader('Content-Type', 'application/json');
+  
+  // Return JSON error response
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler for undefined routes - return JSON instead of HTML
+app.use('*', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {

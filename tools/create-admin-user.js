@@ -28,9 +28,20 @@ const colors = {
 
 class AdminUserCreator {
   constructor() {
-    this.client = new Client({
-      connectionString: process.env.DATABASE_URL
-    });
+    // Use individual environment variables if available, otherwise fall back to DATABASE_URL
+    const dbConfig = process.env.PGHOST ? {
+      host: process.env.PGHOST,
+      port: process.env.PGPORT || 5432,
+      database: process.env.PGDATABASE,
+      user: process.env.PGUSER,
+      password: process.env.PGPASSWORD,
+      ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false
+    } : {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    };
+
+    this.client = new Client(dbConfig);
   }
 
   async connect() {

@@ -18,6 +18,13 @@ export const API_ENDPOINTS = {
     VERIFY: `${API_URL}api/auth/verify`,
   },
   
+  // Admin
+  ADMIN: {
+    LOGIN: `${API_URL}api/admin/login`,
+    VERIFY: `${API_URL}api/admin/verify`,
+    LOGOUT: `${API_URL}api/admin/logout`,
+  },
+  
   // Posts
   POSTS: {
     LIST: `${API_URL}api/posts`,
@@ -32,6 +39,17 @@ export const API_ENDPOINTS = {
     PROFILE: `${API_URL}api/users/profile`,
     UPDATE: `${API_URL}api/users/profile`,
   },
+  
+  // Settings
+  SETTINGS: {
+    SOCIAL: `${API_URL}api/settings/social`,
+    CONTACT: `${API_URL}api/settings/contact`,
+    SMTP: `${API_URL}api/settings/smtp`,
+    SMTP_TEST: `${API_URL}api/settings/smtp/test`,
+  },
+  
+  // Contact
+  CONTACT: `${API_URL}api/contact`,
   
   // Upload
   UPLOAD: `${API_URL}api/upload`,

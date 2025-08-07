@@ -196,6 +196,140 @@ pipeline {
             }
         }
         
+        stage('Deploy Nginx Configuration') {
+            steps {
+                script {
+                    echo "🌐 Deploying nginx proxy configuration..."
+                    sh """
+                        # Backup current nginx configuration
+                        sudo cp -r /etc/nginx /etc/nginx.backup.\$(date +%Y%m%d_%H%M%S) || true
+                        
+                        # Deploy frontend proxy configuration with API routing
+                        sudo tee /etc/nginx/sites-available/blog.ingasti.com > /dev/null << 'EOF'
+server {
+    listen 80;
+    server_name blog.ingasti.com;
+    return 301 https://\$server_name\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name blog.ingasti.com;
+
+    ssl_certificate /etc/letsencrypt/live/ingasti.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ingasti.com/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Proxy API requests to backend on port 5000
+    location /api/ {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_buffering off;
+        
+        add_header Access-Control-Allow-Origin "https://blog.ingasti.com" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+        
+        if (\$request_method = 'OPTIONS') {
+            return 204;
+        }
+    }
+
+    # Proxy to frontend on port 3000
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+}
+EOF
+
+                        # Deploy backend proxy configuration
+                        sudo tee /etc/nginx/sites-available/bapi.ingasti.com > /dev/null << 'EOF'
+server {
+    listen 80;
+    server_name bapi.ingasti.com;
+    return 301 https://\$server_name\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name bapi.ingasti.com;
+
+    ssl_certificate /etc/letsencrypt/live/ingasti.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ingasti.com/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        
+        add_header Access-Control-Allow-Origin "https://blog.ingasti.com" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+        
+        if (\$request_method = 'OPTIONS') {
+            return 204;
+        }
+    }
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+}
+EOF
+
+                        # Enable sites
+                        sudo ln -sf /etc/nginx/sites-available/blog.ingasti.com /etc/nginx/sites-enabled/
+                        sudo ln -sf /etc/nginx/sites-available/bapi.ingasti.com /etc/nginx/sites-enabled/
+                        sudo rm -f /etc/nginx/sites-enabled/default || true
+                        
+                        # Test and reload nginx
+                        sudo nginx -t
+                        sudo systemctl reload nginx
+                        
+                        echo "✅ Nginx configuration deployed successfully"
+                    """
+                }
+            }
+        }
+        
         stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -203,28 +337,27 @@ pipeline {
                     
                     // Update deployment files with current image tags
                     sh """
-                    sh """
-                        # Start backend container for testing
-                        docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e PGHOST=\"${PGHOST}\" \
-                            -e PGPORT=\"${PGPORT}\" \
-                            -e PGUSER=\"${PGUSER}\" \
-                            -e PGPASSWORD=\"${PGPASSWORD}\" \
-                            -e PGDATABASE=\"${PGDATABASE}\" \
-                            -e PGSSLMODE=\"${PGSSLMODE}\" \
-                            -e JWT_SECRET=\"${JWT_SECRET}\" \
-                            -e CORS_ORIGIN=\"${CORS_ORIGIN}\" \
-                            -e NODE_ENV=production \
-                            ${env.BACKEND_IMAGE}
+                        cd k8s
                         
-                        # Wait for container to start
-                        sleep 15
+                        # Create namespace if it doesn't exist
+                        kubectl create namespace blog --dry-run=client -o yaml | kubectl apply -f -
                         
-                        # Test health endpoint
-                        curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
+                        # Update deployment files with current image tags
+                        cp backend-deployment.yaml backend-deployment.yaml.bak
+                        cp frontend-deployment.yaml frontend-deployment.yaml.bak
                         
-                        echo "✅ Backend container test passed"
-                    """
+                        sed -i 's|localhost:5000/blog-backend:.*|${env.BACKEND_IMAGE}|g' backend-deployment.yaml
+                        sed -i 's|localhost:5000/blog-frontend:.*|${env.FRONTEND_IMAGE}|g' frontend-deployment.yaml
+                        
+                        # Apply Kubernetes manifests
+                        kubectl apply -f namespace.yaml
+                        kubectl apply -f blog-secrets.yaml
+                        kubectl apply -f storage.yaml
+                        kubectl apply -f backend-deployment.yaml
+                        kubectl apply -f frontend-deployment.yaml
+                        kubectl apply -f network-policy.yaml
+                        
+                        # Wait for deployments to be ready
                         kubectl wait --for=condition=available --timeout=300s deployment/blog-backend -n blog
                         kubectl wait --for=condition=available --timeout=300s deployment/blog-frontend -n blog
                         

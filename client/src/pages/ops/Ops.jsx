@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
-import { API_URL } from '../../config/api.js';
+import { API_URL, API_ENDPOINTS } from '../../config/api.js';
 import './ops.css';
 
 export default function Ops() {
@@ -205,7 +205,7 @@ function SocialMediaManagement() {
 
   const fetchSocialLinks = async () => {
     try {
-      const response = await fetch(`${API_URL}api/settings/social`);
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SOCIAL);
       if (response.ok) {
         const data = await response.json();
         setSocialLinks(data);
@@ -229,7 +229,7 @@ function SocialMediaManagement() {
     setMessage('');
     
     try {
-      const response = await fetch(`${API_URL}api/settings/social`, {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SOCIAL, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -575,7 +575,7 @@ function SiteSettings() {
 
   const loadContactEmail = async () => {
     try {
-      const response = await fetch(`${API_URL}api/settings/contact`);
+      const response = await fetch(API_ENDPOINTS.SETTINGS.CONTACT);
       if (response.ok) {
         const data = await response.json();
         setContactEmail(data.email || '');
@@ -587,7 +587,7 @@ function SiteSettings() {
 
   const loadSmtpSettings = async () => {
     try {
-      const response = await fetch(`${API_URL}api/settings/smtp`);
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SMTP);
       if (response.ok) {
         const data = await response.json();
         setSmtpSettings(data);
@@ -602,7 +602,7 @@ function SiteSettings() {
     setSaveStatus(null);
 
     try {
-      const response = await fetch(`${API_URL}api/settings/contact`, {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.CONTACT, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -630,7 +630,7 @@ function SiteSettings() {
     setTestResult(null);
 
     try {
-      const response = await fetch(`${API_URL}api/settings/smtp`, {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SMTP, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -661,7 +661,7 @@ function SiteSettings() {
     setTestResult(null);
 
     try {
-      const response = await fetch(`${API_URL}api/settings/smtp/test`, {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SMTP_TEST, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

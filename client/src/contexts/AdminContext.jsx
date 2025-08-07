@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_URL } from '../config/api.js';
+import { API_ENDPOINTS } from '../config/api.js';
 
 const AdminContext = createContext();
 
@@ -31,7 +31,7 @@ export const AdminProvider = ({ children }) => {
       }
 
       // Verify token with backend
-      const response = await fetch(`${API_URL}api/admin/verify`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN.VERIFY, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ export const AdminProvider = ({ children }) => {
       setIsLoading(true);
       
       // Call the real API
-      const response = await fetch(`${API_URL}api/admin/login`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
