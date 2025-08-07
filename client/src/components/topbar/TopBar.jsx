@@ -11,6 +11,11 @@ export default function TopBar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { socialLinks, loading } = useSocialLinks();
 
+  // Debug logging to help troubleshoot
+  useEffect(() => {
+    console.log('TopBar - Social links loaded:', socialLinks, 'Loading:', loading);
+  }, [socialLinks, loading]);
+
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
@@ -63,30 +68,41 @@ export default function TopBar() {
 
   return (
     <div className='top'>
-      <div className="topLeft">
-        {!loading && socialLinks.facebook && (
-          <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-            <i className="topIcon fa-brands fa-square-facebook"></i>
-          </a>
-        )}
-        {!loading && socialLinks.twitter && (
-          <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer">
-            <i className="topIcon fa-brands fa-square-x-twitter"></i>
-          </a>
-        )}
-        {!loading && socialLinks.instagram && (
-          <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
-            <i className="topIcon fa-brands fa-square-instagram"></i>
-          </a>
-        )}
-        {!loading && socialLinks.threads && (
-          <a href={socialLinks.threads} target="_blank" rel="noopener noreferrer">
-            <i className="topIcon fa-brands fa-square-threads"></i>
-          </a>
-        )}
-      </div>
+    <div className="topLeft">
+      {/* Debug: Show loading state */}
+      {loading && <span style={{color: 'red', fontSize: '12px'}}>Loading social links...</span>}
       
-      {/* Desktop menu - only render on desktop */}
+      {!loading && socialLinks.facebook && (
+        <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
+          <i className="topIcon fa-brands fa-square-facebook"></i>
+        </a>
+      )}
+      {!loading && socialLinks.twitter && (
+        <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer">
+          <i className="topIcon fa-brands fa-square-x-twitter"></i>
+        </a>
+      )}
+      {!loading && socialLinks.instagram && (
+        <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
+          <i className="topIcon fa-brands fa-square-instagram"></i>
+        </a>
+      )}
+      {!loading && socialLinks.threads && (
+        <a href={socialLinks.threads} target="_blank" rel="noopener noreferrer">
+          <i className="topIcon fa-brands fa-square-threads"></i>
+        </a>
+      )}
+      
+      {/* Debug: Show what we got */}
+      {!loading && (
+        <div style={{fontSize: '10px', color: 'blue'}}>
+          FB: {socialLinks.facebook ? '✓' : '✗'} | 
+          TW: {socialLinks.twitter ? '✓' : '✗'} | 
+          IG: {socialLinks.instagram ? '✓' : '✗'} | 
+          TH: {socialLinks.threads ? '✓' : '✗'}
+        </div>
+      )}
+    </div>      {/* Desktop menu - only render on desktop */}
       {!isMobile && (
         <div className="topCenter">
           <MenuItems />
