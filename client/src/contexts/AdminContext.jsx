@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } fro      // Call the real API
-      const response = await fetch(`${API_URL}api/admin/verify`, {'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_URL } from '../config/api.js';
 
 const AdminContext = createContext();
