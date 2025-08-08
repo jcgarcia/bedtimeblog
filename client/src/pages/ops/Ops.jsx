@@ -177,8 +177,8 @@ function PostManagement() {
   };
 
   const handleEditPost = (postId) => {
-    // Navigate to the post view page - users can edit from there
-    window.location.href = `/post/${postId}`;
+    // Navigate to the edit page for this specific post
+    window.location.href = `/edit/${postId}`;
   };
 
   const handleDeletePost = async (postId) => {

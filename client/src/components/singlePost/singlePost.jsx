@@ -101,15 +101,9 @@ export default function SinglePost() {
       return;
     }
     
-    // Since the Write page doesn't have editing functionality yet,
-    // redirect to Operations Panel where posts can be managed
-    const confirmEdit = window.confirm(
-      `Edit "${post.title}"?\n\nThis will take you to the Operations Panel where you can manage this post.`
-    );
-    
-    if (confirmEdit) {
-      navigate('/ops');
-    }
+    console.log('🔧 Navigating to edit page for post:', postId);
+    // Navigate directly to the edit page for this specific post
+    navigate(`/edit/${postId}`);
   };
 
   // Handle delete post

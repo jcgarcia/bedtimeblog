@@ -29,6 +29,11 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/write" element={<Write />} />
+              <Route path="/edit/:postId" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Write />
+                </ProtectedRoute>
+              } />
               <Route path="/ops" element={
                 <ProtectedRoute requireAdmin={true}>
                   <Ops />

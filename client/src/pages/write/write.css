@@ -2,6 +2,49 @@
     padding-top: 50px;
 }
 
+.write-header {
+    margin-left: 150px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 72vw;
+}
+
+.write-header h1 {
+    color: #333;
+    font-size: 2rem;
+    margin: 0;
+}
+
+.write-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.writeCancel {
+    background-color: #6c757d;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.writeCancel:hover {
+    background-color: #5a6268;
+}
+
+.loading {
+    margin-left: 150px;
+    padding: 50px;
+    text-align: center;
+    font-size: 18px;
+    color: #666;
+}
+
 .writeImg{
     margin-left: 150px;
     width: 72vw; 
@@ -61,4 +104,17 @@
     border-radius: 9px;
     cursor: pointer;
     font-size: 18px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.writeSubmit:hover:not(:disabled) {
+    background-color: #006666;
+}
+
+.writeSubmit:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }
