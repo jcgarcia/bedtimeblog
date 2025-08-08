@@ -5,7 +5,7 @@ import Write from "./pages/write/Write";
 import Ops from "./pages/ops/Ops";
 import Settings from "./pages/settings/Settings";
 import Login from "./pages/login/Login";
-import UserLogin from "./pages/userlogin/UserLogin";
+import UserLogin from "./pages/userLogin/UserLogin";
 import Register from "./pages/register/Register";
 import Home from "./pages/home/Home";
 import About from "./pages/about/About";
