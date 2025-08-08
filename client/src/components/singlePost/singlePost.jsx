@@ -100,7 +100,7 @@ export default function SinglePost() {
       hasAdminUser: !!adminUser,
       adminUserRole: adminUser?.role,
       adminUserId: adminUser?.id,
-      isAdmin: adminUser?.role === 'admin',
+      isAdmin: adminUser?.role === 'admin' || adminUser?.role === 'super_admin',
       isAuthor: adminUser?.id === post?.author_id
     });
     
@@ -109,9 +109,9 @@ export default function SinglePost() {
       return false;
     }
     
-    // If user is admin, they can edit any post
-    if (adminUser.role === 'admin') {
-      console.log('✅ User is admin - can edit any post');
+    // If user is admin or super_admin, they can edit any post
+    if (adminUser.role === 'admin' || adminUser.role === 'super_admin') {
+      console.log('✅ User is admin/super_admin - can edit any post');
       return true;
     }
     
@@ -169,9 +169,14 @@ export default function SinglePost() {
     if (!confirmDelete) return;
 
     try {
+      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/posts/${postId}`, {
         method: 'DELETE',
-        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
 
       if (response.ok) {
