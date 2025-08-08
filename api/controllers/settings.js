@@ -338,14 +338,14 @@ export const getOAuthSettings = async (req, res) => {
           break;
         case 'oauth_facebook_app_id':
           oauthSettings.facebook.appId = row.value ? "••••••••" : "";
-          oauthSettings.facebook.configured = git push origin k8srow.value;
+          oauthSettings.facebook.configured = !!row.value;
           break;
         case 'oauth_facebook_app_secret':
           oauthSettings.facebook.appSecret = row.value ? "••••••••" : "";
           break;
         case 'oauth_twitter_consumer_key':
           oauthSettings.twitter.consumerKey = row.value ? "••••••••" : "";
-          oauthSettings.twitter.configured = git push origin k8srow.value;
+          oauthSettings.twitter.configured = !!row.value;
           break;
         case 'oauth_twitter_consumer_secret':
           oauthSettings.twitter.consumerSecret = row.value ? "••••••••" : "";
