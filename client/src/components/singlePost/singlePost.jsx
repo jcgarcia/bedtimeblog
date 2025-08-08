@@ -22,7 +22,7 @@ export default function SinglePost() {
 
   // Debug admin user state
   useEffect(() => {
-    console.log('🔐 SinglePost AdminUser State:', {
+    console.log('🔐 SinglePost Authentication State:', {
       adminUser,
       hasAdminUser: !!adminUser,
       adminUserKeys: adminUser ? Object.keys(adminUser) : 'none',

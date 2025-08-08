@@ -302,24 +302,235 @@ function PostManagement() {
 
 // User Management Component
 function UserManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: ''
+  });
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/users`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    
+    if (!newUser.username || !newUser.email || !newUser.password) {
+      setMessage('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(newUser)
+      });
+
+      if (response.ok) {
+        setMessage('User created successfully!');
+        setNewUser({ username: '', email: '', password: '', first_name: '', last_name: '' });
+        setShowAddForm(false);
+        fetchUsers(); // Refresh the list
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        const error = await response.text();
+        setMessage(`Error: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      setMessage('Network error. Please try again.');
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      try {
+        const response = await fetch(`${API_URL}/api/users/${userId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          setMessage('User deleted successfully!');
+          fetchUsers(); // Refresh the list
+          setTimeout(() => setMessage(''), 3000);
+        } else {
+          const error = await response.text();
+          setMessage(`Error deleting user: ${error}`);
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        setMessage('Network error. Please try again.');
+      }
+    }
+  };
+
   return (
     <div className="user-management">
       <div className="section-header">
         <h2>User Management</h2>
-        <button className="btn-primary">
+        <p>Manage regular users who can write and edit posts</p>
+        <button 
+          className="btn-primary"
+          onClick={() => setShowAddForm(!showAddForm)}
+        >
           <i className="fa-solid fa-user-plus"></i> Add User
         </button>
       </div>
 
-      <div className="users-grid">
-        <div className="user-card">
-          <div className="user-avatar">
-            <i className="fa-solid fa-user"></i>
-          </div>
-          <h3>Julio Cesar Garcia</h3>
-          <p>Admin</p>
-          <button className="btn-secondary">Manage</button>
+      {message && (
+        <div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
+          {message}
         </div>
+      )}
+
+      {showAddForm && (
+        <div className="add-user-form">
+          <h3>Create New User</h3>
+          <form onSubmit={handleAddUser}>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Username *</label>
+                <input 
+                  type="text" 
+                  placeholder="johndoe"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Email *</label>
+                <input 
+                  type="email" 
+                  placeholder="john@example.com"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>First Name</label>
+                <input 
+                  type="text" 
+                  placeholder="John"
+                  value={newUser.first_name}
+                  onChange={(e) => setNewUser({...newUser, first_name: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>Last Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Doe"
+                  value={newUser.last_name}
+                  onChange={(e) => setNewUser({...newUser, last_name: e.target.value})}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Password *</label>
+              <input 
+                type="password" 
+                placeholder="Minimum 6 characters"
+                value={newUser.password}
+                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                required
+                minLength="6"
+              />
+            </div>
+            <div className="form-actions">
+              <button type="submit" className="btn-primary">
+                Create User
+              </button>
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => setShowAddForm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="users-section">
+        <h3>Registered Users</h3>
+        {loading ? (
+          <div className="loading">Loading users...</div>
+        ) : (
+          <div className="users-grid">
+            {users.length > 0 ? (
+              users.map(user => (
+                <div key={user.id} className="user-card">
+                  <div className="user-avatar">
+                    <i className="fa-solid fa-user"></i>
+                  </div>
+                  <div className="user-info">
+                    <h4>{user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username}</h4>
+                    <p className="user-email">{user.email}</p>
+                    <p className="user-username">@{user.username}</p>
+                    <p className="user-date">Joined: {new Date(user.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="user-actions">
+                    <button 
+                      className="btn-small btn-danger"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      <i className="fa-solid fa-trash"></i> Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-users">
+                <p>No regular users found. Create the first user to get started!</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="user-info-box">
+        <h3>👥 User System Information</h3>
+        <p>This system has two types of authentication:</p>
+        <ul>
+          <li><strong>Regular Users (Database)</strong> - Can write, edit, and delete their own posts</li>
+          <li><strong>OAuth Users (Social Media)</strong> - Can only comment on posts</li>
+          <li><strong>Admin Users</strong> - Can manage all posts and users</li>
+        </ul>
+        <p><em>Regular users created here can log in at <code>/userlogin</code> and access the writing interface.</em></p>
       </div>
     </div>
   );
