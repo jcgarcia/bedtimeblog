@@ -184,16 +184,25 @@ function PostManagement() {
   const handleDeletePost = async (postId) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
       try {
+        const adminToken = localStorage.getItem('adminToken');
         const response = await fetch(`${API_URL}/api/posts/${postId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
         });
         if (response.ok) {
           fetchPosts(); // Refresh the list
         } else {
-          console.error('❌ Delete failed:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('❌ Delete failed:', response.status, response.statusText, errorText);
+          alert(`Failed to delete post: ${errorText}`);
         }
       } catch (error) {
         console.error('Error deleting post:', error);
+        alert('Network error while deleting post.');
       }
     }
   };
@@ -320,17 +329,25 @@ function UserManagement() {
 
   const fetchUsers = async () => {
     try {
+      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/users`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        }
       });
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
       } else {
-        console.error('Failed to fetch users');
+        const errorText = await response.text();
+        console.error('Failed to fetch users:', errorText);
+        setMessage(`Error: ${errorText}`);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setMessage('Network error while fetching users.');
     } finally {
       setLoading(false);
     }
@@ -345,10 +362,12 @@ function UserManagement() {
     }
 
     try {
+      const adminToken = localStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
         },
         credentials: 'include',
         body: JSON.stringify(newUser)
@@ -373,8 +392,13 @@ function UserManagement() {
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       try {
+        const adminToken = localStorage.getItem('adminToken');
         const response = await fetch(`${API_URL}/api/users/${userId}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`,
+            'Content-Type': 'application/json'
+          },
           credentials: 'include'
         });
 
