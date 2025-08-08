@@ -116,6 +116,9 @@ function PostManagement() {
       const response = await fetch(`${API_URL}/api/posts`);
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 RAW POST DATA from API:', data);
+        console.log('🔍 First post structure:', data[0]);
+        console.log('🔍 Post statuses:', data.map(p => ({ id: p.id, title: p.title, status: p.status, published_at: p.published_at })));
         setPosts(data);
       }
     } catch (error) {
@@ -131,19 +134,16 @@ function PostManagement() {
   };
 
   const handleViewDrafts = () => {
-    // Filter to show only draft posts in the table
-    // Handle both old schema (no status field) and new schema (status field)
+    // Filter to show only draft posts
     const filteredPosts = posts.filter(post => {
-      // If no status field exists, assume it's a draft (old schema)
-      // If status field exists, check for 'draft' or null/empty status
-      return !post.status || post.status === 'draft' || post.status === '';
+      return post.status === 'draft' || post.status === '' || !post.status;
     });
     
     console.log('All posts:', posts);
     console.log('Filtered draft posts:', filteredPosts);
     
     if (filteredPosts.length === 0) {
-      alert('No draft posts found. Create a new post to get started!');
+      alert('No draft posts found. All posts are published! Create a new post to get started.');
       handleCreateNew();
     } else {
       alert(`Found ${filteredPosts.length} draft posts. Check the table below.`);
@@ -153,15 +153,13 @@ function PostManagement() {
   const handleManagePublished = () => {
     // Filter to show only published posts
     const publishedPosts = posts.filter(post => 
-      post.status === 'published' || 
-      (post.status && post.status !== 'draft') ||
-      (!post.status && post.published_at) // Old schema might have published_at
+      post.status === 'published'
     );
     
     console.log('Published posts:', publishedPosts);
     
     if (publishedPosts.length === 0) {
-      alert('No published posts found.');
+      alert('No published posts found. All posts are drafts.');
     } else {
       alert(`Found ${publishedPosts.length} published posts. Check the table below.`);
     }
@@ -257,8 +255,10 @@ function PostManagement() {
                   <tr key={post.id}>
                     <td>{post.title}</td>
                     <td>
-                      <span className={`status ${post.status || 'draft'}`}>
-                        {post.status || 'Draft'}
+                      <span className={`status ${post.status || 'published'}`}>
+                        {post.status === 'published' ? 'Published' : 
+                         post.status === 'draft' ? 'Draft' :
+                         post.status || 'Published'}
                       </span>
                     </td>
                     <td>{formatDate(post.date || post.created_at)}</td>
