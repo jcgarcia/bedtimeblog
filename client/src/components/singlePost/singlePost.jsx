@@ -20,6 +20,17 @@ export default function SinglePost() {
     }
   }, [postId]);
 
+  // Debug admin user state
+  useEffect(() => {
+    console.log('🔐 SinglePost AdminUser State:', {
+      adminUser,
+      hasAdminUser: !!adminUser,
+      adminUserKeys: adminUser ? Object.keys(adminUser) : 'none',
+      adminUserRole: adminUser?.role,
+      adminUserId: adminUser?.id
+    });
+  }, [adminUser]);
+
   const fetchPost = async () => {
     try {
       setLoading(true);
@@ -83,15 +94,35 @@ export default function SinglePost() {
 
   // Check if user can edit this post (admin or author)
   const canEditPost = () => {
-    console.log('🔑 Checking edit permissions:', { adminUser, postAuthorId: post?.author_id });
+    console.log('🔑 Checking edit permissions:', { 
+      adminUser, 
+      postAuthorId: post?.author_id,
+      hasAdminUser: !!adminUser,
+      adminUserRole: adminUser?.role,
+      adminUserId: adminUser?.id,
+      isAdmin: adminUser?.role === 'admin',
+      isAuthor: adminUser?.id === post?.author_id
+    });
+    
     if (!adminUser) {
       console.log('❌ No admin user found');
       return false;
     }
-    // Admin can edit any post, or if user is the author
-    const canEdit = adminUser.role === 'admin' || adminUser.id === post?.author_id;
-    console.log('✅ Can edit post:', canEdit);
-    return canEdit;
+    
+    // If user is admin, they can edit any post
+    if (adminUser.role === 'admin') {
+      console.log('✅ User is admin - can edit any post');
+      return true;
+    }
+    
+    // If user is the author of the post, they can edit it
+    if (adminUser.id === post?.author_id) {
+      console.log('✅ User is post author - can edit');
+      return true;
+    }
+    
+    console.log('❌ User cannot edit this post');
+    return false;
   };
 
   // Handle edit post
