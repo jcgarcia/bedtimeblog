@@ -1,6 +1,6 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/authContext';
+import { useUser } from '../../contexts/UserContext';
 import './userLogin.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8800';
@@ -14,7 +14,7 @@ const UserLogin = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login } = useUser();
 
   const handleChange = (e) => {
     setInputs(prev => ({ ...prev, [e.target.name]: e.target.value }));
