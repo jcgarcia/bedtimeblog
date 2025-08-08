@@ -81,6 +81,94 @@ export const createUser = async (req, res) => {
   });
 };
 
+// Update a user (admin only)
+export const updateUser = async (req, res) => {
+  const pool = getDbPool();
+  
+  // Use the auth middleware inline
+  const { requireAdmin } = await import("../utils/auth.js");
+  return requireAdmin(req, res, async () => {
+    try {
+      const userIdToUpdate = req.params.id;
+      const { username, email, password, first_name, last_name } = req.body;
+
+      if (!username || !email) {
+        return res.status(400).json("Username and email are required.");
+      }
+
+      // Check if user exists
+      const userToUpdate = await pool.query(
+        "SELECT * FROM users WHERE id = $1", 
+        [userIdToUpdate]
+      );
+      
+      if (userToUpdate.rows.length === 0) {
+        return res.status(404).json("User not found.");
+      }
+
+      // Don't allow updating admin users
+      if (userToUpdate.rows[0].role === 'admin' || userToUpdate.rows[0].role === 'super_admin') {
+        return res.status(403).json("Cannot update admin users.");
+      }
+
+      // Check if username/email is already taken by another user
+      const existingUser = await pool.query(
+        "SELECT * FROM users WHERE (email = $1 OR username = $2) AND id != $3",
+        [email, username, userIdToUpdate]
+      );
+      
+      if (existingUser.rows.length > 0) {
+        return res.status(409).json("Email or username already exists for another user.");
+      }
+
+      // Build update query dynamically
+      let updateFields = [];
+      let values = [];
+      let valueIndex = 1;
+
+      updateFields.push(`username = $${valueIndex++}`);
+      values.push(username);
+
+      updateFields.push(`email = $${valueIndex++}`);
+      values.push(email);
+
+      updateFields.push(`first_name = $${valueIndex++}`);
+      values.push(first_name || null);
+
+      updateFields.push(`last_name = $${valueIndex++}`);
+      values.push(last_name || null);
+
+      // Only update password if provided
+      if (password && password.trim()) {
+        const hashedPassword = await argon2.hash(password);
+        updateFields.push(`password_hash = $${valueIndex++}`);
+        values.push(hashedPassword);
+      }
+
+      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+
+      const q = `
+        UPDATE users 
+        SET ${updateFields.join(', ')}
+        WHERE id = $${valueIndex}
+        RETURNING id, username, email, first_name, last_name, created_at, updated_at
+      `;
+      
+      values.push(userIdToUpdate);
+
+      const result = await pool.query(q, values);
+
+      return res.status(200).json({
+        message: "User updated successfully",
+        user: result.rows[0]
+      });
+    } catch (err) {
+      console.error('Database error in updateUser:', err);
+      return res.status(500).json({ error: 'Failed to update user' });
+    }
+  });
+};
+
 // Delete a user (admin only)
 export const deleteUser = async (req, res) => {
   const pool = getDbPool();

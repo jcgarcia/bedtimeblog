@@ -314,6 +314,7 @@ function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
@@ -407,7 +408,13 @@ function UserManagement() {
           fetchUsers(); // Refresh the list
           setTimeout(() => setMessage(''), 3000);
         } else {
-          const error = await response.text();
+          let error;
+          try {
+            error = await response.json();
+            error = error.error || error.message || JSON.stringify(error);
+          } catch {
+            error = await response.text();
+          }
           setMessage(`Error deleting user: ${error}`);
         }
       } catch (error) {
@@ -415,6 +422,91 @@ function UserManagement() {
         setMessage('Network error. Please try again.');
       }
     }
+  };
+
+  const handleEditUser = (user) => {
+    setEditingUser(user);
+    setNewUser({
+      username: user.username,
+      email: user.email,
+      password: '', // Don't populate password for security
+      first_name: user.first_name || '',
+      last_name: user.last_name || ''
+    });
+    setShowAddForm(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    
+    if (!newUser.username || !newUser.email) {
+      setMessage('Username and email are required.');
+      return;
+    }
+
+    try {
+      const adminToken = localStorage.getItem('adminToken');
+      const updateData = {
+        username: newUser.username,
+        email: newUser.email,
+        first_name: newUser.first_name,
+        last_name: newUser.last_name
+      };
+
+      // Only include password if it's provided
+      if (newUser.password.trim()) {
+        updateData.password = newUser.password;
+      }
+
+      const response = await fetch(`${API_URL}/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData)
+      });
+
+      if (response.ok) {
+        setMessage('User updated successfully!');
+        setShowAddForm(false);
+        setEditingUser(null);
+        setNewUser({
+          username: '',
+          email: '',
+          password: '',
+          first_name: '',
+          last_name: ''
+        });
+        fetchUsers();
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        let error;
+        try {
+          error = await response.json();
+          error = error.error || error.message || JSON.stringify(error);
+        } catch {
+          error = await response.text();
+        }
+        setMessage(`Error updating user: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setMessage('Network error. Please try again.');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingUser(null);
+    setShowAddForm(false);
+    setNewUser({
+      username: '',
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: ''
+    });
   };
 
   return (
@@ -438,8 +530,8 @@ function UserManagement() {
 
       {showAddForm && (
         <div className="add-user-form">
-          <h3>Create New User</h3>
-          <form onSubmit={handleAddUser}>
+          <h3>{editingUser ? 'Edit User' : 'Create New User'}</h3>
+          <form onSubmit={editingUser ? handleUpdateUser : handleAddUser}>
             <div className="form-row">
               <div className="form-group">
                 <label>Username *</label>
@@ -483,24 +575,24 @@ function UserManagement() {
               </div>
             </div>
             <div className="form-group">
-              <label>Password *</label>
+              <label>Password {editingUser ? '(leave blank to keep current)' : '*'}</label>
               <input 
                 type="password" 
-                placeholder="Minimum 6 characters"
+                placeholder={editingUser ? "Leave blank to keep current password" : "Minimum 6 characters"}
                 value={newUser.password}
                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                required
+                required={!editingUser}
                 minLength="6"
               />
             </div>
             <div className="form-actions">
               <button type="submit" className="btn-primary">
-                Create User
+                {editingUser ? 'Update User' : 'Create User'}
               </button>
               <button 
                 type="button" 
                 className="btn-secondary" 
-                onClick={() => setShowAddForm(false)}
+                onClick={cancelEdit}
               >
                 Cancel
               </button>
@@ -528,6 +620,13 @@ function UserManagement() {
                     <p className="user-date">Joined: {new Date(user.created_at).toLocaleDateString()}</p>
                   </div>
                   <div className="user-actions">
+                    <button 
+                      className="btn-small btn-primary"
+                      onClick={() => handleEditUser(user)}
+                      style={{ marginRight: '8px' }}
+                    >
+                      <i className="fa-solid fa-edit"></i> Edit
+                    </button>
                     <button 
                       className="btn-small btn-danger"
                       onClick={() => handleDeleteUser(user.id)}
