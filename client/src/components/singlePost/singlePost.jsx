@@ -96,8 +96,17 @@ export default function SinglePost() {
 
   // Handle edit post
   const handleEditPost = () => {
+    console.log('🔧 Edit button clicked for post:', postId);
+    console.log('🔑 Current admin user:', adminUser);
+    
+    if (!adminUser) {
+      alert('You need to be logged in as an admin to edit posts. Please log in through the Operations Panel.');
+      navigate('/ops');
+      return;
+    }
+    
     if (!canEditPost()) {
-      alert('You do not have permission to edit this post.');
+      alert(`You do not have permission to edit this post. You can only edit posts you created or if you're an admin.`);
       return;
     }
     
@@ -108,8 +117,17 @@ export default function SinglePost() {
 
   // Handle delete post
   const handleDeletePost = async () => {
+    console.log('🗑️ Delete button clicked for post:', postId);
+    console.log('🔑 Current admin user:', adminUser);
+    
+    if (!adminUser) {
+      alert('You need to be logged in as an admin to delete posts. Please log in through the Operations Panel.');
+      navigate('/ops');
+      return;
+    }
+    
     if (!canEditPost()) {
-      alert('You do not have permission to delete this post.');
+      alert(`You do not have permission to delete this post. You can only delete posts you created or if you're an admin.`);
       return;
     }
 
@@ -182,22 +200,20 @@ export default function SinglePost() {
             />
             <h1 className="singlePostTitle">
                 {post.title || 'Untitled Post'}
-            {canEditPost() && (
               <div className="singlePostEdit">
                   <i 
-                    className="SinglePostIcon fa-regular fa-pen-to-square"
+                    className={`SinglePostIcon fa-regular fa-pen-to-square ${canEditPost() ? 'authorized' : 'unauthorized'}`}
                     onClick={handleEditPost}
-                    title="Edit post"
+                    title={canEditPost() ? "Edit post" : "Login required to edit"}
                     style={{ cursor: 'pointer' }}
                   ></i>
                   <i 
-                    className="SinglePostIcon fa-regular fa-trash-can"
+                    className={`SinglePostIcon fa-regular fa-trash-can ${canEditPost() ? 'authorized' : 'unauthorized'}`}
                     onClick={handleDeletePost}
-                    title="Delete post"
+                    title={canEditPost() ? "Delete post" : "Login required to delete"}
                     style={{ cursor: 'pointer' }}
                   ></i>           
               </div>
-            )}
             </h1>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>
