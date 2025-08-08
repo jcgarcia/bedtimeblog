@@ -114,15 +114,20 @@ function PostManagement() {
   const fetchPosts = async () => {
     try {
       const response = await fetch(`${API_URL}/api/posts`);
+      console.log('🌐 Fetching from URL:', `${API_URL}/api/posts`);
       if (response.ok) {
         const data = await response.json();
         console.log('🔍 RAW POST DATA from API:', data);
         console.log('🔍 First post structure:', data[0]);
         console.log('🔍 Post statuses:', data.map(p => ({ id: p.id, title: p.title, status: p.status, published_at: p.published_at })));
         setPosts(data);
+      } else {
+        console.error('❌ API Response Error:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Error details:', errorText);
       }
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      console.error('❌ Network Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
@@ -184,6 +189,8 @@ function PostManagement() {
         });
         if (response.ok) {
           fetchPosts(); // Refresh the list
+        } else {
+          console.error('❌ Delete failed:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error deleting post:', error);
