@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/authContext';
-import './userLogin.scss';
+import './userLogin.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8800';
 
