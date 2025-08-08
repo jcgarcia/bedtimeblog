@@ -30,7 +30,7 @@ export const authenticateUser = async (req) => {
         return { 
           success: true, 
           user: user, 
-          isAdmin: user.role === 'admin'
+          isAdmin: user.role === 'admin' || user.role === 'super_admin'
         };
       } catch (err) {
         return { success: false, error: "Invalid admin token" };
@@ -60,7 +60,7 @@ export const authenticateUser = async (req) => {
       return { 
         success: true, 
         user: user, 
-        isAdmin: user.role === 'admin'
+        isAdmin: user.role === 'admin' || user.role === 'super_admin'
       };
     } catch (err) {
       return { success: false, error: "Invalid token" };
