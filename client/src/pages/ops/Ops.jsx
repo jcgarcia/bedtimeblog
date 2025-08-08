@@ -126,27 +126,41 @@ function PostManagement() {
   };
 
   const handleCreateNew = () => {
-    // Redirect to post creation page or open modal
-    window.location.href = '/ops/posts/new';
+    // Navigate to the existing write page
+    window.location.href = '/write';
   };
 
   const handleViewDrafts = () => {
-    // Filter and show draft posts
-    window.location.href = '/ops/posts?status=draft';
+    // Filter to show only draft posts in the table
+    const filteredPosts = posts.filter(post => post.status === 'draft' || !post.status);
+    if (filteredPosts.length === 0) {
+      alert('No draft posts found. Create a new post to get started!');
+      handleCreateNew();
+    } else {
+      // For now, just show an alert with draft count
+      alert(`Found ${filteredPosts.length} draft posts. Check the table below.`);
+    }
   };
 
   const handleManagePublished = () => {
-    // Show published posts
-    window.location.href = '/ops/posts?status=published';
+    // Filter to show only published posts
+    const publishedPosts = posts.filter(post => post.status === 'published');
+    if (publishedPosts.length === 0) {
+      alert('No published posts found.');
+    } else {
+      alert(`Found ${publishedPosts.length} published posts. Check the table below.`);
+    }
   };
 
   const handleSchedule = () => {
-    // Show scheduled posts
-    window.location.href = '/ops/posts?status=scheduled';
+    // Show scheduled posts functionality
+    alert('Scheduled posts feature coming soon! Use the Write page to create and schedule posts.');
+    handleCreateNew();
   };
 
   const handleEditPost = (postId) => {
-    window.location.href = `/ops/posts/edit/${postId}`;
+    // Navigate to the post view page - users can edit from there
+    window.location.href = `/post/${postId}`;
   };
 
   const handleDeletePost = async (postId) => {
