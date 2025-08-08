@@ -256,12 +256,26 @@ export const updateSmtpSettings = async (req, res) => {
 // Test SMTP connection
 export const testSmtpConnection = async (req, res) => {
   try {
-    const { host, port, user, password, secure } = req.body;
+    let { host, port, user, password, secure } = req.body;
 
     if (!host || !port || !user || !password) {
       return res.status(400).json({ 
         error: "All SMTP fields are required for testing" 
       });
+    }
+
+    // If password is masked, get the real password from database
+    if (password === "••••••••") {
+      const passwordResult = await query(
+        `SELECT value FROM settings WHERE key = 'smtp_pass'`
+      );
+      if (passwordResult.rows.length > 0 && passwordResult.rows[0].value) {
+        password = passwordResult.rows[0].value;
+      } else {
+        return res.status(400).json({ 
+          error: "No password stored in database. Please enter the password." 
+        });
+      }
     }
 
     // Import nodemailer dynamically
