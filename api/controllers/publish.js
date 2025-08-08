@@ -169,8 +169,8 @@ export const publishMarkdownPost = (req, res) => {
       }
       
       // Prepare database query for new schema
-      const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-      const values = [title, slug, content, userId, postDate];
+      const q = `INSERT INTO posts (title, slug, content, author_id, published_at, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`;
+      const values = [title, slug, content, userId, postDate, 'published'];
       const result = await pool.query(q, values);
       
       // Clean up uploaded file
@@ -244,8 +244,8 @@ export const publishMarkdownContent = async (req, res) => {
     }
     
     // Prepare database query for new schema
-    const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-    const values = [title, slug, content, userId, postDate];
+    const q = `INSERT INTO posts (title, slug, content, author_id, published_at, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`;
+    const values = [title, slug, content, userId, postDate, 'published'];
     const result = await pool.query(q, values);
     
     res.status(201).json({

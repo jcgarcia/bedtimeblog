@@ -66,19 +66,36 @@ export const addPost = async (req, res) => {
   
   try {
     const userInfo = jwt.verify(token, "jwtkey");
-    const q =
-      "INSERT INTO posts(title, postcont, img, cat, postdate, userid) VALUES ($1, $2, $3, $4, $5, $6)";
+    
+    // Use PostgreSQL schema column names
+    const title = req.body.title;
+    const content = req.body.desc || req.body.content; // Support both legacy and new field names
+    const featured_image = req.body.img;
+    const category_id = req.body.cat || req.body.category_id;
+    const published_at = req.body.date ? new Date(req.body.date) : new Date();
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    const q = `
+      INSERT INTO posts (title, slug, content, featured_image, category_id, author_id, published_at, status) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
+    `;
     const values = [
-      req.body.title,
-      req.body.desc,
-      req.body.img,
-      req.body.cat,
-      req.body.date,
+      title,
+      slug,
+      content,
+      featured_image,
+      category_id,
       userInfo.id,
+      published_at,
+      'published' // Set status as published for web interface posts
     ];
     
-    await pool.query(q, values);
-    return res.json("Post has been created.");
+    const result = await pool.query(q, values);
+    return res.json({
+      message: "Post has been created.",
+      postId: result.rows[0].id,
+      slug: slug
+    });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(403).json("Token is not valid!");
@@ -98,16 +115,23 @@ export const deletePost = async (req, res) => {
   try {
     const userInfo = jwt.verify(token, "jwtkey");
     const postId = req.params.id;
-    const q = "DELETE FROM posts WHERE id = $1 AND uid = $2";
     
-    await pool.query(q, [postId, userInfo.id]);
+    // Use PostgreSQL schema column names
+    const q = "DELETE FROM posts WHERE id = $1 AND author_id = $2";
+    
+    const result = await pool.query(q, [postId, userInfo.id]);
+    
+    if (result.rowCount === 0) {
+      return res.status(403).json("You can only delete your own posts!");
+    }
+    
     return res.json("Post has been deleted!");
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(403).json("Token is not valid!");
     }
     console.error('Database error in deletePost:', err);
-    return res.status(403).json("You can delete only your post!");
+    return res.status(500).json({ error: 'Failed to delete post' });
   }
 };
 
@@ -121,12 +145,31 @@ export const updatePost = async (req, res) => {
   try {
     const userInfo = jwt.verify(token, "jwtkey");
     const postId = req.params.id;
-    const q =
-      "UPDATE posts SET title=$1, desc=$2, img=$3, cat=$4 WHERE id = $5 AND uid = $6";
-    const values = [req.body.title, req.body.desc, req.body.img, req.body.cat, postId, userInfo.id];
     
-    await pool.query(q, values);
-    return res.json("Post has been updated.");
+    // Use PostgreSQL schema column names
+    const title = req.body.title;
+    const content = req.body.desc || req.body.content; // Support both legacy and new field names
+    const featured_image = req.body.img;
+    const category_id = req.body.cat || req.body.category_id;
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    const q = `
+      UPDATE posts 
+      SET title = $1, content = $2, featured_image = $3, category_id = $4, slug = $5, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = $6 AND author_id = $7
+    `;
+    const values = [title, content, featured_image, category_id, slug, postId, userInfo.id];
+    
+    const result = await pool.query(q, values);
+    
+    if (result.rowCount === 0) {
+      return res.status(403).json("You can only update your own posts!");
+    }
+    
+    return res.json({
+      message: "Post has been updated.",
+      slug: slug
+    });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(403).json("Token is not valid!");
