@@ -46,6 +46,8 @@ export const API_ENDPOINTS = {
     CONTACT: `${API_URL}api/settings/contact`,
     SMTP: `${API_URL}api/settings/smtp`,
     SMTP_TEST: `${API_URL}api/settings/smtp/test`,
+    OAUTH: `${API_URL}api/settings/oauth`,
+    OAUTH_TEST: (provider) => `${API_URL}api/settings/oauth/test/${provider}`,
   },
   
   // Contact

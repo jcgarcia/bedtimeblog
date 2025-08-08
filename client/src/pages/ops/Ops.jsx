@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { API_URL, API_ENDPOINTS } from '../../config/api.js';
+import OAuthSettings from '../../components/oauth-settings/OAuthSettings';
 import './ops.css';
 
 export default function Ops() {
@@ -17,6 +18,8 @@ export default function Ops() {
         return <CategoryManagement />;
       case 'social':
         return <SocialMediaManagement />;
+      case 'oauth':
+        return <OAuthSettings />;
       case 'settings':
         return <SiteSettings />;
       case 'analytics':
@@ -65,6 +68,12 @@ export default function Ops() {
           onClick={() => setActiveTab('social')}
         >
           <i className="fa-solid fa-share-nodes"></i> Social Media
+        </button>
+        <button 
+          className={activeTab === 'oauth' ? 'active' : ''} 
+          onClick={() => setActiveTab('oauth')}
+        >
+          <i className="fa-solid fa-key"></i> OAuth Config
         </button>
         <button 
           className={activeTab === 'settings' ? 'active' : ''} 

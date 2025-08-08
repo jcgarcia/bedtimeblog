@@ -293,3 +293,216 @@ export const testSmtpConnection = async (req, res) => {
     });
   }
 };
+
+
+// Get OAuth settings
+export const getOAuthSettings = async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT key, value FROM settings 
+       WHERE key IN (
+         'oauth_google_client_id', 'oauth_google_client_secret',
+         'oauth_facebook_app_id', 'oauth_facebook_app_secret',
+         'oauth_twitter_consumer_key', 'oauth_twitter_consumer_secret',
+         'oauth_frontend_url'
+       )`
+    );
+
+    const oauthSettings = {
+      google: {
+        clientId: "",
+        clientSecret: "",
+        configured: false
+      },
+      facebook: {
+        appId: "",
+        appSecret: "",
+        configured: false
+      },
+      twitter: {
+        consumerKey: "",
+        consumerSecret: "",
+        configured: false
+      },
+      frontendUrl: "https://blog.ingasti.com"
+    };
+
+    result.rows.forEach(row => {
+      switch(row.key) {
+        case 'oauth_google_client_id':
+          oauthSettings.google.clientId = row.value ? "••••••••" : "";
+          oauthSettings.google.configured = git push origin k8srow.value;
+          break;
+        case 'oauth_google_client_secret':
+          oauthSettings.google.clientSecret = row.value ? "••••••••" : "";
+          break;
+        case 'oauth_facebook_app_id':
+          oauthSettings.facebook.appId = row.value ? "••••••••" : "";
+          oauthSettings.facebook.configured = git push origin k8srow.value;
+          break;
+        case 'oauth_facebook_app_secret':
+          oauthSettings.facebook.appSecret = row.value ? "••••••••" : "";
+          break;
+        case 'oauth_twitter_consumer_key':
+          oauthSettings.twitter.consumerKey = row.value ? "••••••••" : "";
+          oauthSettings.twitter.configured = git push origin k8srow.value;
+          break;
+        case 'oauth_twitter_consumer_secret':
+          oauthSettings.twitter.consumerSecret = row.value ? "••••••••" : "";
+          break;
+        case 'oauth_frontend_url':
+          oauthSettings.frontendUrl = row.value || "https://blog.ingasti.com";
+          break;
+      }
+    });
+
+    // Update configured status based on both credentials being present
+    const googleResult = await query(
+      `SELECT COUNT(*) as count FROM settings 
+       WHERE key IN ('oauth_google_client_id', 'oauth_google_client_secret') 
+       AND value IS NOT NULL AND value != ''`
+    );
+    oauthSettings.google.configured = parseInt(googleResult.rows[0].count) === 2;
+
+    const facebookResult = await query(
+      `SELECT COUNT(*) as count FROM settings 
+       WHERE key IN ('oauth_facebook_app_id', 'oauth_facebook_app_secret') 
+       AND value IS NOT NULL AND value != ''`
+    );
+    oauthSettings.facebook.configured = parseInt(facebookResult.rows[0].count) === 2;
+
+    const twitterResult = await query(
+      `SELECT COUNT(*) as count FROM settings 
+       WHERE key IN ('oauth_twitter_consumer_key', 'oauth_twitter_consumer_secret') 
+       AND value IS NOT NULL AND value != ''`
+    );
+    oauthSettings.twitter.configured = parseInt(twitterResult.rows[0].count) === 2;
+
+    res.json(oauthSettings);
+  } catch (error) {
+    console.error("Error fetching OAuth settings:", error);
+    res.status(500).json({ error: "Failed to fetch OAuth settings" });
+  }
+};
+
+// Update OAuth settings
+export const updateOAuthSettings = async (req, res) => {
+  try {
+    const { google, facebook, twitter, frontendUrl } = req.body;
+
+    const updates = [];
+
+    // Add frontend URL
+    if (frontendUrl) {
+      updates.push({ key: 'oauth_frontend_url', value: frontendUrl });
+    }
+
+    // Add Google OAuth settings
+    if (google) {
+      if (google.clientId && google.clientId !== "••••••••") {
+        updates.push({ key: 'oauth_google_client_id', value: google.clientId });
+      }
+      if (google.clientSecret && google.clientSecret !== "••••••••") {
+        updates.push({ key: 'oauth_google_client_secret', value: google.clientSecret });
+      }
+    }
+
+    // Add Facebook OAuth settings
+    if (facebook) {
+      if (facebook.appId && facebook.appId !== "••••••••") {
+        updates.push({ key: 'oauth_facebook_app_id', value: facebook.appId });
+      }
+      if (facebook.appSecret && facebook.appSecret !== "••••••••") {
+        updates.push({ key: 'oauth_facebook_app_secret', value: facebook.appSecret });
+      }
+    }
+
+    // Add Twitter OAuth settings
+    if (twitter) {
+      if (twitter.consumerKey && twitter.consumerKey !== "••••••••") {
+        updates.push({ key: 'oauth_twitter_consumer_key', value: twitter.consumerKey });
+      }
+      if (twitter.consumerSecret && twitter.consumerSecret !== "••••••••") {
+        updates.push({ key: 'oauth_twitter_consumer_secret', value: twitter.consumerSecret });
+      }
+    }
+
+    // Perform all updates
+    for (const update of updates) {
+      await query(
+        `INSERT INTO settings (key, value, updated_at) 
+         VALUES ($1, $2, CURRENT_TIMESTAMP)
+         ON CONFLICT (key) 
+         DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`,
+        [update.key, update.value]
+      );
+    }
+
+    res.json({
+      message: "OAuth settings updated successfully",
+      updated: updates.map(u => u.key)
+    });
+  } catch (error) {
+    console.error("Error updating OAuth settings:", error);
+    res.status(500).json({ error: "Failed to update OAuth settings" });
+  }
+};
+
+// Test OAuth configuration
+export const testOAuthConfiguration = async (req, res) => {
+  try {
+    const { provider } = req.params;
+    
+    // Get the current OAuth settings for the provider
+    let keys = [];
+    switch(provider) {
+      case 'google':
+        keys = ['oauth_google_client_id', 'oauth_google_client_secret'];
+        break;
+      case 'facebook':
+        keys = ['oauth_facebook_app_id', 'oauth_facebook_app_secret'];
+        break;
+      case 'twitter':
+        keys = ['oauth_twitter_consumer_key', 'oauth_twitter_consumer_secret'];
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid OAuth provider" });
+    }
+
+    const result = await query(
+      `SELECT key, value FROM settings WHERE key = ANY($1::text[])`,
+      [keys]
+    );
+
+    if (result.rows.length !== 2) {
+      return res.status(400).json({
+        success: false,
+        error: `${provider} OAuth credentials are not fully configured`
+      });
+    }
+
+    // Check if values are not empty
+    if (hasEmptyValues) {
+      return res.status(400).json({
+        success: false,
+        error: `${provider} OAuth credentials contain empty values`
+      });
+    }
+
+    // For now, just validate that credentials exist
+    // In a real implementation, you might want to make a test API call
+    res.json({
+      success: true,
+      message: `${provider} OAuth configuration appears valid`,
+      provider: provider
+    });
+
+  } catch (error) {
+    console.error(`Error testing ${req.params.provider} OAuth:`, error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to test OAuth configuration",
+      details: error.message
+    });
+  }
+};
