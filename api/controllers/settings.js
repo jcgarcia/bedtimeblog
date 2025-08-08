@@ -331,7 +331,7 @@ export const getOAuthSettings = async (req, res) => {
       switch(row.key) {
         case 'oauth_google_client_id':
           oauthSettings.google.clientId = row.value ? "••••••••" : "";
-          oauthSettings.google.configured = git push origin k8srow.value;
+          oauthSettings.google.configured = !!row.value;
           break;
         case 'oauth_google_client_secret':
           oauthSettings.google.clientSecret = row.value ? "••••••••" : "";
