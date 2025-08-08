@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { postsAPI } from '../../config/apiService';
+import { useAdmin } from '../../contexts/AdminContext';
+import { API_URL } from '../../config/api';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
 
 export default function SinglePost() {
   const { postId } = useParams();
+  const navigate = useNavigate();
+  const { adminUser } = useAdmin();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,6 +81,70 @@ export default function SinglePost() {
     return { __html: html };
   };
 
+  // Check if user can edit this post (admin or author)
+  const canEditPost = () => {
+    console.log('🔑 Checking edit permissions:', { adminUser, postAuthorId: post?.author_id });
+    if (!adminUser) {
+      console.log('❌ No admin user found');
+      return false;
+    }
+    // Admin can edit any post, or if user is the author
+    const canEdit = adminUser.role === 'admin' || adminUser.id === post?.author_id;
+    console.log('✅ Can edit post:', canEdit);
+    return canEdit;
+  };
+
+  // Handle edit post
+  const handleEditPost = () => {
+    if (!canEditPost()) {
+      alert('You do not have permission to edit this post.');
+      return;
+    }
+    
+    // Since the Write page doesn't have editing functionality yet,
+    // redirect to Operations Panel where posts can be managed
+    const confirmEdit = window.confirm(
+      `Edit "${post.title}"?\n\nThis will take you to the Operations Panel where you can manage this post.`
+    );
+    
+    if (confirmEdit) {
+      navigate('/ops');
+    }
+  };
+
+  // Handle delete post
+  const handleDeletePost = async () => {
+    if (!canEditPost()) {
+      alert('You do not have permission to delete this post.');
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${post.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include', // Include cookies for authentication
+      });
+
+      if (response.ok) {
+        alert('Post deleted successfully!');
+        navigate('/'); // Redirect to home page
+      } else {
+        const errorText = await response.text();
+        console.error('Delete failed:', response.status, errorText);
+        alert('Failed to delete post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Error deleting post. Please check your connection and try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className='singlePost'>
@@ -120,10 +188,22 @@ export default function SinglePost() {
             />
             <h1 className="singlePostTitle">
                 {post.title || 'Untitled Post'}
-            <div className="singlePostEdit">
-                <i className="SinglePostIcon fa-regular fa-pen-to-square"></i>
-                <i className="SinglePostIcon fa-regular fa-trash-can"></i>           
-            </div>
+            {canEditPost() && (
+              <div className="singlePostEdit">
+                  <i 
+                    className="SinglePostIcon fa-regular fa-pen-to-square"
+                    onClick={handleEditPost}
+                    title="Edit post"
+                    style={{ cursor: 'pointer' }}
+                  ></i>
+                  <i 
+                    className="SinglePostIcon fa-regular fa-trash-can"
+                    onClick={handleDeletePost}
+                    title="Delete post"
+                    style={{ cursor: 'pointer' }}
+                  ></i>           
+              </div>
+            )}
             </h1>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>
