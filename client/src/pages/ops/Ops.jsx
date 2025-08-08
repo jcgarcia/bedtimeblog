@@ -105,12 +105,78 @@ export default function Ops() {
 // Post Management Component
 function PostManagement() {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/posts`);
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateNew = () => {
+    // Redirect to post creation page or open modal
+    window.location.href = '/ops/posts/new';
+  };
+
+  const handleViewDrafts = () => {
+    // Filter and show draft posts
+    window.location.href = '/ops/posts?status=draft';
+  };
+
+  const handleManagePublished = () => {
+    // Show published posts
+    window.location.href = '/ops/posts?status=published';
+  };
+
+  const handleSchedule = () => {
+    // Show scheduled posts
+    window.location.href = '/ops/posts?status=scheduled';
+  };
+
+  const handleEditPost = (postId) => {
+    window.location.href = `/ops/posts/edit/${postId}`;
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      try {
+        const response = await fetch(`${API_URL}/api/posts/${postId}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          fetchPosts(); // Refresh the list
+        }
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      }
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   return (
     <div className="post-management">
       <div className="section-header">
         <h2>Post Management</h2>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={handleCreateNew}>
           <i className="fa-solid fa-plus"></i> New Post
         </button>
       </div>
@@ -119,52 +185,80 @@ function PostManagement() {
         <div className="post-card">
           <h3>Create New Post</h3>
           <p>Start writing a new blog post</p>
-          <button className="btn-secondary">Create</button>
+          <button className="btn-secondary" onClick={handleCreateNew}>Create</button>
         </div>
 
         <div className="post-card">
           <h3>Draft Posts</h3>
           <p>Continue working on saved drafts</p>
-          <button className="btn-secondary">View Drafts</button>
+          <button className="btn-secondary" onClick={handleViewDrafts}>View Drafts</button>
         </div>
 
         <div className="post-card">
           <h3>Published Posts</h3>
           <p>Edit or manage published content</p>
-          <button className="btn-secondary">Manage</button>
+          <button className="btn-secondary" onClick={handleManagePublished}>Manage</button>
         </div>
 
         <div className="post-card">
           <h3>Scheduled Posts</h3>
           <p>Posts scheduled for future publication</p>
-          <button className="btn-secondary">Schedule</button>
+          <button className="btn-secondary" onClick={handleSchedule}>Schedule</button>
         </div>
       </div>
 
       {/* Recent Posts Table */}
       <div className="recent-posts">
         <h3>Recent Posts</h3>
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Sample Post Title</td>
-              <td><span className="status published">Published</span></td>
-              <td>Aug 4, 2025</td>
-              <td>
-                <button className="btn-small">Edit</button>
-                <button className="btn-small btn-danger">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="loading">Loading posts...</div>
+        ) : (
+          <table className="ops-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {posts.length > 0 ? (
+                posts.slice(0, 10).map(post => (
+                  <tr key={post.id}>
+                    <td>{post.title}</td>
+                    <td>
+                      <span className={`status ${post.status || 'published'}`}>
+                        {post.status || 'Published'}
+                      </span>
+                    </td>
+                    <td>{formatDate(post.date || post.created_at)}</td>
+                    <td>
+                      <button 
+                        className="btn-small"
+                        onClick={() => handleEditPost(post.id)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn-small btn-danger"
+                        onClick={() => handleDeletePost(post.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>
+                    No posts found. <button onClick={handleCreateNew} className="btn-link">Create your first post</button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
