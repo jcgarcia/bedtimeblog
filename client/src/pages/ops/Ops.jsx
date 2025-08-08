@@ -132,19 +132,34 @@ function PostManagement() {
 
   const handleViewDrafts = () => {
     // Filter to show only draft posts in the table
-    const filteredPosts = posts.filter(post => post.status === 'draft' || !post.status);
+    // Handle both old schema (no status field) and new schema (status field)
+    const filteredPosts = posts.filter(post => {
+      // If no status field exists, assume it's a draft (old schema)
+      // If status field exists, check for 'draft' or null/empty status
+      return !post.status || post.status === 'draft' || post.status === '';
+    });
+    
+    console.log('All posts:', posts);
+    console.log('Filtered draft posts:', filteredPosts);
+    
     if (filteredPosts.length === 0) {
       alert('No draft posts found. Create a new post to get started!');
       handleCreateNew();
     } else {
-      // For now, just show an alert with draft count
       alert(`Found ${filteredPosts.length} draft posts. Check the table below.`);
     }
   };
 
   const handleManagePublished = () => {
     // Filter to show only published posts
-    const publishedPosts = posts.filter(post => post.status === 'published');
+    const publishedPosts = posts.filter(post => 
+      post.status === 'published' || 
+      (post.status && post.status !== 'draft') ||
+      (!post.status && post.published_at) // Old schema might have published_at
+    );
+    
+    console.log('Published posts:', publishedPosts);
+    
     if (publishedPosts.length === 0) {
       alert('No published posts found.');
     } else {
@@ -242,8 +257,8 @@ function PostManagement() {
                   <tr key={post.id}>
                     <td>{post.title}</td>
                     <td>
-                      <span className={`status ${post.status || 'published'}`}>
-                        {post.status || 'Published'}
+                      <span className={`status ${post.status || 'draft'}`}>
+                        {post.status || 'Draft'}
                       </span>
                     </td>
                     <td>{formatDate(post.date || post.created_at)}</td>
