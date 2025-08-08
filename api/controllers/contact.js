@@ -16,6 +16,9 @@ const createTransporter = async () => {
        WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_secure')`
     );
 
+    // DEBUG: Log what we retrieved from database
+    console.log("DEBUG: SMTP settings from database:", smtpResult.rows);
+
     const smtpSettings = {
       host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: process.env.SMTP_PORT || 587,
@@ -47,6 +50,16 @@ const createTransporter = async () => {
           if (row.value) smtpSettings.secure = row.value === 'true';
           break;
       }
+    });
+
+    // DEBUG: Log final SMTP settings before validation
+    console.log("DEBUG: Final SMTP settings:", {
+      host: smtpSettings.host,
+      port: smtpSettings.port,
+      user: smtpSettings.user ? "***SET***" : "NOT_SET",
+      pass: smtpSettings.pass ? "***SET***" : "NOT_SET", 
+      from: smtpSettings.from,
+      secure: smtpSettings.secure
     });
 
     // Validate that we have the minimum required settings
