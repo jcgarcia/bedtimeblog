@@ -1,9 +1,7 @@
 .welcome{
     align-items: center;
-
     position: relative;
 }
-
 
 .video-container {
     display: flex;
@@ -42,9 +40,57 @@
     transform: scale(1.05);
 }
 
+.manual-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.manual-play-overlay:hover {
+    opacity: 1;
+}
+
+.manual-play-button {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.manual-play-button:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
 .video-element {
     width: 100%; /* Full width */
     height: auto; /* Maintain aspect ratio */
     border: none; /* No border */
     outline: none; /* No outline */
+    cursor: pointer; /* Show it's clickable */
+}
+
+/* When manual play is available, style differently */
+.video-element.manual-play-ready {
+    filter: brightness(0.7);
+    transition: filter 0.3s ease;
+}
+
+.video-element.manual-play-ready:hover {
+    filter: brightness(0.9);
 }
