@@ -3,3 +3,10 @@
     margin: 0;
     padding: 0;
 }
+
+/* Mobile responsive layout */
+@media (max-width: 768px) {
+    .home {
+        flex-direction: column;
+    }
+}

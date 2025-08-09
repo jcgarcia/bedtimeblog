@@ -192,3 +192,37 @@ font-weight: 600;
     align-items: center;
     gap: 5px;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    .singlePost {
+        flex: 1;
+    }
+    
+    .singlePostWrapper {
+        padding: 15px;
+        padding-right: 15px;
+    }
+    
+    .singlePostTitle {
+        font-size: 22px;
+        margin: 15px 5px;
+    }
+    
+    .singlePostInfo {
+        flex-direction: column;
+        gap: 10px;
+        font-size: 16px;
+    }
+    
+    .singlePostDesc, .singlePostContent {
+        font-size: 16px;
+        line-height: 24px;
+    }
+    
+    .singlePostStats {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}

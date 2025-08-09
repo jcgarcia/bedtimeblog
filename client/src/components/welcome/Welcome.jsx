@@ -7,6 +7,8 @@ export default function Welcome() {
   const [showAudioButton, setShowAudioButton] = useState(false)
   const [isFirstVisit, setIsFirstVisit] = useState(false)
   const [shouldAutoplay, setShouldAutoplay] = useState(false)
+  const [isMuted, setIsMuted] = useState(true)
+  const [showSoundToggle, setShowSoundToggle] = useState(false)
 
   useEffect(() => {
     const hasPlayedBefore = localStorage.getItem('bedtime-video-played')
@@ -19,33 +21,41 @@ export default function Welcome() {
       console.log('First visit detected - attempting autoplay with audio')
       // First visit - try to play with audio
       videoRef.current.muted = false
+      setIsMuted(false)
       videoRef.current.play().then(() => {
         console.log('Autoplay with audio successful')
         localStorage.setItem('bedtime-video-played', 'true')
+        setShowSoundToggle(true)
       }).catch((error) => {
         console.log('Autoplay with audio blocked by browser, trying muted autoplay')
         // If autoplay with audio fails, try muted autoplay and show audio button
         videoRef.current.muted = true
+        setIsMuted(true)
         videoRef.current.play().then(() => {
           setShowAudioButton(true)
+          setShowSoundToggle(true)
           localStorage.setItem('bedtime-video-played', 'true')
         }).catch((muteError) => {
           console.log('All autoplay attempts failed')
           setShowAudioButton(true)
+          setShowSoundToggle(true)
         })
       })
     } else if (videoRef.current) {
       console.log('Not first visit - video ready for manual play only')
       // Subsequent visits - ensure video is paused and ready for manual play
       videoRef.current.muted = true
+      setIsMuted(true)
       videoRef.current.pause()
       videoRef.current.currentTime = 0
+      setShowSoundToggle(true)
     }
   }, [])
 
   const handlePlayWithAudio = () => {
     if (videoRef.current) {
       videoRef.current.muted = false
+      setIsMuted(false)
       videoRef.current.currentTime = 0
       videoRef.current.play()
       localStorage.setItem('bedtime-video-played', 'true')
@@ -60,6 +70,19 @@ export default function Welcome() {
         videoRef.current.play()
       } else {
         videoRef.current.pause()
+      }
+    }
+  }
+
+  const toggleSound = () => {
+    if (videoRef.current) {
+      const newMutedState = !isMuted
+      videoRef.current.muted = newMutedState
+      setIsMuted(newMutedState)
+      
+      // If unmuting, make sure video is playing
+      if (!newMutedState && videoRef.current.paused) {
+        videoRef.current.play()
       }
     }
   }
@@ -83,6 +106,18 @@ export default function Welcome() {
                   title="Play video with audio"
                 >
                   🔊 Play with Audio
+                </button>
+              </div>
+            )}
+            
+            {showSoundToggle && (
+              <div className="sound-toggle-overlay">
+                <button 
+                  className="sound-toggle-button" 
+                  onClick={toggleSound}
+                  title={isMuted ? "Unmute video" : "Mute video"}
+                >
+                  {isMuted ? '🔇' : '🔊'}
                 </button>
               </div>
             )}
