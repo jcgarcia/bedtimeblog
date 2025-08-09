@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/UserContext";
 import { useAdmin } from "../../contexts/AdminContext";
-import { postsAPI } from "../../config/apiService";
+import { postsAPI, categoriesAPI, uploadAPI } from "../../services/postsAPI";
+import { Editor } from '@tinymce/tinymce-react';
 import "./write.css";
 import PostImg from '../../media/NewPost.jpg';
 
@@ -11,19 +12,22 @@ export default function Write() {
   const navigate = useNavigate();
   const { user } = useUser();
   const { adminUser, isAdmin } = useAdmin();
+  const editorRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     excerpt: '',
     category: '',
-    tags: '',
+    featuredImage: '',
     status: 'draft'
   });
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [postId, setPostId] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const currentUser = isAdmin && adminUser ? adminUser : user;
   const editPostId = searchParams.get('edit');
@@ -34,7 +38,21 @@ export default function Write() {
       setPostId(editPostId);
       loadPost(editPostId);
     }
+    // Load categories
+    loadCategories();
   }, [editPostId]);
+
+  // Load categories for dropdown
+  const loadCategories = async () => {
+    try {
+      const response = await categoriesAPI.getCategories();
+      if (response.data) {
+        setCategories(response.data);
+      }
+    } catch (err) {
+      console.error('Error loading categories:', err);
+    }
+  };
 
   // Check if user can write posts
   const canWrite = () => {
@@ -47,16 +65,16 @@ export default function Write() {
   const loadPost = async (id) => {
     try {
       setLoading(true);
-      const response = await postsAPI.getPostById(id);
+      const response = await postsAPI.getPost(id);
       
-      if (response.success && response.data) {
+      if (response.data) {
         const post = response.data;
         setFormData({
           title: post.title || '',
           content: post.content || '',
           excerpt: post.excerpt || '',
           category: post.category_id || '',
-          tags: '', // TODO: Handle tags properly
+          featuredImage: post.featured_image || '',
           status: post.status || 'draft'
         });
       } else {
@@ -67,6 +85,39 @@ export default function Write() {
       setError('Failed to load post for editing');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle file upload
+  const handleImageUpload = async (file) => {
+    try {
+      setUploadingImage(true);
+      const response = await uploadAPI.uploadFile(file);
+      
+      if (response.data) {
+        const imagePath = `/uploads/${response.data}`;
+        setFormData(prev => ({
+          ...prev,
+          featuredImage: imagePath
+        }));
+        setSuccess('Image uploaded successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+        return imagePath;
+      }
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      setError('Failed to upload image');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Handle featured image file selection
+  const handleFeaturedImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      await handleImageUpload(file);
     }
   };
 
@@ -91,8 +142,16 @@ export default function Write() {
       return;
     }
 
-    if (!formData.title.trim() || !formData.content.trim()) {
-      setError('Title and content are required');
+    if (!formData.title.trim()) {
+      setError('Title is required');
+      return;
+    }
+
+    // Get content from TinyMCE editor
+    const content = editorRef.current ? editorRef.current.getContent() : formData.content;
+    
+    if (!content.trim()) {
+      setError('Content is required');
       return;
     }
 
@@ -101,32 +160,45 @@ export default function Write() {
       setError('');
       setSuccess('');
 
-      // TODO: Implement create/update post API calls
-      console.log('Form data:', formData);
-      console.log('Is editing:', isEditing);
-      console.log('Post ID:', postId);
+      const postData = {
+        title: formData.title,
+        desc: content, // API expects 'desc' field
+        img: formData.featuredImage,
+        cat: formData.category,
+        excerpt: formData.excerpt,
+        status: formData.status
+      };
       
       if (isEditing) {
-        setSuccess('Post updated successfully! (API integration pending)');
+        const response = await postsAPI.updatePost(postId, postData);
+        if (response.data) {
+          setSuccess('Post updated successfully!');
+          setTimeout(() => {
+            navigate(`/post/${postId}`);
+          }, 1500);
+        }
       } else {
-        setSuccess('Post created successfully! (API integration pending)');
-      }
-      
-      // Reset form if creating new post
-      if (!isEditing) {
-        setFormData({
-          title: '',
-          content: '',
-          excerpt: '',
-          category: '',
-          tags: '',
-          status: 'draft'
-        });
+        const response = await postsAPI.createPost(postData);
+        if (response.data) {
+          setSuccess('Post created successfully!');
+          // Reset form if creating new post
+          setFormData({
+            title: '',
+            content: '',
+            excerpt: '',
+            category: '',
+            featuredImage: '',
+            status: 'draft'
+          });
+          if (editorRef.current) {
+            editorRef.current.setContent('');
+          }
+        }
       }
       
     } catch (err) {
       console.error('Error saving post:', err);
-      setError('Failed to save post. Please try again.');
+      setError(err.response?.data?.message || 'Failed to save post. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -178,9 +250,16 @@ export default function Write() {
         <div className="writeFormGroup">
           <label htmlFor="fileInput" className="file-upload-label">
             <i className="writeIcon fa-solid fa-file-arrow-up"></i> 
-            Upload Image
+            {uploadingImage ? 'Uploading...' : 'Upload Featured Image'}
           </label>
-          <input type="file" id="fileInput" style={{display:"none"}} accept="image/*"/>
+          <input 
+            type="file" 
+            id="fileInput" 
+            style={{display:"none"}} 
+            accept="image/*"
+            onChange={handleFeaturedImageChange}
+            disabled={uploadingImage}
+          />
           
           <input 
             type="text" 
@@ -193,6 +272,21 @@ export default function Write() {
             required
           />
         </div>
+
+        {formData.featuredImage && (
+          <div className="writeFormGroup">
+            <div className="featured-image-preview">
+              <img src={formData.featuredImage} alt="Featured" />
+              <button 
+                type="button" 
+                className="remove-image-btn"
+                onClick={() => setFormData(prev => ({ ...prev, featuredImage: '' }))}
+              >
+                <i className="fa fa-times"></i>
+              </button>
+            </div>
+          </div>
+        )}
         
         <div className="writeFormGroup">
           <input 
@@ -207,6 +301,20 @@ export default function Write() {
         
         <div className="writeFormGroup">
           <select 
+            name="category"
+            className="writeInput writeSelect"
+            value={formData.category}
+            onChange={handleInputChange}
+          >
+            <option value="">Select Category</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          <select 
             name="status"
             className="writeInput writeSelect"
             value={formData.status}
@@ -218,15 +326,72 @@ export default function Write() {
           </select>
         </div>
         
-        <div className="writeFormGroup">
-          <textarea 
-            name="content"
-            placeholder="Tell your story..." 
-            className="writeInput writeText"
+        <div className="writeFormGroup writeFormGroupFull">
+          <Editor
+            onInit={(evt, editor) => editorRef.current = editor}
+            initialValue={formData.content}
             value={formData.content}
-            onChange={handleInputChange}
-            rows={15}
-            required
+            onEditorChange={(content) => setFormData(prev => ({ ...prev, content }))}
+            init={{
+              height: 500,
+              menubar: true,
+              plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
+                'paste', 'emoticons', 'textpattern', 'codesample'
+              ],
+              toolbar: 'undo redo | blocks | ' +
+                'bold italic forecolor | alignleft aligncenter ' +
+                'alignright alignjustify | bullist numlist outdent indent | ' +
+                'removeformat | link image media | code codesample | help',
+              content_style: `
+                body { 
+                  font-family: 'Poppins', sans-serif; 
+                  font-size: 16px; 
+                  line-height: 1.6; 
+                  color: #333;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                  font-family: 'Kanit', sans-serif;
+                  margin-top: 1.5em;
+                  margin-bottom: 0.5em;
+                }
+                p {
+                  margin-bottom: 1em;
+                }
+                blockquote {
+                  border-left: 4px solid #be9656;
+                  margin: 1em 0;
+                  padding-left: 1em;
+                  font-style: italic;
+                }
+              `,
+              paste_data_images: true,
+              images_upload_handler: async (blobInfo, success, failure) => {
+                try {
+                  const formData = new FormData();
+                  formData.append('file', blobInfo.blob(), blobInfo.filename());
+                  
+                  const response = await uploadAPI.uploadFile(blobInfo.blob());
+                  if (response.data) {
+                    success(`/uploads/${response.data}`);
+                  } else {
+                    failure('Image upload failed');
+                  }
+                } catch (error) {
+                  console.error('Image upload error:', error);
+                  failure('Image upload failed');
+                }
+              },
+              setup: (editor) => {
+                editor.on('init', () => {
+                  if (formData.content) {
+                    editor.setContent(formData.content);
+                  }
+                });
+              }
+            }}
           />
         </div>
         
