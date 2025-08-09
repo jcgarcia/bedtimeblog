@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import pg from 'pg';
+import argon2 from 'argon2';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
@@ -159,6 +160,9 @@ class AuthorUpdater {
       // If not found, create the user
       console.log(`${colors.yellow}⚠️  jcgarcia user not found. Creating new user...${colors.reset}`);
       
+      // Generate a proper Argon2 hash for dummy password (user is just for attribution)
+      const dummyPasswordHash = await argon2.hash('dummy_password_for_attribution_only');
+      
       const insertResult = await this.client.query(`
         INSERT INTO users (username, email, first_name, last_name, password_hash, role, is_active, email_verified, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
@@ -168,7 +172,7 @@ class AuthorUpdater {
         'jcgarcia@example.com', // You may want to update this with actual email
         'jcgarcia',
         '',
-        '$2b$10$dummy.hash.for.author.user', // Dummy hash since this is just for attribution
+        dummyPasswordHash, // Proper Argon2 hash for dummy password
         'author',
         true,
         true
