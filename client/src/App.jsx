@@ -7,6 +7,7 @@ import Write from "./pages/write/Write";
 import Ops from "./pages/ops/Ops";
 import Settings from "./pages/settings/Settings";
 import Login from "./pages/login/Login";
+import UserLogin from "./pages/userLogin/UserLogin";
 import Register from "./pages/register/Register";
 import Home from "./pages/home/Home";
 import About from "./pages/about/About";
@@ -35,6 +36,7 @@ function App() {
               <Route path="/terms" element={<Terms />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/userlogin" element={<UserLogin />} />
               <Route path="/write" element={<Write />} />
               <Route path="/ops" element={
                 <ProtectedRoute requireAdmin={true}>
