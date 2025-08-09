@@ -46,11 +46,9 @@ export const postsAPI = {
   // Get all posts with optional pagination and category filtering
   getAllPosts: async (page = 1, limit = 10, category = null) => {
     try {
-      let url = `/api/posts?page=${page}&limit=${limit}`;
-      if (category) {
-        url += `&cat=${encodeURIComponent(category)}`;
-      }
-      const response = await apiClient.get(url);
+      // Simplified API call to match the backend API
+      const response = await apiClient.get('/api/posts');
+      
       // The API returns an array directly, so we wrap it in a success structure
       return {
         success: true,
