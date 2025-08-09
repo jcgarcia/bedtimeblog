@@ -1,4 +1,4 @@
-import bcryptjs from 'bcryptjs';
+import argon2 from 'argon2';
 import jwt from 'jsonwebtoken';
 import { getDbPool } from '../db.js';
 
@@ -88,7 +88,7 @@ export const adminLogin = async (req, res) => {
     const user = result.rows[0];
 
     // Verify password
-    const passwordMatch = await bcryptjs.compare(password, user.password_hash);
+    const passwordMatch = await argon2.verify(user.password_hash, password);
 
     if (!passwordMatch) {
       trackFailedAttempt(ip);

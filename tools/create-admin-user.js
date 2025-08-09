@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import bcrypt from 'bcryptjs';
+import argon2 from 'argon2';
 import pg from 'pg';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -55,8 +55,7 @@ class AdminUserCreator {
   }
 
   async hashPassword(password) {
-    const saltRounds = 12;
-    return await bcrypt.hash(password, saltRounds);
+    return await argon2.hash(password);
   }
 
   async createAdminUser(userData) {
