@@ -37,6 +37,43 @@ export const getSettings = async (req, res) => {
   }
 };
 
+// Get all settings including admin-only ones (admin only)
+export const getAllSettings = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value, type, group_name, description, is_public FROM settings ORDER BY group_name, key"
+    );
+    
+    // Convert settings array to object for easier frontend use
+    const settings = {};
+    result.rows.forEach(row => {
+      let value = row.value;
+      
+      // Parse value based on type
+      if (row.type === 'boolean') {
+        value = value === 'true';
+      } else if (row.type === 'number') {
+        value = parseFloat(value);
+      } else if (row.type === 'json') {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          console.error(`Error parsing JSON setting ${row.key}:`, e);
+        }
+      }
+      
+      // Use camelCase for frontend
+      const camelKey = row.key.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+      settings[camelKey] = value;
+    });
+    
+    res.status(200).json(settings);
+  } catch (error) {
+    console.error("Error fetching all settings:", error);
+    res.status(500).json({ message: "Error fetching settings" });
+  }
+};
+
 // Update settings (admin only - basic version)
 export const updateSettings = async (req, res) => {
   try {

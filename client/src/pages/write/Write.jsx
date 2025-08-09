@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/UserContext";
 import { useAdmin } from "../../contexts/AdminContext";
 import { postsAPI, categoriesAPI, uploadAPI } from "../../services/postsAPI";
-import { Editor } from '@tinymce/tinymce-react';
+import LexicalEditor from "../../components/LexicalEditor/LexicalEditor";
+import "../../components/LexicalEditor/LexicalEditor.css";
 import "./write.css";
 import PostImg from '../../media/NewPost.jpg';
 
@@ -12,7 +13,6 @@ export default function Write() {
   const navigate = useNavigate();
   const { user } = useUser();
   const { adminUser, isAdmin } = useAdmin();
-  const editorRef = useRef(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -146,11 +146,8 @@ export default function Write() {
       setError('Title is required');
       return;
     }
-
-    // Get content from TinyMCE editor
-    const content = editorRef.current ? editorRef.current.getContent() : formData.content;
     
-    if (!content.trim()) {
+    if (!formData.content.trim()) {
       setError('Content is required');
       return;
     }
@@ -162,7 +159,7 @@ export default function Write() {
 
       const postData = {
         title: formData.title,
-        desc: content, // API expects 'desc' field
+        desc: formData.content, // API expects 'desc' field
         img: formData.featuredImage,
         cat: formData.category,
         excerpt: formData.excerpt,
@@ -190,9 +187,8 @@ export default function Write() {
             featuredImage: '',
             status: 'draft'
           });
-          if (editorRef.current) {
-            editorRef.current.setContent('');
-          }
+        }
+      }
         }
       }
       
@@ -327,71 +323,10 @@ export default function Write() {
         </div>
         
         <div className="writeFormGroup writeFormGroupFull">
-          <Editor
-            onInit={(evt, editor) => editorRef.current = editor}
-            initialValue={formData.content}
+          <LexicalEditor
             value={formData.content}
-            onEditorChange={(content) => setFormData(prev => ({ ...prev, content }))}
-            init={{
-              height: 500,
-              menubar: true,
-              plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-                'paste', 'emoticons', 'textpattern', 'codesample'
-              ],
-              toolbar: 'undo redo | blocks | ' +
-                'bold italic forecolor | alignleft aligncenter ' +
-                'alignright alignjustify | bullist numlist outdent indent | ' +
-                'removeformat | link image media | code codesample | help',
-              content_style: `
-                body { 
-                  font-family: 'Poppins', sans-serif; 
-                  font-size: 16px; 
-                  line-height: 1.6; 
-                  color: #333;
-                }
-                h1, h2, h3, h4, h5, h6 {
-                  font-family: 'Kanit', sans-serif;
-                  margin-top: 1.5em;
-                  margin-bottom: 0.5em;
-                }
-                p {
-                  margin-bottom: 1em;
-                }
-                blockquote {
-                  border-left: 4px solid #be9656;
-                  margin: 1em 0;
-                  padding-left: 1em;
-                  font-style: italic;
-                }
-              `,
-              paste_data_images: true,
-              images_upload_handler: async (blobInfo, success, failure) => {
-                try {
-                  const formData = new FormData();
-                  formData.append('file', blobInfo.blob(), blobInfo.filename());
-                  
-                  const response = await uploadAPI.uploadFile(blobInfo.blob());
-                  if (response.data) {
-                    success(`/uploads/${response.data}`);
-                  } else {
-                    failure('Image upload failed');
-                  }
-                } catch (error) {
-                  console.error('Image upload error:', error);
-                  failure('Image upload failed');
-                }
-              },
-              setup: (editor) => {
-                editor.on('init', () => {
-                  if (formData.content) {
-                    editor.setContent(formData.content);
-                  }
-                });
-              }
-            }}
+            onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+            placeholder="Start writing your story..."
           />
         </div>
         

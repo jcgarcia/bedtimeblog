@@ -26,6 +26,17 @@ export const postsAPI = {
     return api.get(`/posts/${id}`);
   },
 
+  // Get single post by ID (alias for consistency)
+  getPostById: (id) => {
+    return api.get(`/posts/${id}`).then(response => ({
+      success: true,
+      data: response.data
+    })).catch(error => ({
+      success: false,
+      error: error.message
+    }));
+  },
+
   // Create new post
   createPost: (postData) => {
     return api.post('/posts', postData);
