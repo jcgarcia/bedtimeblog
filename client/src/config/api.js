@@ -4,40 +4,60 @@
 // Get API base URL from environment variable, fallback to production URL
 export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://bapi.ingasti.com";
 
-// Ensure the URL ends with a slash for consistent concatenation
-export const API_URL = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+// Remove trailing slash and ensure consistent API_URL without ending slash
+export const API_URL = API_BASE_URL.replace(/\/$/, '');
 
 // Common API endpoints
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    GOOGLE: `${API_URL}api/auth/google`,
-    FACEBOOK: `${API_URL}api/auth/facebook`,
-    TWITTER: `${API_URL}api/auth/twitter`,
-    LOGOUT: `${API_URL}api/auth/logout`,
-    VERIFY: `${API_URL}api/auth/verify`,
+    GOOGLE: `${API_URL}/api/auth/google`,
+    FACEBOOK: `${API_URL}/api/auth/facebook`,
+    TWITTER: `${API_URL}/api/auth/twitter`,
+    LOGOUT: `${API_URL}/api/auth/logout`,
+    VERIFY: `${API_URL}/api/auth/verify`,
+  },
+  
+  // Admin
+  ADMIN: {
+    LOGIN: `${API_URL}/api/admin/login`,
+    VERIFY: `${API_URL}/api/admin/verify`,
+    LOGOUT: `${API_URL}/api/admin/logout`,
   },
   
   // Posts
   POSTS: {
-    LIST: `${API_URL}api/posts`,
-    CREATE: `${API_URL}api/posts`,
-    GET: (id) => `${API_URL}api/posts/${id}`,
-    UPDATE: (id) => `${API_URL}api/posts/${id}`,
-    DELETE: (id) => `${API_URL}api/posts/${id}`,
+    LIST: `${API_URL}/api/posts`,
+    CREATE: `${API_URL}/api/posts`,
+    GET: (id) => `${API_URL}/api/posts/${id}`,
+    UPDATE: (id) => `${API_URL}/api/posts/${id}`,
+    DELETE: (id) => `${API_URL}/api/posts/${id}`,
   },
   
   // Users
   USERS: {
-    PROFILE: `${API_URL}api/users/profile`,
-    UPDATE: `${API_URL}api/users/profile`,
+    PROFILE: `${API_URL}/api/users/profile`,
+    UPDATE: `${API_URL}/api/users/profile`,
   },
   
+  // Settings
+  SETTINGS: {
+    SOCIAL: `${API_URL}/api/settings/social`,
+    CONTACT: `${API_URL}/api/settings/contact`,
+    SMTP: `${API_URL}/api/settings/smtp`,
+    SMTP_TEST: `${API_URL}/api/settings/smtp/test`,
+    OAUTH: `${API_URL}/api/settings/oauth`,
+    OAUTH_TEST: (provider) => `${API_URL}/api/settings/oauth/test/${provider}`,
+  },
+  
+  // Contact
+  CONTACT: `${API_URL}/api/contact`,
+  
   // Upload
-  UPLOAD: `${API_URL}api/upload`,
+  UPLOAD: `${API_URL}/api/upload`,
   
   // Health check
-  HEALTH: `${API_URL}health`,
+  HEALTH: `${API_URL}/health`,
 };
 
 // Helper function to build API URLs

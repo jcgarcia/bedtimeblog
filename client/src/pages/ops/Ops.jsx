@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
+import { API_ENDPOINTS } from '../../config/api';
 import './ops.css';
 
 export default function Ops() {
@@ -95,6 +96,41 @@ export default function Ops() {
 // Post Management Component
 function PostManagement() {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch(API_ENDPOINTS.POSTS.LIST);
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      try {
+        const response = await fetch(API_ENDPOINTS.POSTS.DELETE(postId), {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          setPosts(posts.filter(post => post.id !== postId));
+        }
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      }
+    }
+  };
 
   return (
     <div className="post-management">
@@ -134,27 +170,48 @@ function PostManagement() {
       {/* Recent Posts Table */}
       <div className="recent-posts">
         <h3>Recent Posts</h3>
-        <table className="ops-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Sample Post Title</td>
-              <td><span className="status published">Published</span></td>
-              <td>Aug 4, 2025</td>
-              <td>
-                <button className="btn-small">Edit</button>
-                <button className="btn-small btn-danger">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {loading ? (
+          <p>Loading posts...</p>
+        ) : (
+          <table className="ops-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {posts.length === 0 ? (
+                <tr>
+                  <td colSpan="4">No posts found</td>
+                </tr>
+              ) : (
+                posts.map(post => (
+                  <tr key={post.id}>
+                    <td>{post.title}</td>
+                    <td>
+                      <span className={`status ${post.status.toLowerCase()}`}>
+                        {post.status}
+                      </span>
+                    </td>
+                    <td>{new Date(post.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <button className="btn-small">Edit</button>
+                      <button 
+                        className="btn-small btn-danger"
+                        onClick={() => handleDeletePost(post.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -204,7 +261,7 @@ function SocialMediaManagement() {
 
   const fetchSocialLinks = async () => {
     try {
-      const response = await fetch('/api/settings/social');
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SOCIAL);
       if (response.ok) {
         const data = await response.json();
         setSocialLinks(data);
@@ -228,7 +285,7 @@ function SocialMediaManagement() {
     setMessage('');
     
     try {
-      const response = await fetch('/api/settings/social', {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.SOCIAL, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
