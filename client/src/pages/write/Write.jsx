@@ -68,8 +68,11 @@ export default function Write() {
       setLoading(true);
       const response = await postsAPI.getPostById(id);
       
+      console.log('Load post response:', response); // Debug log
+      
       if (response.success && response.data) {
         const post = response.data;
+        console.log('Setting post data:', post); // Debug log
         setFormData({
           title: post.title || '',
           content: post.content || '',

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { $getRoot, $getSelection } from 'lexical';
+import { $getRoot, $getSelection, $createParagraphNode, $createTextNode } from 'lexical';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -185,13 +185,18 @@ function SetInitialContentPlugin({ content }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    if (content) {
+    console.log('SetInitialContentPlugin - content received:', content); // Debug log
+    if (content && content.trim()) {
       editor.update(() => {
         const root = $getRoot();
         root.clear();
-        // For now, just set as text. We can enhance this later to parse HTML
-        const textNode = root.createText(content);
-        root.append(textNode);
+        
+        // Create a paragraph node and add the text content
+        const paragraphNode = $createParagraphNode();
+        const textNode = $createTextNode(content);
+        paragraphNode.append(textNode);
+        root.append(paragraphNode);
+        console.log('Content set in editor'); // Debug log
       });
     }
   }, [content, editor]);
