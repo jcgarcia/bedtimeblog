@@ -3,6 +3,7 @@
 import bcrypt from 'bcryptjs';
 import pg from 'pg';
 import crypto from 'crypto';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { config } from 'dotenv';
@@ -10,7 +11,7 @@ import { config } from 'dotenv';
 // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-config({ path: join(__dirname, '../api/.env') });
+config({ path: join(__dirname, '.env') });
 
 const { Client } = pg;
 
@@ -28,8 +29,14 @@ const colors = {
 
 class AdminUserCreator {
   constructor() {
+    const sslConfig = process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: true,
+      ca: fs.readFileSync(join(__dirname, 'ca-certificate.crt')).toString()
+    } : false;
+
     this.client = new Client({
-      connectionString: process.env.DATABASE_URL
+      connectionString: process.env.DATABASE_URL,
+      ssl: sslConfig
     });
   }
 

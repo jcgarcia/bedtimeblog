@@ -117,7 +117,7 @@ export default function AdminLogin() {
             This is a secure admin area. Only authorized personnel may access.
           </p>
           <div className="demo-credentials">
-            <small>Demo credentials: admin / admin123</small>
+            <small>Demo credentials: jcsa025 / admin123</small>
           </div>
         </div>
       </div>
