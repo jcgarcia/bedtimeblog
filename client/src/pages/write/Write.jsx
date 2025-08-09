@@ -189,8 +189,6 @@ export default function Write() {
           });
         }
       }
-        }
-      }
       
     } catch (err) {
       console.error('Error saving post:', err);

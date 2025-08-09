@@ -8,9 +8,7 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { CodeHighlightPlugin } from '@lexical/react/LexicalCodeHighlightPlugin';
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin';
-import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import { 
   FORMAT_TEXT_COMMAND, 
   FORMAT_ELEMENT_COMMAND,
@@ -25,7 +23,7 @@ import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from '@lex
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
 import { ListItemNode, ListNode } from '@lexical/list';
-import { CodeNode, CodeHighlightNode } from '@lexical/code';
+import { CodeNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
 
 // Toolbar Component
@@ -281,7 +279,6 @@ export default function LexicalEditor({
       LinkNode,
       AutoLinkNode,
       CodeNode,
-      CodeHighlightNode,
       TableNode,
       TableCellNode,
       TableRowNode,
@@ -303,12 +300,11 @@ export default function LexicalEditor({
             placeholder={
               <div className="lexical-placeholder">{placeholder}</div>
             }
-            ErrorBoundary={LexicalErrorBoundary}
+            ErrorBoundary={({ children }) => children}
           />
           <HistoryPlugin />
           <ListPlugin />
           <LinkPlugin />
-          <CodeHighlightPlugin />
           <TablePlugin />
           <OnChangePlugin onChange={onChange} />
           <UpdateContentPlugin onChange={onChange} />
