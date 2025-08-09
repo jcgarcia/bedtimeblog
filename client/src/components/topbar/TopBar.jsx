@@ -119,11 +119,15 @@ export default function TopBar() {
             <div className="userInfo">
               <img 
                 className="topImg"
-                src={user.avatar || "https://via.placeholder.com/40"}
-                alt={user.name}
-                title={user.name}
+                src={user.avatar || "https://via.placeholder.com/40?text=" + (user.name || user.username || 'U').charAt(0).toUpperCase()}
+                alt={user.name || user.username || 'User'}
+                title={user.name || user.username || 'User'}
               />
-              <span className="userName">{user.name}</span>
+              <span className="userName">
+                {user.name || 
+                 (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username) ||
+                 'User'}
+              </span>
             </div>
           ) : (
             <div className="loginMenu">
