@@ -50,6 +50,9 @@ export const UserProvider = ({ children }) => {
   const userLogin = async (credentials) => {
     setIsLoading(true);
     try {
+      console.log('UserContext: Attempting login with credentials:', credentials);
+      console.log('UserContext: API endpoint:', API_ENDPOINTS.AUTH.LOGIN);
+      
       const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
         headers: {
@@ -58,7 +61,10 @@ export const UserProvider = ({ children }) => {
         body: JSON.stringify(credentials)
       });
 
+      console.log('UserContext: Response status:', response.status);
+
       const data = await response.json();
+      console.log('UserContext: Response data:', data);
 
       if (response.ok && data.success) {
         localStorage.setItem('userToken', data.token);
@@ -70,7 +76,7 @@ export const UserProvider = ({ children }) => {
         return { success: false, message: data.message || 'Login failed' };
       }
     } catch (error) {
-      console.error('User login failed:', error);
+      console.error('UserContext: Login failed:', error);
       setIsLoading(false);
       return { success: false, message: 'Network error. Please try again.' };
     }

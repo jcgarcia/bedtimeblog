@@ -1,5 +1,5 @@
 import express from "express";
-import { register, login, logout } from "../controllers/auth.js";
+import { register, login, logout, verify } from "../controllers/auth.js";
 import passport from "passport";
 
 const router = express.Router();
@@ -7,6 +7,7 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 router.post("/logout", logout);
+router.get("/verify", verify);
 
 // Route for initiating Google OAuth
 router.get("/google", passport.authenticate("google", {

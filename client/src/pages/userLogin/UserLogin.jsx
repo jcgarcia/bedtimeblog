@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
-import { API_BASE_URL } from '../../config/api';
+import { API_ENDPOINTS } from '../../config/api';
 import './userLogin.css';
 
 const UserLogin = () => {
@@ -13,7 +13,7 @@ const UserLogin = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useUser();
+  const { userLogin } = useUser();
 
   const handleChange = (e) => {
     setInputs(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -25,22 +25,17 @@ const UserLogin = () => {
     setErr(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(inputs)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        login(data);
+      console.log('Attempting login with:', { username: inputs.username });
+      console.log('API URL:', API_ENDPOINTS.AUTH.LOGIN);
+      
+      const result = await userLogin(inputs);
+      
+      if (result.success) {
+        console.log('Login successful, navigating to home');
         navigate('/');
       } else {
-        const errorText = await response.text();
-        setErr(errorText.replace(/"/g, '') || 'Login failed');
+        console.log('Login failed:', result.message);
+        setErr(result.message);
       }
     } catch (error) {
       console.error('Login error:', error);
