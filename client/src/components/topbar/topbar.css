@@ -315,3 +315,91 @@
         display: none !important; /* Hide hamburger on desktop */
     }
 }
+
+/* Login Menu Styles */
+.loginMenu {
+    position: relative;
+}
+
+.loginIcon {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.loginIcon:hover {
+    background-color: #f5f5f5;
+}
+
+.loginIcon i {
+    font-size: 20px;
+    color: #444;
+}
+
+.loginIcon .fa-chevron-down {
+    font-size: 12px;
+}
+
+.loginDropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    padding: 8px 0;
+    min-width: 220px;
+    z-index: 1000;
+    margin-top: 8px;
+}
+
+.loginOption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s ease;
+}
+
+.loginOption:hover {
+    background-color: #f8f9ff;
+}
+
+.loginOption.admin:hover {
+    background-color: #fef2f2;
+}
+
+.loginOption i {
+    font-size: 18px;
+    min-width: 20px;
+    color: #667eea;
+}
+
+.loginOption.admin i {
+    color: #dc2626;
+}
+
+.loginOption div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.loginOption strong {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+}
+
+.loginOption span {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.2;
+}

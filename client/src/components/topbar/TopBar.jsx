@@ -13,6 +13,7 @@ export default function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [loginMenuOpen, setLoginMenuOpen] = useState(false);
   const { socialLinks, loading } = useSocialLinks();
 
   // Use admin user info if logged in as admin, otherwise use regular user
@@ -34,6 +35,10 @@ export default function TopBar() {
     setSearchOpen(false);
   };
 
+  const toggleLoginMenu = () => {
+    setLoginMenuOpen(!loginMenuOpen);
+  };
+
   // Check if we're on mobile and handle responsive behavior
   useEffect(() => {
     const checkMobile = () => {
@@ -46,6 +51,7 @@ export default function TopBar() {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.top')) {
         setMenuOpen(false);
+        setLoginMenuOpen(false);
       }
     };
 
@@ -109,9 +115,37 @@ export default function TopBar() {
           currentUser ? (
             <UserDropdown user={currentUser} />
           ) : (
-            <Link className="link loginIcon" to="/login">
-              <i className="fa-solid fa-right-to-bracket"></i>
-            </Link>
+            <div className="loginMenu">
+              <div className="loginIcon" onClick={toggleLoginMenu}>
+                <i className="fa-solid fa-right-to-bracket"></i>
+                <i className="fa-solid fa-chevron-down"></i>
+              </div>
+              {loginMenuOpen && (
+                <div className="loginDropdown">
+                  <Link className="loginOption" to="/userlogin" onClick={() => setLoginMenuOpen(false)}>
+                    <i className="fa-solid fa-pen"></i>
+                    <div>
+                      <strong>Writer Login</strong>
+                      <span>Create & edit posts</span>
+                    </div>
+                  </Link>
+                  <Link className="loginOption" to="/login" onClick={() => setLoginMenuOpen(false)}>
+                    <i className="fa-solid fa-comments"></i>
+                    <div>
+                      <strong>Reader Login</strong>
+                      <span>Comment via social media</span>
+                    </div>
+                  </Link>
+                  <Link className="loginOption admin" to="/adminlogin" onClick={() => setLoginMenuOpen(false)}>
+                    <i className="fa-solid fa-shield"></i>
+                    <div>
+                      <strong>Admin Login</strong>
+                      <span>Full system access</span>
+                    </div>
+                  </Link>
+                </div>
+              )}
+            </div>
           )
         }
 
