@@ -44,7 +44,7 @@ export const authenticateUser = async (req) => {
     }
     
     try {
-      const userInfo = jwt.verify(token, "jwtkey");
+      const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       
       // Check if user exists and get role
       const userQuery = await pool.query(

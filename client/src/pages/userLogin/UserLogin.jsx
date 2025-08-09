@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
+import { API_BASE_URL } from '../../config/api';
 import './userLogin.css';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8800';
 
 const UserLogin = () => {
   const [inputs, setInputs] = useState({
@@ -26,7 +25,7 @@ const UserLogin = () => {
     setErr(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         credentials: 'include',
         headers: {
