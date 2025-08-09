@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { postsAPI } from '../../config/apiService';
+import { useUser } from '../../contexts/UserContext';
+import { useAdmin } from '../../contexts/AdminContext';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
 
 export default function SinglePost() {
   const { postId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useUser();
+  const { adminUser, isAdmin } = useAdmin();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Get current user (admin or regular user)
+  const currentUser = isAdmin && adminUser ? adminUser : user;
 
   useEffect(() => {
     if (postId) {
@@ -33,6 +41,55 @@ export default function SinglePost() {
       setError('Failed to load post. Please try again later.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check if current user can edit this post
+  const canEditPost = () => {
+    if (!currentUser) return false;
+    
+    // Admins and super admins can edit any post
+    if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+      return true;
+    }
+    
+    // Editors can edit any post
+    if (currentUser.role === 'editor') {
+      return true;
+    }
+    
+    // Authors/writers can edit their own posts
+    if ((currentUser.role === 'author' || currentUser.role === 'writer') && post) {
+      return currentUser.id === post.author_id || currentUser.username === post.username;
+    }
+    
+    return false;
+  };
+
+  // Handle edit button click
+  const handleEdit = () => {
+    if (canEditPost()) {
+      navigate(`/write?edit=${postId}`);
+    }
+  };
+
+  // Handle delete button click
+  const handleDelete = async () => {
+    if (!canEditPost()) return;
+    
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the post "${post.title}"? This action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      try {
+        // TODO: Implement delete API call
+        console.log('Delete post:', postId);
+        alert('Delete functionality will be implemented soon.');
+      } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('Failed to delete post. Please try again.');
+      }
     }
   };
 
@@ -120,10 +177,20 @@ export default function SinglePost() {
             />
             <h1 className="singlePostTitle">
                 {post.title || 'Untitled Post'}
-            <div className="singlePostEdit">
-                <i className="SinglePostIcon fa-regular fa-pen-to-square"></i>
-                <i className="SinglePostIcon fa-regular fa-trash-can"></i>           
-            </div>
+            {canEditPost() && (
+              <div className="singlePostEdit">
+                <i 
+                  className="SinglePostIcon fa-regular fa-pen-to-square" 
+                  onClick={handleEdit}
+                  title="Edit post"
+                ></i>
+                <i 
+                  className="SinglePostIcon fa-regular fa-trash-can"
+                  onClick={handleDelete}
+                  title="Delete post"
+                ></i>           
+              </div>
+            )}
             </h1>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>

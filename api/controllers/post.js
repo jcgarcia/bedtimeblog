@@ -66,19 +66,31 @@ export const addPost = async (req, res) => {
   
   try {
     const userInfo = jwt.verify(token, "jwtkey");
-    const q =
-      "INSERT INTO posts(title, postcont, img, cat, postdate, userid) VALUES ($1, $2, $3, $4, $5, $6)";
+    
+    // Generate slug from title
+    const slug = req.body.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    const q = `
+      INSERT INTO posts(title, slug, content, featured_image, category_id, author_id, status, published_at) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+      RETURNING *
+    `;
     const values = [
       req.body.title,
+      slug,
       req.body.desc,
       req.body.img,
       req.body.cat,
-      req.body.date,
       userInfo.id,
+      'published',
+      new Date()
     ];
     
-    await pool.query(q, values);
-    return res.json("Post has been created.");
+    const result = await pool.query(q, values);
+    return res.json({ message: "Post has been created.", post: result.rows[0] });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(403).json("Token is not valid!");
@@ -98,9 +110,14 @@ export const deletePost = async (req, res) => {
   try {
     const userInfo = jwt.verify(token, "jwtkey");
     const postId = req.params.id;
-    const q = "DELETE FROM posts WHERE id = $1 AND uid = $2";
+    const q = "DELETE FROM posts WHERE id = $1 AND author_id = $2";
     
-    await pool.query(q, [postId, userInfo.id]);
+    const result = await pool.query(q, [postId, userInfo.id]);
+    
+    if (result.rowCount === 0) {
+      return res.status(403).json("You can delete only your post!");
+    }
+    
     return res.json("Post has been deleted!");
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
@@ -121,12 +138,39 @@ export const updatePost = async (req, res) => {
   try {
     const userInfo = jwt.verify(token, "jwtkey");
     const postId = req.params.id;
-    const q =
-      "UPDATE posts SET title=$1, desc=$2, img=$3, cat=$4 WHERE id = $5 AND uid = $6";
-    const values = [req.body.title, req.body.desc, req.body.img, req.body.cat, postId, userInfo.id];
     
-    await pool.query(q, values);
-    return res.json("Post has been updated.");
+    // Generate slug from title if title is provided
+    let slug = null;
+    if (req.body.title) {
+      slug = req.body.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
+    const q = `
+      UPDATE posts 
+      SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, updated_at=CURRENT_TIMESTAMP 
+      WHERE id = $6 AND author_id = $7
+      RETURNING *
+    `;
+    const values = [
+      req.body.title, 
+      slug, 
+      req.body.desc, 
+      req.body.img, 
+      req.body.cat, 
+      postId, 
+      userInfo.id
+    ];
+    
+    const result = await pool.query(q, values);
+    
+    if (result.rowCount === 0) {
+      return res.status(403).json("You can update only your post!");
+    }
+    
+    return res.json({ message: "Post has been updated.", post: result.rows[0] });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
       return res.status(403).json("Token is not valid!");

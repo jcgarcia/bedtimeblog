@@ -6,6 +6,7 @@ import postRoutes from "./routes/posts.js";
 import publishRoutes from "./routes/publish.js";
 import settingsRoutes from "./routes/settings.js";
 import contactRoutes from "./routes/contact.js";
+import categoriesRoutes from "./routes/categories.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import passport from "passport";
@@ -154,6 +155,7 @@ app.use("/api/posts", postRoutes);
 app.use("/api/publish", publishRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/categories", categoriesRoutes);
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {

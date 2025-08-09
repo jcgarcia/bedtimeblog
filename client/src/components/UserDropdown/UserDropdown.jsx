@@ -67,7 +67,7 @@ const UserDropdown = ({ user }) => {
           <div className="dropdown-section">
             <h5>Quick Access</h5>
             
-            {(user.role === 'writer' || user.role === 'editor' || user.role === 'admin' || user.role === 'super_admin') && (
+            {(user.role === 'writer' || user.role === 'author' || user.role === 'editor' || user.role === 'admin' || user.role === 'super_admin') && (
               <Link to="/write" className="dropdown-item" onClick={() => setIsOpen(false)}>
                 <i className="fa-solid fa-pen"></i>
                 Write New Post
