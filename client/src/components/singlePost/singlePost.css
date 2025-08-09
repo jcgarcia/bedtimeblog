@@ -218,3 +218,46 @@ font-weight: 600;
     align-items: center;
     gap: 5px;
 }
+
+@media (max-width: 768px) {
+    .singlePost {
+        flex: none;
+        width: 100%;
+    }
+
+    .singlePostWrapper {
+        padding: 15px;
+    }
+
+    .singlePostImg {
+        height: 200px;
+    }
+
+    .singlePostTitle {
+        font-size: 22px;
+        margin: 15px 5px;
+    }
+
+    .singlePostInfo {
+        flex-direction: column;
+        gap: 10px;
+        font-size: 16px;
+    }
+
+    .singlePostContent {
+        font-size: 16px;
+        line-height: 24px;
+    }
+
+    .singlePostContent::first-letter {
+        margin-left: 15px;
+        font-size: 24px;
+    }
+
+    .singlePostStats {
+        margin-top: 20px;
+        padding: 15px;
+        gap: 15px;
+        font-size: 13px;
+    }
+}
