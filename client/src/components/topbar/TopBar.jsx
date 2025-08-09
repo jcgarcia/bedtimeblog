@@ -74,7 +74,6 @@ export default function TopBar() {
       <li className="topListItem"><Link className="link" to="/about" onClick={() => setMenuOpen(false)} > About </Link></li>
       <li className="topListItem"><Link className="link" to="/contact" onClick={() => setMenuOpen(false)} > Contact </Link></li>
       <li className="topListItem"><Link className="link" to="/ops" onClick={() => setMenuOpen(false)} > Ops </Link></li>
-      <li className="topListItem"> { currentUser &&  "Logout" } </li>
     </ul>
   );
 

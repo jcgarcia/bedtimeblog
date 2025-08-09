@@ -777,3 +777,269 @@
     font-size: 0.9rem;
   }
 }
+
+/* User Management Styles */
+.user-management .add-user-form {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.user-management .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.user-management .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-management .form-group label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.user-management .form-group input,
+.user-management .form-group select {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.user-management .form-group input:focus,
+.user-management .form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.user-management .form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.user-management .users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.user-management .user-card {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.user-management .user-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.user-management .user-avatar {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  color: white;
+  font-size: 1.5rem;
+}
+
+.user-management .user-info h3 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.user-management .user-username {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 5px 0;
+}
+
+.user-management .user-email {
+  color: #666;
+  font-size: 0.85rem;
+  margin: 0 0 10px 0;
+}
+
+.user-management .user-role {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 15px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.user-management .user-status {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 5px 0;
+}
+
+.user-management .user-status .fa-circle {
+  font-size: 0.6rem;
+  margin-right: 5px;
+}
+
+.user-management .user-status .fa-circle.active {
+  color: #28a745;
+}
+
+.user-management .user-status .fa-circle.inactive {
+  color: #dc3545;
+}
+
+.user-management .user-date,
+.user-management .user-last-login {
+  font-size: 0.8rem;
+  color: #999;
+  margin: 3px 0;
+}
+
+.user-management .user-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.user-management .no-users {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.user-management .no-users i {
+  font-size: 3rem;
+  color: #ddd;
+  margin-bottom: 20px;
+}
+
+.user-management .no-users h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 0;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.modal-close:hover {
+  background-color: #f8f9fa;
+}
+
+.modal-content form {
+  padding: 20px;
+}
+
+.modal-content .form-group {
+  margin-bottom: 20px;
+}
+
+/* Success/Error Messages */
+.message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+
+.message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Responsive for User Management */
+@media (max-width: 768px) {
+  .user-management .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-management .users-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+}
