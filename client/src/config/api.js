@@ -11,6 +11,7 @@ export const API_URL = API_BASE_URL.replace(/\/$/, '');
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
+    LOGIN: `${API_URL}/api/auth/login`,
     GOOGLE: `${API_URL}/api/auth/google`,
     FACEBOOK: `${API_URL}/api/auth/facebook`,
     TWITTER: `${API_URL}/api/auth/twitter`,

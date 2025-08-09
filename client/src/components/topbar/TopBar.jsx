@@ -1,15 +1,26 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Search from "../search/Search";
+import UserDropdown from "../UserDropdown/UserDropdown";
 import { useSocialLinks } from "../../hooks/useSocialLinks";
+import { useUser } from "../../contexts/UserContext";
+import { useAdmin } from "../../contexts/AdminContext";
 import "./topbar.css"
 
 export default function TopBar() {
-  const user = false;
+  const { user } = useUser();
+  const { isAdmin, adminUser } = useAdmin();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { socialLinks, loading } = useSocialLinks();
+
+  // Use admin user info if logged in as admin, otherwise use regular user
+  const currentUser = isAdmin && adminUser ? {
+    ...adminUser,
+    name: `${adminUser.firstName} ${adminUser.lastName}`,
+    avatar: adminUser.avatar || null
+  } : user;
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -57,7 +68,7 @@ export default function TopBar() {
       <li className="topListItem"><Link className="link" to="/about" onClick={() => setMenuOpen(false)} > About </Link></li>
       <li className="topListItem"><Link className="link" to="/contact" onClick={() => setMenuOpen(false)} > Contact </Link></li>
       <li className="topListItem"><Link className="link" to="/ops" onClick={() => setMenuOpen(false)} > Ops </Link></li>
-      <li className="topListItem"> { user &&  "Logout" } </li>
+      <li className="topListItem"> { currentUser &&  "Logout" } </li>
     </ul>
   );
 
@@ -95,12 +106,8 @@ export default function TopBar() {
 
       <div className="topRight">
         {
-          user ? (
-            <img 
-            className="topImg"
-            src="https://lh3.googleusercontent.com/a/ACg8ocKyzBlZ6G6WI8BZQpstO_hcA3hhfSuyesOerch4wMn0ISfAXY8v=s96-c"
-            alt="Julio Cesar Garcia"
-            />          
+          currentUser ? (
+            <UserDropdown user={currentUser} />
           ) : (
             <Link className="link loginIcon" to="/login">
               <i className="fa-solid fa-right-to-bracket"></i>
