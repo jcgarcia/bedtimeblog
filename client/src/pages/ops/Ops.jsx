@@ -240,17 +240,26 @@ function UserManagement() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/users', {
+      console.log('Fetching users with token:', token ? 'Token exists' : 'No token found');
+      console.log('API URL:', API_ENDPOINTS.ADMIN.USERS);
+      
+      const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Users data received:', data);
         setUsers(data.users);
       } else {
-        throw new Error('Failed to fetch users');
+        const errorData = await response.text();
+        console.log('Error response:', errorData);
+        throw new Error(`Failed to fetch users: ${response.status}`);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -264,7 +273,7 @@ function UserManagement() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/users', {
+      const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -300,7 +309,7 @@ function UserManagement() {
   const handleUpdateUser = async (userId, updates) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(API_ENDPOINTS.ADMIN.USER(userId), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -329,7 +338,7 @@ function UserManagement() {
     if (window.confirm(`Are you sure you want to delete user "${username}"?`)) {
       try {
         const token = localStorage.getItem('adminToken');
-        const response = await fetch(`/api/users/${userId}`, {
+        const response = await fetch(API_ENDPOINTS.ADMIN.USER(userId), {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

@@ -24,6 +24,8 @@ export const API_ENDPOINTS = {
     LOGIN: `${API_URL}/api/admin/login`,
     VERIFY: `${API_URL}/api/admin/verify`,
     LOGOUT: `${API_URL}/api/admin/logout`,
+    USERS: `${API_URL}/api/users`,
+    USER: (id) => `${API_URL}/api/users/${id}`,
   },
   
   // Posts
