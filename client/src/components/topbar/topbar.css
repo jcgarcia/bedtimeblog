@@ -54,6 +54,37 @@
     object-fit: cover;
 }
 
+.avatarContainer {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.defaultAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Arial', sans-serif;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
+}
+
+.defaultAvatar.show {
+    display: flex;
+}
+
+.defaultAvatar:hover {
+    transform: scale(1.05);
+}
+
 .userInfo {
     display: flex;
     align-items: center;
@@ -271,6 +302,23 @@
     .topSearchIcon {
         font-size: 20px;
         margin-left: 8px;
+    }
+
+    .avatarContainer {
+        width: 35px;
+        height: 35px;
+    }
+
+    .topImg,
+    .defaultAvatar {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+
+    .userName {
+        font-size: 12px;
+        max-width: 80px;
     }
 
     /* Add overlay when menu is open */

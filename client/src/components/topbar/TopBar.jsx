@@ -117,12 +117,26 @@ export default function TopBar() {
         {
           user ? (
             <div className="userInfo">
-              <img 
-                className="topImg"
-                src={user.avatar || "https://via.placeholder.com/40?text=" + (user.name || user.username || 'U').charAt(0).toUpperCase()}
-                alt={user.name || user.username || 'User'}
-                title={user.name || user.username || 'User'}
-              />
+              <div className="avatarContainer">
+                {user.avatar ? (
+                  <img 
+                    className="topImg"
+                    src={user.avatar}
+                    alt={user.name || user.username || 'User'}
+                    title={user.name || user.username || 'User'}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextElementSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={`defaultAvatar ${!user.avatar ? 'show' : ''}`}
+                  title={user.name || user.username || 'User'}
+                >
+                  {(user.name || user.first_name || user.username || 'U').charAt(0).toUpperCase()}
+                </div>
+              </div>
               <span className="userName">
                 {user.name || 
                  (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username) ||
