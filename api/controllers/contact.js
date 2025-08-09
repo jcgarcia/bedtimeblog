@@ -1,4 +1,4 @@
-import { query } from "../db.js";
+import { getDbPool } from "../db.js";
 import nodemailer from "nodemailer";
 
 // Create email transporter
@@ -39,7 +39,8 @@ export const sendContactMessage = async (req, res) => {
 
     // Store the contact message in database (optional)
     try {
-      await query(
+      const pool = getDbPool();
+      await pool.query(
         `INSERT INTO contact_messages (name, email, subject, message, created_at, status) 
          VALUES ($1, $2, $3, $4, NOW(), 'new')`,
         [name, email, subject, message]
