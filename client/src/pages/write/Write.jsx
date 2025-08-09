@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/UserContext";
 import { useAdmin } from "../../contexts/AdminContext";
-import { postsAPI, categoriesAPI, uploadAPI } from "../../services/postsAPI";
+import { postsAPI } from "../../config/apiService";
+import { categoriesAPI, uploadAPI } from "../../services/postsAPI";
 import LexicalEditor from "../../components/LexicalEditor/LexicalEditor";
 import "../../components/LexicalEditor/LexicalEditor.css";
 import "./write.css";
@@ -65,9 +66,9 @@ export default function Write() {
   const loadPost = async (id) => {
     try {
       setLoading(true);
-      const response = await postsAPI.getPost(id);
+      const response = await postsAPI.getPostById(id);
       
-      if (response.data) {
+      if (response.success && response.data) {
         const post = response.data;
         setFormData({
           title: post.title || '',
@@ -168,15 +169,17 @@ export default function Write() {
       
       if (isEditing) {
         const response = await postsAPI.updatePost(postId, postData);
-        if (response.data) {
+        if (response.success) {
           setSuccess('Post updated successfully!');
           setTimeout(() => {
             navigate(`/post/${postId}`);
           }, 1500);
+        } else {
+          setError(response.error || 'Failed to update post');
         }
       } else {
         const response = await postsAPI.createPost(postData);
-        if (response.data) {
+        if (response.success) {
           setSuccess('Post created successfully!');
           // Reset form if creating new post
           setFormData({
@@ -187,6 +190,8 @@ export default function Write() {
             featuredImage: '',
             status: 'draft'
           });
+        } else {
+          setError(response.error || 'Failed to create post');
         }
       }
       
