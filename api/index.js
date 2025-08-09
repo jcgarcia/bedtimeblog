@@ -10,8 +10,6 @@ import cookieParser from "cookie-parser";
 import multer from "multer";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Strategy as FacebookStrategy } from "passport-facebook";
-import { Strategy as TwitterStrategy } from "passport-twitter";
 import fs from "fs";
 import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
@@ -57,8 +55,7 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   
   if (req.method === "OPTIONS") {
-    res.setHeader('Content-Type', 'application/json');
-    res.status(200).json({ message: "CORS preflight successful" });
+    res.sendStatus(200);
   } else {
     next();
   }
@@ -66,12 +63,6 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(cookieParser());
-
-// Middleware to ensure all API responses have JSON content type
-app.use('/api', (req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
 
 // Load system configuration from database
 app.use(loadSystemConfig);
@@ -96,7 +87,7 @@ app.post("/api/upload", upload.single("file"), function (req, res) {
   res.status(200).json(file.filename);
 });
 
-// Configure Passport.js with OAuth strategies
+// Configure Passport.js with Google OAuth strategy
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID",
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || "YOUR_GOOGLE_CLIENT_SECRET",
@@ -105,27 +96,6 @@ passport.use(new GoogleStrategy({
     : "/api/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => {
   // Pass the user profile to the next middleware
-  done(null, profile);
-}));
-
-passport.use(new FacebookStrategy({
-  clientID: process.env.FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID",
-  clientSecret: process.env.FACEBOOK_APP_SECRET || "YOUR_FACEBOOK_APP_SECRET",
-  callbackURL: process.env.NODE_ENV === 'production' 
-    ? "https://bapi.ingasti.com/api/auth/facebook/callback"
-    : "/api/auth/facebook/callback",
-  profileFields: ['id', 'displayName', 'photos']
-}, (accessToken, refreshToken, profile, done) => {
-  done(null, profile);
-}));
-
-passport.use(new TwitterStrategy({
-  consumerKey: process.env.TWITTER_CONSUMER_KEY || "YOUR_TWITTER_CONSUMER_KEY",
-  consumerSecret: process.env.TWITTER_CONSUMER_SECRET || "YOUR_TWITTER_CONSUMER_SECRET",
-  callbackURL: process.env.NODE_ENV === 'production' 
-    ? "https://bapi.ingasti.com/api/auth/twitter/callback"
-    : "/api/auth/twitter/callback"
-}, (token, tokenSecret, profile, done) => {
   done(null, profile);
 }));
 
@@ -184,31 +154,6 @@ app.use("/api/posts", postRoutes);
 app.use("/api/publish", publishRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/contact", contactRoutes);
-
-// Global error handler to ensure JSON responses
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  
-  // Set JSON content type
-  res.setHeader('Content-Type', 'application/json');
-  
-  // Return JSON error response
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// 404 handler for undefined routes - return JSON instead of HTML
-app.use('*', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.originalUrl,
-    method: req.method,
-    timestamp: new Date().toISOString()
-  });
-});
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {

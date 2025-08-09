@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { postsAPI } from '../../config/apiService';
-import { useAdmin } from '../../contexts/AdminContext';
-import { API_URL } from '../../config/api';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
 
 export default function SinglePost() {
   const { postId } = useParams();
-  const navigate = useNavigate();
-  const { adminUser } = useAdmin();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,17 +15,6 @@ export default function SinglePost() {
       fetchPost();
     }
   }, [postId]);
-
-  // Debug admin user state
-  useEffect(() => {
-    console.log('🔐 SinglePost Authentication State:', {
-      adminUser,
-      hasAdminUser: !!adminUser,
-      adminUserKeys: adminUser ? Object.keys(adminUser) : 'none',
-      adminUserRole: adminUser?.role,
-      adminUserId: adminUser?.id
-    });
-  }, [adminUser]);
 
   const fetchPost = async () => {
     try {
@@ -92,107 +77,6 @@ export default function SinglePost() {
     return { __html: html };
   };
 
-  // Check if user can edit this post (admin or author)
-  const canEditPost = () => {
-    console.log('🔑 Checking edit permissions:', { 
-      adminUser, 
-      postAuthorId: post?.author_id,
-      hasAdminUser: !!adminUser,
-      adminUserRole: adminUser?.role,
-      adminUserId: adminUser?.id,
-      isAdmin: adminUser?.role === 'admin' || adminUser?.role === 'super_admin',
-      isAuthor: adminUser?.id === post?.author_id
-    });
-    
-    if (!adminUser) {
-      console.log('❌ No admin user found');
-      return false;
-    }
-    
-    // If user is admin or super_admin, they can edit any post
-    if (adminUser.role === 'admin' || adminUser.role === 'super_admin') {
-      console.log('✅ User is admin/super_admin - can edit any post');
-      return true;
-    }
-    
-    // If user is the author of the post, they can edit it
-    if (adminUser.id === post?.author_id) {
-      console.log('✅ User is post author - can edit');
-      return true;
-    }
-    
-    console.log('❌ User cannot edit this post');
-    return false;
-  };
-
-  // Handle edit post
-  const handleEditPost = () => {
-    console.log('🔧 Edit button clicked for post:', postId);
-    console.log('🔑 Current admin user:', adminUser);
-    
-    if (!adminUser) {
-      alert('You need to be logged in as an admin to edit posts. Please log in through the Operations Panel.');
-      navigate('/ops');
-      return;
-    }
-    
-    if (!canEditPost()) {
-      alert(`You do not have permission to edit this post. You can only edit posts you created or if you're an admin.`);
-      return;
-    }
-    
-    console.log('🔧 Navigating to edit page for post:', postId);
-    // Navigate directly to the edit page for this specific post
-    navigate(`/edit/${postId}`);
-  };
-
-  // Handle delete post
-  const handleDeletePost = async () => {
-    console.log('🗑️ Delete button clicked for post:', postId);
-    console.log('🔑 Current admin user:', adminUser);
-    
-    if (!adminUser) {
-      alert('You need to be logged in as an admin to delete posts. Please log in through the Operations Panel.');
-      navigate('/ops');
-      return;
-    }
-    
-    if (!canEditPost()) {
-      alert(`You do not have permission to delete this post. You can only delete posts you created or if you're an admin.`);
-      return;
-    }
-
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${post.title}"? This action cannot be undone.`
-    );
-
-    if (!confirmDelete) return;
-
-    try {
-      const adminToken = localStorage.getItem('adminToken');
-      const response = await fetch(`${API_URL}/api/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        alert('Post deleted successfully!');
-        navigate('/'); // Redirect to home page
-      } else {
-        const errorText = await response.text();
-        console.error('Delete failed:', response.status, errorText);
-        alert('Failed to delete post. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      alert('Error deleting post. Please check your connection and try again.');
-    }
-  };
-
   if (loading) {
     return (
       <div className='singlePost'>
@@ -236,20 +120,10 @@ export default function SinglePost() {
             />
             <h1 className="singlePostTitle">
                 {post.title || 'Untitled Post'}
-              <div className="singlePostEdit">
-                  <i 
-                    className={`SinglePostIcon fa-regular fa-pen-to-square ${canEditPost() ? 'authorized' : 'unauthorized'}`}
-                    onClick={handleEditPost}
-                    title={canEditPost() ? "Edit post" : "Login required to edit"}
-                    style={{ cursor: 'pointer' }}
-                  ></i>
-                  <i 
-                    className={`SinglePostIcon fa-regular fa-trash-can ${canEditPost() ? 'authorized' : 'unauthorized'}`}
-                    onClick={handleDeletePost}
-                    title={canEditPost() ? "Delete post" : "Login required to delete"}
-                    style={{ cursor: 'pointer' }}
-                  ></i>           
-              </div>
+            <div className="singlePostEdit">
+                <i className="SinglePostIcon fa-regular fa-pen-to-square"></i>
+                <i className="SinglePostIcon fa-regular fa-trash-can"></i>           
+            </div>
             </h1>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>

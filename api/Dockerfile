@@ -1,16 +1,9 @@
-# api/Dockerfile - Production optimized with native module support
+# api/Dockerfile - Production optimized
 FROM node:20-alpine
-
-# Install build dependencies for native modules (Argon2)
-RUN apk add --no-cache \
-    curl \
-    make \
-    g++ \
-    python3 \
-    py3-pip \
-    libc6-compat
-
 WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
 
 # Install dependencies first for better caching
 COPY package.json pnpm-lock.yaml ./

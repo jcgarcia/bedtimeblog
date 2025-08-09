@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import argon2 from 'argon2';
+import bcrypt from 'bcryptjs';
 import pg from 'pg';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
@@ -28,20 +28,9 @@ const colors = {
 
 class AdminUserCreator {
   constructor() {
-    // Use individual environment variables if available, otherwise fall back to DATABASE_URL
-    const dbConfig = process.env.PGHOST ? {
-      host: process.env.PGHOST,
-      port: process.env.PGPORT || 5432,
-      database: process.env.PGDATABASE,
-      user: process.env.PGUSER,
-      password: process.env.PGPASSWORD,
-      ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false
-    } : {
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    };
-
-    this.client = new Client(dbConfig);
+    this.client = new Client({
+      connectionString: process.env.DATABASE_URL
+    });
   }
 
   async connect() {
@@ -59,7 +48,8 @@ class AdminUserCreator {
   }
 
   async hashPassword(password) {
-    return await argon2.hash(password);
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
   }
 
   async createAdminUser(userData) {
@@ -241,124 +231,6 @@ class AdminUserCreator {
 
     } catch (error) {
       console.error(`${colors.red}❌ Failed to list admin users:${colors.reset}`, error.message);
-      throw error;
-    }
-  }
-
-  async updateExistingUser(identifier, updates) {
-    try {
-      console.log(`${colors.blue}🔄 Updating user: ${identifier}${colors.reset}`);
-
-      // First, find the user
-      const findQuery = `
-        SELECT id, username, email, first_name, last_name, role, is_active
-        FROM users 
-        WHERE username = $1 OR email = $1 OR id::text = $1
-      `;
-      
-      const findResult = await this.client.query(findQuery, [identifier]);
-      
-      if (findResult.rows.length === 0) {
-        console.log(`${colors.red}❌ User not found: ${identifier}${colors.reset}`);
-        return false;
-      }
-
-      const user = findResult.rows[0];
-      console.log(`${colors.green}✅ Found user: ${user.username} (${user.email})${colors.reset}`);
-
-      // Build update query dynamically
-      const updateFields = [];
-      const updateValues = [];
-      let paramCount = 1;
-
-      if (updates.username) {
-        updateFields.push(`username = $${paramCount}`);
-        updateValues.push(updates.username);
-        paramCount++;
-      }
-
-      if (updates.email) {
-        updateFields.push(`email = $${paramCount}`);
-        updateValues.push(updates.email);
-        paramCount++;
-      }
-
-      if (updates.firstName) {
-        updateFields.push(`first_name = $${paramCount}`);
-        updateValues.push(updates.firstName);
-        paramCount++;
-      }
-
-      if (updates.lastName) {
-        updateFields.push(`last_name = $${paramCount}`);
-        updateValues.push(updates.lastName);
-        paramCount++;
-      }
-
-      if (updates.role) {
-        updateFields.push(`role = $${paramCount}`);
-        updateValues.push(updates.role);
-        paramCount++;
-      }
-
-      if (updates.password) {
-        const hashedPassword = await argon2.hash(updates.password);
-        updateFields.push(`password_hash = $${paramCount}`);
-        updateValues.push(hashedPassword);
-        paramCount++;
-      }
-
-      if (updateFields.length === 0) {
-        console.log(`${colors.yellow}⚠️  No updates provided${colors.reset}`);
-        return false;
-      }
-
-      // Add updated_at timestamp
-      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-      
-      // Add user ID as the last parameter
-      updateValues.push(user.id);
-
-      const updateQuery = `
-        UPDATE users 
-        SET ${updateFields.join(', ')}
-        WHERE id = $${paramCount}
-        RETURNING id, username, email, first_name, last_name, role, updated_at
-      `;
-
-      const result = await this.client.query(updateQuery, updateValues);
-      const updatedUser = result.rows[0];
-
-      console.log('');
-      console.log(`${colors.green}${colors.bright}✅ User Updated Successfully!${colors.reset}`);
-      console.log('');
-      console.log(`${colors.bright}Updated Information:${colors.reset}`);
-      console.log(`   Username: ${updatedUser.username}`);
-      console.log(`   Email: ${updatedUser.email}`);
-      console.log(`   Name: ${updatedUser.first_name} ${updatedUser.last_name}`);
-      console.log(`   Role: ${updatedUser.role}`);
-      console.log(`   Updated: ${new Date(updatedUser.updated_at).toLocaleString()}`);
-      console.log('');
-
-      if (updates.password) {
-        console.log(`${colors.yellow}🔑 Password has been updated${colors.reset}`);
-        console.log('');
-      }
-
-      return updatedUser;
-
-    } catch (error) {
-      if (error.code === '23505') { // Unique constraint violation
-        if (error.constraint?.includes('username')) {
-          console.error(`${colors.red}❌ Username '${updates.username}' already exists${colors.reset}`);
-        } else if (error.constraint?.includes('email')) {
-          console.error(`${colors.red}❌ Email '${updates.email}' already exists${colors.reset}`);
-        } else {
-          console.error(`${colors.red}❌ Duplicate value error${colors.reset}`);
-        }
-      } else {
-        console.error(`${colors.red}❌ Failed to update user:${colors.reset}`, error.message);
-      }
       throw error;
     }
   }
@@ -557,7 +429,6 @@ async function main() {
         }
 
         const updates = {};
-        
         const passwordIndex = args.indexOf('--password');
         if (passwordIndex !== -1) {
           updates.password = args[passwordIndex + 1];
@@ -566,26 +437,6 @@ async function main() {
         const roleIndex = args.indexOf('--role');
         if (roleIndex !== -1) {
           updates.role = args[roleIndex + 1];
-        }
-
-        const usernameIndex = args.indexOf('--username');
-        if (usernameIndex !== -1) {
-          updates.username = args[usernameIndex + 1];
-        }
-
-        const emailIndex = args.indexOf('--email');
-        if (emailIndex !== -1) {
-          updates.email = args[emailIndex + 1];
-        }
-
-        const firstNameIndex = args.indexOf('--first-name');
-        if (firstNameIndex !== -1) {
-          updates.firstName = args[firstNameIndex + 1];
-        }
-
-        const lastNameIndex = args.indexOf('--last-name');
-        if (lastNameIndex !== -1) {
-          updates.lastName = args[lastNameIndex + 1];
         }
 
         await creator.updateExistingUser(identifier, updates);

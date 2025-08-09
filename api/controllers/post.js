@@ -1,6 +1,5 @@
 import { getDbPool } from "../db.js";
 import jwt from "jsonwebtoken";
-import { requireAuth } from "../utils/auth.js";
 
 export const getPosts = async (req, res) => {
   const pool = getDbPool();
@@ -58,122 +57,81 @@ export const getPost = async (req, res) => {
   }
 };
 
-export const addPost = (req, res) => {
-  return requireAuth(req, res, async () => {
-    const pool = getDbPool();
+export const addPost = async (req, res) => {
+  const pool = getDbPool();
+  const token = req.cookies.access_token;
+  if (!token) {
+    return res.status(401).json("Not authenticated!");
+  }
+  
+  try {
+    const userInfo = jwt.verify(token, "jwtkey");
+    const q =
+      "INSERT INTO posts(title, postcont, img, cat, postdate, userid) VALUES ($1, $2, $3, $4, $5, $6)";
+    const values = [
+      req.body.title,
+      req.body.desc,
+      req.body.img,
+      req.body.cat,
+      req.body.date,
+      userInfo.id,
+    ];
     
-    try {
-      // Use PostgreSQL schema column names
-      const title = req.body.title;
-      const content = req.body.desc || req.body.content; // Support both legacy and new field names
-      const featured_image = req.body.img;
-      const category_id = req.body.cat || req.body.category_id;
-      const published_at = req.body.date ? new Date(req.body.date) : new Date();
-      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      
-      const q = `
-        INSERT INTO posts (title, slug, content, featured_image, category_id, author_id, published_at, status) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
-      `;
-      const values = [
-        title,
-        slug,
-        content,
-        featured_image,
-        category_id,
-        req.user.id, // user is attached by requireAuth middleware
-        published_at,
-        'published' // Set status as published for web interface posts
-      ];
-      
-      const result = await pool.query(q, values);
-      return res.json({
-        message: "Post has been created.",
-        postId: result.rows[0].id,
-        slug: slug
-      });
-    } catch (err) {
-      console.error('Database error in addPost:', err);
-      return res.status(500).json({ error: 'Failed to create post' });
+    await pool.query(q, values);
+    return res.json("Post has been created.");
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json("Token is not valid!");
     }
-  });
+    console.error('Database error in addPost:', err);
+    return res.status(500).json({ error: 'Failed to create post' });
+  }
 };
 
-export const deletePost = (req, res) => {
-  return requireAuth(req, res, async () => {
-    const pool = getDbPool();
+export const deletePost = async (req, res) => {
+  const pool = getDbPool();
+  const token = req.cookies.access_token;
+  if (!token) {
+    return res.status(401).json("Not authenticated!");
+  }
+  
+  try {
+    const userInfo = jwt.verify(token, "jwtkey");
+    const postId = req.params.id;
+    const q = "DELETE FROM posts WHERE id = $1 AND uid = $2";
     
-    try {
-      const postId = req.params.id;
-      
-      // First check if post exists and get its author
-      const checkPostQuery = "SELECT author_id FROM posts WHERE id = $1";
-      const postResult = await pool.query(checkPostQuery, [postId]);
-      
-      if (postResult.rows.length === 0) {
-        return res.status(404).json("Post not found!");
-      }
-      
-      // Allow deletion if user is the author OR if user is an admin
-      if (postResult.rows[0].author_id !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json("You can only delete your own posts!");
-      }
-      
-      // Use PostgreSQL schema column names
-      const q = "DELETE FROM posts WHERE id = $1";
-      const result = await pool.query(q, [postId]);
-      
-      return res.json("Post has been deleted!");
-    } catch (err) {
-      console.error('Database error in deletePost:', err);
-      return res.status(500).json({ error: 'Failed to delete post' });
+    await pool.query(q, [postId, userInfo.id]);
+    return res.json("Post has been deleted!");
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json("Token is not valid!");
     }
-  });
+    console.error('Database error in deletePost:', err);
+    return res.status(403).json("You can delete only your post!");
+  }
 };
 
-export const updatePost = (req, res) => {
-  return requireAuth(req, res, async () => {
-    const pool = getDbPool();
+export const updatePost = async (req, res) => {
+  const pool = getDbPool();
+  const token = req.cookies.access_token;
+  if (!token) {
+    return res.status(401).json("Not authenticated!");
+  }
+  
+  try {
+    const userInfo = jwt.verify(token, "jwtkey");
+    const postId = req.params.id;
+    const q =
+      "UPDATE posts SET title=$1, desc=$2, img=$3, cat=$4 WHERE id = $5 AND uid = $6";
+    const values = [req.body.title, req.body.desc, req.body.img, req.body.cat, postId, userInfo.id];
     
-    try {
-      const postId = req.params.id;
-      
-      // First check if post exists and get its author
-      const checkPostQuery = "SELECT author_id FROM posts WHERE id = $1";
-      const postResult = await pool.query(checkPostQuery, [postId]);
-      
-      if (postResult.rows.length === 0) {
-        return res.status(404).json("Post not found!");
-      }
-      
-      // Allow update if user is the author OR if user is an admin
-      if (postResult.rows[0].author_id !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json("You can only update your own posts!");
-      }
-      
-      // Use PostgreSQL schema column names
-      const title = req.body.title;
-      const content = req.body.desc || req.body.content; // Support both legacy and new field names
-      const featured_image = req.body.img;
-      const category_id = req.body.cat || req.body.category_id;
-      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      
-      const q = `
-        UPDATE posts 
-        SET title = $1, content = $2, featured_image = $3, category_id = $4, slug = $5, updated_at = CURRENT_TIMESTAMP 
-        WHERE id = $6
-      `;
-      const values = [title, content, featured_image, category_id, slug, postId];
-      
-      const result = await pool.query(q, values);
-      
-      return res.json({
-        message: "Post has been updated.",
-        slug: slug
-      });
-    } catch (err) {
-      console.error('Database error in updatePost:', err);
-      return res.status(500).json({ error: 'Failed to update post' });
+    await pool.query(q, values);
+    return res.json("Post has been updated.");
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json("Token is not valid!");
     }
-  });
+    console.error('Database error in updatePost:', err);
+    return res.status(500).json({ error: 'Failed to update post' });
+  }
 };

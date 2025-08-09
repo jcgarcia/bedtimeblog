@@ -2,15 +2,13 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Search from "../search/Search";
 import { useSocialLinks } from "../../hooks/useSocialLinks";
-import { useUser } from "../../contexts/UserContext";
 import "./topbar.css"
 
 export default function TopBar() {
-  const { user, logout } = useUser();
+  const user = false;
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [loginMenuOpen, setLoginMenuOpen] = useState(false);
   const { socialLinks, loading } = useSocialLinks();
 
   const toggleMenu = () => {
@@ -25,15 +23,6 @@ export default function TopBar() {
     setSearchOpen(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    setMenuOpen(false);
-  };
-
-  const toggleLoginMenu = () => {
-    setLoginMenuOpen(!loginMenuOpen);
-  };
-
   // Check if we're on mobile and handle responsive behavior
   useEffect(() => {
     const checkMobile = () => {
@@ -46,7 +35,6 @@ export default function TopBar() {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.top')) {
         setMenuOpen(false);
-        setLoginMenuOpen(false);
       }
     };
 
@@ -68,45 +56,37 @@ export default function TopBar() {
       <li className="topListItem"><Link className="link" to="/" onClick={() => setMenuOpen(false)} > Home </Link></li>
       <li className="topListItem"><Link className="link" to="/about" onClick={() => setMenuOpen(false)} > About </Link></li>
       <li className="topListItem"><Link className="link" to="/contact" onClick={() => setMenuOpen(false)} > Contact </Link></li>
-      {!user && (
-        <li className="topListItem"><Link className="link" to="/userlogin" onClick={() => setMenuOpen(false)} > Write </Link></li>
-      )}
-      {user && (
-        <li className="topListItem"><Link className="link" to="/write" onClick={() => setMenuOpen(false)} > Write </Link></li>
-      )}
       <li className="topListItem"><Link className="link" to="/ops" onClick={() => setMenuOpen(false)} > Ops </Link></li>
-      {user && (
-        <li className="topListItem">
-          <span className="link logoutButton" onClick={handleLogout}>Logout</span>
-        </li>
-      )}
+      <li className="topListItem"> { user &&  "Logout" } </li>
     </ul>
   );
 
   return (
     <div className='top'>
-    <div className="topLeft">
-      {!loading && socialLinks.facebook && (
-        <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-          <i className="topIcon fa-brands fa-square-facebook"></i>
-        </a>
-      )}
-      {!loading && socialLinks.twitter && (
-        <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer">
-          <i className="topIcon fa-brands fa-square-x-twitter"></i>
-        </a>
-      )}
-      {!loading && socialLinks.instagram && (
-        <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
-          <i className="topIcon fa-brands fa-square-instagram"></i>
-        </a>
-      )}
-      {!loading && socialLinks.threads && (
-        <a href={socialLinks.threads} target="_blank" rel="noopener noreferrer">
-          <i className="topIcon fa-brands fa-square-threads"></i>
-        </a>
-      )}
-    </div>      {/* Desktop menu - only render on desktop */}
+      <div className="topLeft">
+        {!loading && socialLinks.facebook && (
+          <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-facebook"></i>
+          </a>
+        )}
+        {!loading && socialLinks.twitter && (
+          <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-x-twitter"></i>
+          </a>
+        )}
+        {!loading && socialLinks.instagram && (
+          <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-instagram"></i>
+          </a>
+        )}
+        {!loading && socialLinks.threads && (
+          <a href={socialLinks.threads} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-square-threads"></i>
+          </a>
+        )}
+      </div>
+      
+      {/* Desktop menu - only render on desktop */}
       {!isMobile && (
         <div className="topCenter">
           <MenuItems />
@@ -116,65 +96,15 @@ export default function TopBar() {
       <div className="topRight">
         {
           user ? (
-            <div className="userInfo">
-              <div className="avatarContainer">
-                {user.avatar ? (
-                  <img 
-                    className="topImg"
-                    src={user.avatar}
-                    alt={user.name || user.username || 'User'}
-                    title={user.name || user.username || 'User'}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextElementSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <div 
-                  className={`defaultAvatar ${!user.avatar ? 'show' : ''}`}
-                  title={user.name || user.username || 'User'}
-                >
-                  {(user.name || user.first_name || user.username || 'U').charAt(0).toUpperCase()}
-                </div>
-              </div>
-              <span className="userName">
-                {user.name || 
-                 (user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username) ||
-                 'User'}
-              </span>
-            </div>
+            <img 
+            className="topImg"
+            src="https://lh3.googleusercontent.com/a/ACg8ocKyzBlZ6G6WI8BZQpstO_hcA3hhfSuyesOerch4wMn0ISfAXY8v=s96-c"
+            alt="Julio Cesar Garcia"
+            />          
           ) : (
-            <div className="loginMenu">
-              <div className="loginIcon" onClick={toggleLoginMenu}>
-                <i className="fa-solid fa-right-to-bracket"></i>
-                <i className="fa-solid fa-chevron-down"></i>
-              </div>
-              {loginMenuOpen && (
-                <div className="loginDropdown">
-                  <Link className="loginOption" to="/userlogin" onClick={() => setLoginMenuOpen(false)}>
-                    <i className="fa-solid fa-pen"></i>
-                    <div>
-                      <strong>Writer Login</strong>
-                      <span>Create & edit posts</span>
-                    </div>
-                  </Link>
-                  <Link className="loginOption" to="/login" onClick={() => setLoginMenuOpen(false)}>
-                    <i className="fa-solid fa-comments"></i>
-                    <div>
-                      <strong>Reader Login</strong>
-                      <span>Comment via social media</span>
-                    </div>
-                  </Link>
-                  <Link className="loginOption admin" to="/adminlogin" onClick={() => setLoginMenuOpen(false)}>
-                    <i className="fa-solid fa-shield"></i>
-                    <div>
-                      <strong>Admin Login</strong>
-                      <span>Full system access</span>
-                    </div>
-                  </Link>
-                </div>
-              )}
-            </div>
+            <Link className="link loginIcon" to="/login">
+              <i className="fa-solid fa-right-to-bracket"></i>
+            </Link>
           )
         }
 

@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "argon2": "^0.43.1",
+    "bcryptjs": "^2.4.3",
     "brace-expansion": "^4.0.1",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
@@ -22,9 +22,7 @@
     "nodemailer": "^6.9.7",
     "nodemon": "^2.0.22",
     "passport": "^0.7.0",
-    "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-twitter": "^1.0.4",
     "pg": "^8.11.3"
   }
 }
