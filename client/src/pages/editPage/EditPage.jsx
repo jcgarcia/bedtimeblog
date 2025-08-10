@@ -28,7 +28,8 @@ export default function EditPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [pageId, setPageId] = useState(null);
 
-  const editPageId = searchParams.get('edit');
+  const editPageId = searchParams.get('edit') || searchParams.get('id');
+  const editPageSlug = searchParams.get('slug');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -39,12 +40,15 @@ export default function EditPage() {
     if (editPageId) {
       setIsEditing(true);
       setPageId(editPageId);
-      loadPage(editPageId);
+      loadPageById(editPageId);
+    } else if (editPageSlug) {
+      setIsEditing(true);
+      loadPageBySlug(editPageSlug);
     }
-  }, [editPageId, isAdmin, navigate]);
+  }, [editPageId, editPageSlug, isAdmin, navigate]);
 
-  // Load page for editing
-  const loadPage = async (id) => {
+  // Load page for editing by ID
+  const loadPageById = async (id) => {
     try {
       setLoading(true);
       const response = await staticPagesAPI.getPageById(id);
@@ -71,6 +75,41 @@ export default function EditPage() {
       }
     } catch (err) {
       console.error('Error loading page:', err);
+      setError('Failed to load page for editing');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load page for editing by slug
+  const loadPageBySlug = async (slug) => {
+    try {
+      setLoading(true);
+      const response = await staticPagesAPI.getPageBySlug(slug);
+      
+      console.log('Load page by slug response:', response); // Debug log
+      
+      if (response.success && response.data) {
+        const page = response.data;
+        console.log('Setting page data from slug:', page); // Debug log
+        setPageId(page.id); // Set the page ID for updating
+        setFormData({
+          slug: page.slug || '',
+          title: page.title || '',
+          meta_title: page.meta_title || '',
+          meta_description: page.meta_description || '',
+          content: page.content || '',
+          content_type: page.content_type || 'html',
+          status: page.status || 'active',
+          template: page.template || 'default',
+          show_in_menu: page.show_in_menu || false,
+          menu_order: page.menu_order || 0
+        });
+      } else {
+        setError('Failed to load page for editing');
+      }
+    } catch (err) {
+      console.error('Error loading page by slug:', err);
       setError('Failed to load page for editing');
     } finally {
       setLoading(false);
