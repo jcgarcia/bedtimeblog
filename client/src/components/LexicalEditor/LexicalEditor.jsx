@@ -188,15 +188,30 @@ function SetInitialContentPlugin({ content }) {
     console.log('SetInitialContentPlugin - content received:', content); // Debug log
     if (content && content.trim()) {
       editor.update(() => {
-        const root = $getRoot();
-        root.clear();
-        
-        // Create a paragraph node and add the text content
-        const paragraphNode = $createParagraphNode();
-        const textNode = $createTextNode(content);
-        paragraphNode.append(textNode);
-        root.append(paragraphNode);
-        console.log('Content set in editor'); // Debug log
+        try {
+          // Try to parse as JSON first (Lexical format)
+          const parsedContent = JSON.parse(content);
+          if (parsedContent && parsedContent.root) {
+            // This is Lexical JSON format, set the editor state
+            const editorState = editor.parseEditorState(content);
+            editor.setEditorState(editorState);
+            console.log('Lexical JSON content loaded successfully'); // Debug log
+          } else {
+            throw new Error('Not valid Lexical JSON');
+          }
+        } catch (error) {
+          // If JSON parsing fails, treat as plain text
+          console.log('Content is not Lexical JSON, treating as plain text:', error.message);
+          const root = $getRoot();
+          root.clear();
+          
+          // Create a paragraph node and add the text content
+          const paragraphNode = $createParagraphNode();
+          const textNode = $createTextNode(content);
+          paragraphNode.append(textNode);
+          root.append(paragraphNode);
+          console.log('Plain text content set in editor'); // Debug log
+        }
       });
     }
   }, [content, editor]);
