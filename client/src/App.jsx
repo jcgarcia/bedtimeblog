@@ -13,7 +13,7 @@ import Register from "./pages/register/Register";
 import Home from "./pages/home/Home";
 import About from "./pages/about/About";
 import Contact from "./pages/contact/Contact";
-import Privacy from "./pages/privacy/Privacy";
+import DynamicPage from "./components/DynamicPage/DynamicPage";
 import Terms from "./pages/terms/Terms";
 import AdminLogin from "./pages/adminlogin/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
@@ -31,10 +31,10 @@ function App() {
             <Routes>
               <Route exact path="/" element={<Home />} />
               <Route path="/category/:categoryName" element={<Home />} />
-              <Route path="/about" element={<About />} />
+              <Route path="/about" element={<DynamicPage />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<DynamicPage />} />
+              <Route path="/terms" element={<DynamicPage />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/userlogin" element={<UserLogin />} />
@@ -52,6 +52,8 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/post/:postId" element={<Single />} />
               <Route path="/adminlogin" element={<AdminLogin />} />
+              {/* Static pages route - should be last to avoid conflicts */}
+              <Route path="/page/:slug" element={<DynamicPage />} />
             </Routes>
             <Footer />
           </Router>
