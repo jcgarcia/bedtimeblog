@@ -110,7 +110,7 @@ export const getPageById = async (req, res) => {
 export const createPage = async (req, res) => {
   try {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
-    const userId = req.user.id;
+    const userId = req.adminUser.id;
 
     const pool = getDbPool();
     const result = await pool.query(
@@ -141,7 +141,7 @@ export const updatePage = async (req, res) => {
   try {
     const { id } = req.params;
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
-    const userId = req.user.id;
+    const userId = req.adminUser.id;
 
     const pool = getDbPool();
     const result = await pool.query(
