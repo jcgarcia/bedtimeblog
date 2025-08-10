@@ -13,8 +13,8 @@ const apiClient = axios.create({
 // Request interceptor for adding auth tokens if needed
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('authToken');
+    // Add auth token if available (check both authToken and adminToken)
+    const token = localStorage.getItem('authToken') || localStorage.getItem('adminToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -33,8 +33,9 @@ apiClient.interceptors.response.use(
   (error) => {
     // Handle common errors
     if (error.response?.status === 401) {
-      // Clear auth token on unauthorized
+      // Clear auth tokens on unauthorized
       localStorage.removeItem('authToken');
+      localStorage.removeItem('adminToken');
       // Optionally redirect to login
     }
     return Promise.reject(error);
@@ -225,15 +226,22 @@ export const staticPagesAPI = {
   getAllPages: async () => {
     try {
       const response = await apiClient.get('/api/pages');
-      return {
-        success: true,
-        data: response.data || []
-      };
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.pages || []
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || 'Failed to fetch pages'
+        };
+      }
     } catch (error) {
       console.error('Error fetching all pages:', error);
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to fetch pages'
+        error: error.response?.data?.message || 'Failed to fetch pages'
       };
     }
   },
@@ -242,15 +250,22 @@ export const staticPagesAPI = {
   getMenuPages: async () => {
     try {
       const response = await apiClient.get('/api/pages/menu');
-      return {
-        success: true,
-        data: response.data || []
-      };
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.pages || []
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || 'Failed to fetch menu pages'
+        };
+      }
     } catch (error) {
       console.error('Error fetching menu pages:', error);
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to fetch menu pages'
+        error: error.response?.data?.message || 'Failed to fetch menu pages'
       };
     }
   },
@@ -259,15 +274,22 @@ export const staticPagesAPI = {
   getPageBySlug: async (slug) => {
     try {
       const response = await apiClient.get(`/api/pages/slug/${slug}`);
-      return {
-        success: true,
-        data: response.data || null
-      };
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.page || null
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || 'Failed to fetch page'
+        };
+      }
     } catch (error) {
       console.error(`Error fetching page ${slug}:`, error);
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to fetch page'
+        error: error.response?.data?.message || 'Failed to fetch page'
       };
     }
   },
@@ -276,15 +298,22 @@ export const staticPagesAPI = {
   getPageById: async (id) => {
     try {
       const response = await apiClient.get(`/api/pages/${id}`);
-      return {
-        success: true,
-        data: response.data || null
-      };
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.page || null
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || 'Failed to fetch page'
+        };
+      }
     } catch (error) {
       console.error(`Error fetching page ${id}:`, error);
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to fetch page'
+        error: error.response?.data?.message || 'Failed to fetch page'
       };
     }
   },
