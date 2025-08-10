@@ -1,8 +1,9 @@
-import { pool } from '../db.js';
+import { getDbPool } from '../db.js';
 
 // Get all static pages (for admin)
 export const getAllPages = async (req, res) => {
   try {
+    const pool = getDbPool();
     const result = await pool.query(
       'SELECT id, slug, title, meta_title, meta_description, excerpt, is_published, show_in_menu, menu_order, created_at, updated_at FROM static_pages ORDER BY menu_order ASC, title ASC'
     );
@@ -24,6 +25,7 @@ export const getAllPages = async (req, res) => {
 // Get active pages for menu
 export const getMenuPages = async (req, res) => {
   try {
+    const pool = getDbPool();
     const result = await pool.query(
       'SELECT slug, title FROM static_pages WHERE is_published = true AND show_in_menu = true ORDER BY menu_order ASC'
     );
@@ -46,6 +48,7 @@ export const getMenuPages = async (req, res) => {
 export const getPageBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
+    const pool = getDbPool();
     const result = await pool.query(
       'SELECT * FROM static_pages WHERE slug = $1 AND is_published = true',
       [slug]
@@ -76,6 +79,7 @@ export const getPageBySlug = async (req, res) => {
 export const getPageById = async (req, res) => {
   try {
     const { id } = req.params;
+    const pool = getDbPool();
     const result = await pool.query(
       'SELECT * FROM static_pages WHERE id = $1',
       [id]
@@ -108,6 +112,7 @@ export const createPage = async (req, res) => {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.user.id;
 
+    const pool = getDbPool();
     const result = await pool.query(
       `INSERT INTO static_pages 
        (slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order, created_by, updated_by) 
@@ -138,6 +143,7 @@ export const updatePage = async (req, res) => {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.user.id;
 
+    const pool = getDbPool();
     const result = await pool.query(
       `UPDATE static_pages 
        SET slug = $1, title = $2, meta_title = $3, meta_description = $4, content = $5, 
@@ -174,6 +180,7 @@ export const deletePage = async (req, res) => {
   try {
     const { id } = req.params;
     
+    const pool = getDbPool();
     const result = await pool.query(
       'DELETE FROM static_pages WHERE id = $1 RETURNING *',
       [id]
