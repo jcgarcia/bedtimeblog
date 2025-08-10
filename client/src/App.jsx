@@ -4,6 +4,7 @@ import TopBar from "./components/topbar/TopBar";
 import Footer from "./components/footer/Footer";
 import ScrollToTop from "./components/ScrollToTop/ScrollToTop";
 import Write from "./pages/write/Write";
+import EditPage from "./pages/editPage/EditPage";
 import Ops from "./pages/ops/Ops";
 import Settings from "./pages/settings/Settings";
 import Login from "./pages/login/Login";
@@ -38,6 +39,11 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/userlogin" element={<UserLogin />} />
               <Route path="/write" element={<Write />} />
+              <Route path="/edit-page" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <EditPage />
+                </ProtectedRoute>
+              } />
               <Route path="/ops" element={
                 <ProtectedRoute requireAdmin={true}>
                   <Ops />

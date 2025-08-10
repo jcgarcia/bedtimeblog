@@ -219,5 +219,127 @@ export const healthAPI = {
   },
 };
 
+// Static Pages API
+export const staticPagesAPI = {
+  // Get all pages (admin)
+  getAllPages: async () => {
+    try {
+      const response = await apiClient.get('/api/pages');
+      return {
+        success: true,
+        data: response.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching all pages:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch pages'
+      };
+    }
+  },
+
+  // Get pages for menu
+  getMenuPages: async () => {
+    try {
+      const response = await apiClient.get('/api/pages/menu');
+      return {
+        success: true,
+        data: response.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching menu pages:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch menu pages'
+      };
+    }
+  },
+
+  // Get page by slug (public)
+  getPageBySlug: async (slug) => {
+    try {
+      const response = await apiClient.get(`/api/pages/slug/${slug}`);
+      return {
+        success: true,
+        data: response.data || null
+      };
+    } catch (error) {
+      console.error(`Error fetching page ${slug}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch page'
+      };
+    }
+  },
+
+  // Get page by ID (admin)
+  getPageById: async (id) => {
+    try {
+      const response = await apiClient.get(`/api/pages/${id}`);
+      return {
+        success: true,
+        data: response.data || null
+      };
+    } catch (error) {
+      console.error(`Error fetching page ${id}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to fetch page'
+      };
+    }
+  },
+
+  // Create new page
+  createPage: async (pageData) => {
+    try {
+      const response = await apiClient.post('/api/pages', pageData);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error creating page:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to create page'
+      };
+    }
+  },
+
+  // Update page
+  updatePage: async (id, pageData) => {
+    try {
+      const response = await apiClient.put(`/api/pages/${id}`, pageData);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error(`Error updating page ${id}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to update page'
+      };
+    }
+  },
+
+  // Delete page
+  deletePage: async (id) => {
+    try {
+      const response = await apiClient.delete(`/api/pages/${id}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error(`Error deleting page ${id}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to delete page'
+      };
+    }
+  },
+};
+
 // Export axios instance for custom requests
 export { apiClient };
