@@ -31,7 +31,7 @@ function App() {
             <Routes>
               <Route exact path="/" element={<Home />} />
               <Route path="/category/:categoryName" element={<Home />} />
-              <Route path="/about" element={<DynamicPage />} />
+              <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<DynamicPage />} />
               <Route path="/terms" element={<DynamicPage />} />
