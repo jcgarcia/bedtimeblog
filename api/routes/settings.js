@@ -3,8 +3,11 @@ import {
   getSettings,
   updateSettings,
   getSocialMediaLinks,
-  updateSocialMediaLinks
+  updateSocialMediaLinks,
+  getOAuthSettings,
+  updateOAuthSettings
 } from "../controllers/settings.js";
+import { requireAdminAuth } from "../middleware/systemConfig.js";
 
 const router = express.Router();
 
@@ -19,5 +22,11 @@ router.get("/social", getSocialMediaLinks);
 
 // Update social media links (admin only)
 router.put("/social", updateSocialMediaLinks);
+
+// Get OAuth configuration (admin only)
+router.get("/oauth", requireAdminAuth, getOAuthSettings);
+
+// Update OAuth configuration (admin only) 
+router.put("/oauth", requireAdminAuth, updateOAuthSettings);
 
 export default router;

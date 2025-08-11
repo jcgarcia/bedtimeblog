@@ -197,3 +197,140 @@ export const updateSocialMediaLinks = async (req, res) => {
     res.status(500).json({ message: "Error updating social media links" });
   }
 };
+
+// Get OAuth configuration (admin only)
+export const getOAuthSettings = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE group_name = 'oauth' ORDER BY key"
+    );
+    
+    const oauthConfig = {
+      google: {
+        enabled: false,
+        clientId: '',
+        clientSecret: '',
+        redirectUri: ''
+      },
+      facebook: {
+        enabled: false,
+        appId: '',
+        appSecret: '',
+        redirectUri: ''
+      },
+      twitter: {
+        enabled: false,
+        consumerKey: '',
+        consumerSecret: '',
+        callbackUrl: ''
+      }
+    };
+    
+    // Map database values to structure
+    result.rows.forEach(row => {
+      switch (row.key) {
+        case 'oauth_google_client_id':
+          oauthConfig.google.clientId = row.value || '';
+          oauthConfig.google.enabled = !!(row.value && row.value.trim());
+          break;
+        case 'oauth_google_client_secret':
+          oauthConfig.google.clientSecret = row.value || '';
+          break;
+        case 'oauth_facebook_app_id':
+          oauthConfig.facebook.appId = row.value || '';
+          oauthConfig.facebook.enabled = !!(row.value && row.value.trim());
+          break;
+        case 'oauth_facebook_app_secret':
+          oauthConfig.facebook.appSecret = row.value || '';
+          break;
+        case 'oauth_twitter_consumer_key':
+          oauthConfig.twitter.consumerKey = row.value || '';
+          oauthConfig.twitter.enabled = !!(row.value && row.value.trim());
+          break;
+        case 'oauth_twitter_consumer_secret':
+          oauthConfig.twitter.consumerSecret = row.value || '';
+          break;
+        case 'oauth_frontend_url':
+          // Set redirect URIs based on frontend URL
+          const baseUrl = row.value || 'https://blog.ingasti.com';
+          oauthConfig.google.redirectUri = `${baseUrl}/auth/google/callback`;
+          oauthConfig.facebook.redirectUri = `${baseUrl}/auth/facebook/callback`;
+          oauthConfig.twitter.callbackUrl = `${baseUrl}/auth/twitter/callback`;
+          break;
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      config: oauthConfig
+    });
+  } catch (error) {
+    console.error("Error fetching OAuth settings:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching OAuth configuration" 
+    });
+  }
+};
+
+// Update OAuth configuration (admin only)
+export const updateOAuthSettings = async (req, res) => {
+  try {
+    const { google, facebook, twitter } = req.body;
+    
+    if (!google && !facebook && !twitter) {
+      return res.status(400).json({
+        success: false,
+        message: 'No OAuth configuration provided'
+      });
+    }
+    
+    const updates = [];
+    
+    // Process Google config
+    if (google) {
+      updates.push(
+        { key: 'oauth_google_client_id', value: google.clientId || '' },
+        { key: 'oauth_google_client_secret', value: google.clientSecret || '' }
+      );
+    }
+    
+    // Process Facebook config
+    if (facebook) {
+      updates.push(
+        { key: 'oauth_facebook_app_id', value: facebook.appId || '' },
+        { key: 'oauth_facebook_app_secret', value: facebook.appSecret || '' }
+      );
+    }
+    
+    // Process Twitter config
+    if (twitter) {
+      updates.push(
+        { key: 'oauth_twitter_consumer_key', value: twitter.consumerKey || '' },
+        { key: 'oauth_twitter_consumer_secret', value: twitter.consumerSecret || '' }
+      );
+    }
+    
+    // Update database
+    for (const update of updates) {
+      await pool.query(
+        `UPDATE settings SET 
+           value = $1, 
+           updated_at = CURRENT_TIMESTAMP
+         WHERE key = $2`,
+        [update.value, update.key]
+      );
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: "OAuth configuration updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating OAuth settings:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error updating OAuth configuration" 
+    });
+  }
+};

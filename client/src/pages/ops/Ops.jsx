@@ -1182,6 +1182,8 @@ function SiteSettings() {
           </label>
         </div>
       </div>
+
+      <OAuthSettings />
     </div>
   );
 }
@@ -1420,6 +1422,378 @@ function PageManagement() {
           <li><strong>SEO Settings</strong> - Configure meta titles and descriptions for better search visibility</li>
         </ul>
         <p><em>Note: Changes to pages take effect immediately after saving.</em></p>
+      </div>
+    </div>
+  );
+}
+
+// OAuth Settings Component
+function OAuthSettings() {
+  const [oauthConfig, setOauthConfig] = useState({
+    google: {
+      enabled: false,
+      clientId: '',
+      clientSecret: '',
+      redirectUri: ''
+    },
+    facebook: {
+      enabled: false,
+      appId: '',
+      appSecret: '',
+      redirectUri: ''
+    },
+    twitter: {
+      enabled: false,
+      consumerKey: '',
+      consumerSecret: '',
+      callbackUrl: ''
+    }
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showSecrets, setShowSecrets] = useState({
+    google: false,
+    facebook: false,
+    twitter: false
+  });
+
+  useEffect(() => {
+    loadOAuthConfig();
+  }, []);
+
+  const loadOAuthConfig = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/settings/oauth', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setOauthConfig(prev => ({
+            ...prev,
+            ...data.config
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading OAuth config:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProviderChange = (provider, field, value) => {
+    setOauthConfig(prev => ({
+      ...prev,
+      [provider]: {
+        ...prev[provider],
+        [field]: value
+      }
+    }));
+  };
+
+  const toggleSecretVisibility = (provider) => {
+    setShowSecrets(prev => ({
+      ...prev,
+      [provider]: !prev[provider]
+    }));
+  };
+
+  const saveOAuthConfig = async () => {
+    try {
+      setLoading(true);
+      setMessage('');
+      
+      const response = await fetch('/api/settings/oauth', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(oauthConfig)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setMessage('OAuth configuration saved successfully!');
+          setTimeout(() => setMessage(''), 3000);
+        } else {
+          setMessage('Error saving OAuth configuration: ' + result.message);
+        }
+      } else {
+        setMessage('Error saving OAuth configuration. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving OAuth config:', error);
+      setMessage('Error saving OAuth configuration. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const maskSecret = (secret) => {
+    if (!secret || secret.length <= 4) return secret;
+    return '*'.repeat(secret.length - 4) + secret.slice(-4);
+  };
+
+  return (
+    <div className="settings-section oauth-settings">
+      <div className="section-header">
+        <h3>OAuth Authentication Settings</h3>
+        <p className="section-description">
+          Configure social media authentication for user login and commenting. 
+          Users will be able to sign in using their social media accounts.
+        </p>
+      </div>
+
+      {message && (
+        <div className={`settings-message ${message.includes('Error') ? 'error' : 'success'}`}>
+          {message}
+        </div>
+      )}
+
+      {/* Google OAuth */}
+      <div className="oauth-provider">
+        <div className="provider-header">
+          <div className="provider-info">
+            <i className="fa-brands fa-google oauth-icon google"></i>
+            <div>
+              <h4>Google OAuth</h4>
+              <p>Allow users to sign in with their Google accounts</p>
+            </div>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={oauthConfig.google.enabled}
+              onChange={(e) => handleProviderChange('google', 'enabled', e.target.checked)}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        {oauthConfig.google.enabled && (
+          <div className="provider-config">
+            <div className="config-group">
+              <div className="setting-item">
+                <label>Client ID</label>
+                <input
+                  type="text"
+                  value={oauthConfig.google.clientId}
+                  onChange={(e) => handleProviderChange('google', 'clientId', e.target.value)}
+                  placeholder="Your Google OAuth Client ID"
+                />
+              </div>
+              <div className="setting-item">
+                <label>Client Secret</label>
+                <div className="secret-input">
+                  <input
+                    type={showSecrets.google ? "text" : "password"}
+                    value={showSecrets.google ? oauthConfig.google.clientSecret : maskSecret(oauthConfig.google.clientSecret)}
+                    onChange={(e) => handleProviderChange('google', 'clientSecret', e.target.value)}
+                    placeholder="Your Google OAuth Client Secret"
+                  />
+                  <button
+                    type="button"
+                    className="secret-toggle"
+                    onClick={() => toggleSecretVisibility('google')}
+                  >
+                    <i className={`fa-solid ${showSecrets.google ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
+              </div>
+              <div className="setting-item">
+                <label>Redirect URI</label>
+                <input
+                  type="text"
+                  value={oauthConfig.google.redirectUri || `${window.location.origin}/auth/google/callback`}
+                  onChange={(e) => handleProviderChange('google', 'redirectUri', e.target.value)}
+                  placeholder="OAuth redirect URI"
+                />
+                <small>Add this URL to your Google OAuth app configuration</small>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Facebook OAuth */}
+      <div className="oauth-provider">
+        <div className="provider-header">
+          <div className="provider-info">
+            <i className="fa-brands fa-facebook oauth-icon facebook"></i>
+            <div>
+              <h4>Facebook OAuth</h4>
+              <p>Allow users to sign in with their Facebook accounts</p>
+            </div>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={oauthConfig.facebook.enabled}
+              onChange={(e) => handleProviderChange('facebook', 'enabled', e.target.checked)}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        {oauthConfig.facebook.enabled && (
+          <div className="provider-config">
+            <div className="config-group">
+              <div className="setting-item">
+                <label>App ID</label>
+                <input
+                  type="text"
+                  value={oauthConfig.facebook.appId}
+                  onChange={(e) => handleProviderChange('facebook', 'appId', e.target.value)}
+                  placeholder="Your Facebook App ID"
+                />
+              </div>
+              <div className="setting-item">
+                <label>App Secret</label>
+                <div className="secret-input">
+                  <input
+                    type={showSecrets.facebook ? "text" : "password"}
+                    value={showSecrets.facebook ? oauthConfig.facebook.appSecret : maskSecret(oauthConfig.facebook.appSecret)}
+                    onChange={(e) => handleProviderChange('facebook', 'appSecret', e.target.value)}
+                    placeholder="Your Facebook App Secret"
+                  />
+                  <button
+                    type="button"
+                    className="secret-toggle"
+                    onClick={() => toggleSecretVisibility('facebook')}
+                  >
+                    <i className={`fa-solid ${showSecrets.facebook ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
+              </div>
+              <div className="setting-item">
+                <label>Redirect URI</label>
+                <input
+                  type="text"
+                  value={oauthConfig.facebook.redirectUri || `${window.location.origin}/auth/facebook/callback`}
+                  onChange={(e) => handleProviderChange('facebook', 'redirectUri', e.target.value)}
+                  placeholder="OAuth redirect URI"
+                />
+                <small>Add this URL to your Facebook app configuration</small>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Twitter OAuth */}
+      <div className="oauth-provider">
+        <div className="provider-header">
+          <div className="provider-info">
+            <i className="fa-brands fa-twitter oauth-icon twitter"></i>
+            <div>
+              <h4>Twitter OAuth</h4>
+              <p>Allow users to sign in with their Twitter accounts</p>
+            </div>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={oauthConfig.twitter.enabled}
+              onChange={(e) => handleProviderChange('twitter', 'enabled', e.target.checked)}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        {oauthConfig.twitter.enabled && (
+          <div className="provider-config">
+            <div className="config-group">
+              <div className="setting-item">
+                <label>Consumer Key (API Key)</label>
+                <input
+                  type="text"
+                  value={oauthConfig.twitter.consumerKey}
+                  onChange={(e) => handleProviderChange('twitter', 'consumerKey', e.target.value)}
+                  placeholder="Your Twitter Consumer Key"
+                />
+              </div>
+              <div className="setting-item">
+                <label>Consumer Secret (API Secret)</label>
+                <div className="secret-input">
+                  <input
+                    type={showSecrets.twitter ? "text" : "password"}
+                    value={showSecrets.twitter ? oauthConfig.twitter.consumerSecret : maskSecret(oauthConfig.twitter.consumerSecret)}
+                    onChange={(e) => handleProviderChange('twitter', 'consumerSecret', e.target.value)}
+                    placeholder="Your Twitter Consumer Secret"
+                  />
+                  <button
+                    type="button"
+                    className="secret-toggle"
+                    onClick={() => toggleSecretVisibility('twitter')}
+                  >
+                    <i className={`fa-solid ${showSecrets.twitter ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
+              </div>
+              <div className="setting-item">
+                <label>Callback URL</label>
+                <input
+                  type="text"
+                  value={oauthConfig.twitter.callbackUrl || `${window.location.origin}/auth/twitter/callback`}
+                  onChange={(e) => handleProviderChange('twitter', 'callbackUrl', e.target.value)}
+                  placeholder="OAuth callback URL"
+                />
+                <small>Add this URL to your Twitter app configuration</small>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="oauth-actions">
+        <button
+          className="btn-primary"
+          onClick={saveOAuthConfig}
+          disabled={loading}
+        >
+          {loading ? 'Saving...' : 'Save OAuth Configuration'}
+        </button>
+      </div>
+
+      <div className="oauth-help">
+        <h4>Setup Instructions</h4>
+        <div className="help-section">
+          <h5>🔗 Google OAuth Setup:</h5>
+          <ol>
+            <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></li>
+            <li>Create a new project or select existing one</li>
+            <li>Enable Google+ API</li>
+            <li>Create OAuth 2.0 credentials</li>
+            <li>Add your redirect URI to authorized redirects</li>
+          </ol>
+        </div>
+        <div className="help-section">
+          <h5>📘 Facebook OAuth Setup:</h5>
+          <ol>
+            <li>Go to <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer">Facebook Developers</a></li>
+            <li>Create a new app</li>
+            <li>Add Facebook Login product</li>
+            <li>Configure OAuth redirect URIs</li>
+            <li>Get App ID and App Secret from app settings</li>
+          </ol>
+        </div>
+        <div className="help-section">
+          <h5>🐦 Twitter OAuth Setup:</h5>
+          <ol>
+            <li>Go to <a href="https://developer.twitter.com/" target="_blank" rel="noopener noreferrer">Twitter Developer Portal</a></li>
+            <li>Create a new app</li>
+            <li>Generate Consumer Keys</li>
+            <li>Configure callback URLs</li>
+            <li>Enable OAuth 1.0a or OAuth 2.0</li>
+          </ol>
+        </div>
       </div>
     </div>
   );
