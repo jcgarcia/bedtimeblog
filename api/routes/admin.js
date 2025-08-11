@@ -1,6 +1,5 @@
 import express from "express";
 import { adminLogin, verifyAdminToken, adminLogout, requireAdminAuth, rateLimitLogin } from "../controllers/admin.js";
-import { getOAuthConfig, updateOAuthConfig, getProviderConfig } from "../controllers/oauthConfig.js";
 
 const router = express.Router();
 
