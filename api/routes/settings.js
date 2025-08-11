@@ -7,7 +7,7 @@ import {
   getOAuthSettings,
   updateOAuthSettings
 } from "../controllers/settings.js";
-import { requireAdminAuth } from "../middleware/systemConfig.js";
+import { requireAdminAuth } from "../controllers/admin.js";
 
 const router = express.Router();
 
