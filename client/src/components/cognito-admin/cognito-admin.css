@@ -1,0 +1,51 @@
+.cognito-admin-panel {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 2rem;
+  margin: 2rem 0;
+  max-width: 500px;
+}
+.cognito-admin-panel h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #2d3748;
+}
+.cognito-admin-panel label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+.cognito-admin-panel input[type="text"] {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+.cognito-admin-panel input[type="checkbox"] {
+  margin-left: 0.5rem;
+}
+.cognito-admin-panel fieldset {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.cognito-admin-panel legend {
+  font-weight: 600;
+  color: #4a5568;
+}
+.cognito-admin-panel button {
+  background: #3182ce;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cognito-admin-panel button:hover {
+  background: #2b6cb0;
+}
