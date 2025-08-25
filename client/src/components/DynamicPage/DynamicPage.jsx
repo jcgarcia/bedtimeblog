@@ -39,18 +39,26 @@ export default function DynamicPage() {
 
   const renderContent = (content) => {
     if (!content) return '';
-    
     try {
-      // Try to parse Lexical JSON content
-      const parsedContent = JSON.parse(content);
+      const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+      // If content is an array, treat as children of root
+      if (Array.isArray(parsedContent)) {
+        return renderLexicalContent({ children: parsedContent });
+      }
+      // If content has root, use root
       if (parsedContent && parsedContent.root) {
         return renderLexicalContent(parsedContent.root);
       }
+      // If content itself looks like a root node
+      if (parsedContent && parsedContent.type === 'root' && parsedContent.children) {
+        return renderLexicalContent(parsedContent);
+      }
+      // Fallback: try to render as plain text
+      return <div dangerouslySetInnerHTML={{ __html: JSON.stringify(parsedContent) }} />;
     } catch (error) {
       // If not JSON, render as plain text
       return <div dangerouslySetInnerHTML={{ __html: content }} />;
     }
-    
     return <div dangerouslySetInnerHTML={{ __html: content }} />;
   };
 
