@@ -39,6 +39,24 @@ export default function CognitoAdminPanel({ config = defaultConfig, onSave }) {
   return (
     <div className="cognito-admin-panel">
       <h2>AWS Cognito Configuration</h2>
+      <div style={{background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '8px', padding: '16px', marginBottom: '24px'}}>
+        <h4 style={{marginTop: 0}}>How to find required values:</h4>
+        <ul style={{marginBottom: '8px'}}>
+          <li><b>User Pool ID:</b> AWS Console &rarr; Cognito &rarr; User Pools &rarr; select your pool &rarr; Pool details.<br/>
+            <a href="https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html" target="_blank" rel="noopener noreferrer">AWS Cognito User Pools Docs</a>
+          </li>
+          <li><b>App Client ID:</b> In your User Pool &rarr; App clients &rarr; copy the App client ID.<br/>
+            <a href="https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-client-apps.html" target="_blank" rel="noopener noreferrer">App Clients Docs</a>
+          </li>
+          <li><b>AWS Region:</b> Shown in the AWS Console URL and Pool details (e.g., <code>us-east-1</code>).</li>
+          <li><b>Group Mappings:</b> In User Pool &rarr; Groups, create groups named <code>Admin</code>, <code>Writer</code>, <code>Editor</code>.<br/>
+            <a href="https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pool-groups.html" target="_blank" rel="noopener noreferrer">User Pool Groups Docs</a>
+          </li>
+        </ul>
+        <div style={{fontSize: '0.95em', color: '#555'}}>
+          For a full step-by-step guide, see <b>CognitoSetupGuide.md</b> in the project root.
+        </div>
+      </div>
       <form onSubmit={handleSubmit}>
         <label>
           Enable Cognito Auth:
