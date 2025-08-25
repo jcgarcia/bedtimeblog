@@ -1,7 +1,6 @@
 # Sprint Update - August 2025
 
 ## 🎯 Sprint Goals Completed
-
 ### 1. ✅ Admin Panel UI/UX Improvements
 **Commit**: `ba45fc4` - ADMIN PANEL IMPROVEMENTS: Fix UI/UX and implement user management
 
