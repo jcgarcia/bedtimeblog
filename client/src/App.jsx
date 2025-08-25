@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import Single from "./pages/single/Single";
 import TopBar from "./components/topbar/TopBar";
 import Footer from "./components/footer/Footer";
@@ -21,8 +22,46 @@ import { AdminProvider } from "./contexts/AdminContext";
 import { UserProvider } from "./contexts/UserContext";
 
 function App() {
+  const [showCookiesBanner, setShowCookiesBanner] = useState(false);
+
+  useEffect(() => {
+    const consent = localStorage.getItem('cookiesConsent');
+    if (!consent) {
+      setShowCookiesBanner(true);
+    }
+  }, []);
+
+  const handleAcceptCookies = () => {
+    localStorage.setItem('cookiesConsent', 'accepted');
+    setShowCookiesBanner(false);
+  };
+
   return (
     <div className="App">
+      {showCookiesBanner && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: '#222',
+          color: '#fff',
+          padding: '16px',
+          zIndex: 9999,
+          textAlign: 'center',
+          boxShadow: '0 -2px 8px rgba(0,0,0,0.15)'
+        }}>
+          <span>
+            This website uses cookies to ensure you get the best experience. By continuing to browse, you accept our <a href="/privacy" style={{color:'#ffd700', textDecoration:'underline'}}>Privacy Policy</a>.
+          </span>
+          <button
+            onClick={handleAcceptCookies}
+            style={{marginLeft: '16px', padding: '8px 20px', background: '#ffd700', color: '#222', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}
+          >
+            Accept
+          </button>
+        </div>
+      )}
       <UserProvider>
         <AdminProvider>
           <Router>
