@@ -3,7 +3,6 @@
 ## 🎯 Sprint Goals Completed
 
 ### 1. ✅ Admin Panel UI/UX Improvements
-**Status**: COMPLETED ✅  
 **Commit**: `ba45fc4` - ADMIN PANEL IMPROVEMENTS: Fix UI/UX and implement user management
 
 #### Issues Resolved:
@@ -86,6 +85,36 @@
 - ✅ Argon2 password hashing implemented
 - ✅ No bcrypt dependencies remaining
 - ✅ JWT token authentication maintained
+
+## 🆕 Cognito Integration Work (In Progress)
+
+### AWS Cognito Integration for Blog Authentication
+**Status**: IN PROGRESS 🚧
+**Branch**: k8s
+
+#### Goals
+- Integrate AWS Cognito for user authentication and role management (writers, admins)
+- Add Cognito as an additional authentication option (not a replacement)
+- Ensure legacy authentication (local, Google OAuth) remains active
+- Implement Cognito JWT validation in backend
+- Add Cognito-based login/signup flows in frontend
+- Update environment variables and documentation
+
+#### Steps Completed
+- Project backup created at `code-backup-2025-08-25` before changes
+- Cognito integration plan documented
+- Installed aws-amplify and amazon-cognito-identity-js in client
+- Installed jsonwebtoken and jwks-rsa in api
+- Created Cognito JWT validation middleware (`api/middleware/cognitoAuth.js`)
+- Updated user management routes to support both legacy and Cognito authentication (parallel middleware)
+
+#### Next Steps
+- Implement frontend authentication with Cognito
+- Add backend JWT validation to other protected routes
+- Test user flows and role-based access
+- Update deployment and CI/CD scripts for Cognito
+
+---
 
 ## 📋 Next Sprint Priorities
 
