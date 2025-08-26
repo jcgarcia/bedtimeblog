@@ -62,16 +62,21 @@ export default function DynamicPage() {
     if (typeof parsedContent === 'string') {
       return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
     }
-    // Plain text formatting fallback
-    let html = typeof content === 'string' ? content : '';
-    html = html
-      .replace(/\n{2,}/g, '</p><p>')
-      .replace(/\n/g, '<br>');
-    html = html.replace(/(^|<br>)(Terms of Service|Privacy Policy)/, '$1<h1>$2</h1>');
-    html = html.replace(/(^|<br>)(Last updated:.*)/, '$1<p class="last-updated">$2</p>');
-    html = html.replace(/(^|<br>)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
-    if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  // Plain text formatting fallback
+  let html = typeof content === 'string' ? content : '';
+  // Convert double newlines to paragraphs
+  html = html.replace(/\n{2,}/g, '</p><p>');
+  // Convert single newlines to line breaks
+  html = html.replace(/\n/g, '<br>');
+  // Headings: lines starting with numbers or section titles
+  html = html.replace(/(<br>|^)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
+  html = html.replace(/(<br>|^)(Terms of Service|Privacy Policy)/g, '$1<h1>$2</h1>');
+  html = html.replace(/(<br>|^)(Last updated:.*)/g, '$1<p class="last-updated">$2</p>');
+  // Wrap in paragraph if not already
+  if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
+  // Remove extra <p></p> if already present
+  html = html.replace(/(<p><\/p>)+/g, '');
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
   };
 
   const renderLexicalContent = (root) => {
