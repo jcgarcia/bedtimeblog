@@ -40,37 +40,38 @@ export default function DynamicPage() {
   const renderContent = (content) => {
     if (!content) return '';
     // Try Lexical JSON parsing first
+    let parsedContent;
     try {
-      const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
-      // Lexical JSON root node
-      if (parsedContent && parsedContent.root && parsedContent.root.children) {
-        return renderLexicalContent(parsedContent.root);
-      }
-      // Lexical JSON direct root
-      if (parsedContent && parsedContent.type === 'root' && parsedContent.children) {
-        return renderLexicalContent(parsedContent);
-      }
-      // Array of nodes (rare)
-      if (Array.isArray(parsedContent)) {
-        return renderLexicalContent({ children: parsedContent });
-      }
-      // If it's a string, treat as HTML
-      if (typeof parsedContent === 'string') {
-        return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
-      }
-      // Fallback: show nothing
-      return null;
+      parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
     } catch (error) {
-      // Plain text formatting fallback
-      let html = content
-        .replace(/\n{2,}/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-      html = html.replace(/(^|<br>)(Terms of Service|Privacy Policy)/, '$1<h1>$2</h1>');
-      html = html.replace(/(^|<br>)(Last updated:.*)/, '$1<p class="last-updated">$2</p>');
-      html = html.replace(/(^|<br>)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
-      if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
-      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+      parsedContent = null;
     }
+    // Lexical JSON root node
+    if (parsedContent && parsedContent.root && parsedContent.root.children) {
+      return renderLexicalContent(parsedContent.root);
+    }
+    // Lexical JSON direct root
+    if (parsedContent && parsedContent.type === 'root' && parsedContent.children) {
+      return renderLexicalContent(parsedContent);
+    }
+    // Array of nodes (rare)
+    if (Array.isArray(parsedContent)) {
+      return renderLexicalContent({ children: parsedContent });
+    }
+    // If it's a string, treat as HTML
+    if (typeof parsedContent === 'string') {
+      return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
+    }
+    // Plain text formatting fallback
+    let html = typeof content === 'string' ? content : '';
+    html = html
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+    html = html.replace(/(^|<br>)(Terms of Service|Privacy Policy)/, '$1<h1>$2</h1>');
+    html = html.replace(/(^|<br>)(Last updated:.*)/, '$1<p class="last-updated">$2</p>');
+    html = html.replace(/(^|<br>)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
+    if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
   };
 
   const renderLexicalContent = (root) => {
