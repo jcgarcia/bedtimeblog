@@ -68,36 +68,39 @@ export default function DynamicPage() {
     const blocks = text.split(/\n{2,}/);
     const elements = [];
     blocks.forEach((block, i) => {
-      // Trim block
       const b = block.trim();
       if (!b) return;
-      // Headings
+      // Main title
       if (/^(Terms of Service|Privacy Policy)$/i.test(b)) {
         elements.push(<h1 key={i}>{b}</h1>);
         return;
       }
+      // Last updated
       if (/^Last updated:/.test(b)) {
         elements.push(<p className="last-updated" key={i}>{b}</p>);
         return;
       }
-      if (/^\d+\. /.test(b)) {
+      // Section heading (e.g., "1. Acceptance of Terms")
+      if (/^\d+\.\s+.+/.test(b)) {
         elements.push(<h2 key={i}>{b}</h2>);
         return;
       }
-      // Lists
-      if (/^(- |\* |\d+\. )/m.test(b)) {
-        // Unordered list
-        if (/^(- |\* )/m.test(b)) {
-          const items = b.split(/\n/).filter(line => /^(- |\* )/.test(line)).map((line, idx) => <li key={idx}>{line.replace(/^(- |\* )/, '')}</li>);
-          elements.push(<ul key={i}>{items}</ul>);
-          return;
-        }
-        // Ordered list
-        if (/^(\d+\. )/m.test(b)) {
-          const items = b.split(/\n/).filter(line => /^(\d+\. )/.test(line)).map((line, idx) => <li key={idx}>{line.replace(/^(\d+\. )/, '')}</li>);
-          elements.push(<ol key={i}>{items}</ol>);
-          return;
-        }
+      // Subheading (e.g., "Account Creation", "Account Responsibilities")
+      if (/^[A-Z][A-Za-z ]{3,}$/.test(b) && b.length < 40) {
+        elements.push(<h3 key={i}>{b}</h3>);
+        return;
+      }
+      // Unordered list
+      if (/^(- |\* )/m.test(b)) {
+        const items = b.split(/\n/).filter(line => /^(- |\* )/.test(line)).map((line, idx) => <li key={idx}>{line.replace(/^(- |\* )/, '')}</li>);
+        elements.push(<ul key={i}>{items}</ul>);
+        return;
+      }
+      // Ordered list (numbered)
+      if (/^(\d+\. )/m.test(b)) {
+        const items = b.split(/\n/).filter(line => /^(\d+\. )/.test(line)).map((line, idx) => <li key={idx}>{line.replace(/^(\d+\. )/, '')}</li>);
+        elements.push(<ol key={i}>{items}</ol>);
+        return;
       }
       // Paragraph (preserve line breaks)
       const lines = b.split(/\n/);
