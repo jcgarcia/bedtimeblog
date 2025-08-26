@@ -62,27 +62,52 @@ export default function DynamicPage() {
     if (typeof parsedContent === 'string') {
       return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
     }
-  // Enhanced plain text formatting fallback
-  let html = typeof content === 'string' ? content : '';
-  // Lists: convert lines starting with - or * to <li>
-  html = html.replace(/(^|\n)[ \t]*[-*] (.+)/g, '$1<li>$2</li>');
-  // Group consecutive <li> into <ul>
-  html = html.replace(/(<li>.*?<\/li>\s*)+/g, match => `<ul>${match.replace(/\s*$/,'')}</ul>`);
-  // Headings: numbers, section titles
-  html = html.replace(/(^|<br>)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
-  html = html.replace(/(^|<br>)(Terms of Service|Privacy Policy)/g, '$1<h1>$2</h1>');
-  html = html.replace(/(^|<br>)(Last updated:.*)/g, '$1<p class="last-updated">$2</p>');
-  // Convert double newlines to paragraphs
-  html = html.replace(/\n{2,}/g, '</p><p>');
-  // Convert single newlines to line breaks
-  html = html.replace(/\n/g, '<br>');
-  // Indents: preserve leading spaces
-  html = html.replace(/(^|<br>)([ ]{2,})/g, '$1<span style="white-space:pre">$2</span>');
-  // Wrap in paragraph if not already
-  if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
-  // Remove extra <p></p> if already present
-  html = html.replace(/(<p><\/p>)+/g, '');
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    // Enhanced plain text formatting fallback
+    let text = typeof content === 'string' ? content : '';
+    // Split into blocks by double newlines (paragraphs)
+    const blocks = text.split(/\n{2,}/);
+    const elements = [];
+    blocks.forEach((block, i) => {
+      // Trim block
+      const b = block.trim();
+      if (!b) return;
+      // Headings
+      if (/^(Terms of Service|Privacy Policy)$/i.test(b)) {
+        elements.push(<h1 key={i}>{b}</h1>);
+        return;
+      }
+      if (/^Last updated:/.test(b)) {
+        elements.push(<p className="last-updated" key={i}>{b}</p>);
+        return;
+      }
+      if (/^\d+\. /.test(b)) {
+        elements.push(<h2 key={i}>{b}</h2>);
+        return;
+      }
+      // Lists
+      if (/^(- |\* |\d+\. )/m.test(b)) {
+        // Unordered list
+        if (/^(- |\* )/m.test(b)) {
+          const items = b.split(/\n/).filter(line => /^(- |\* )/.test(line)).map((line, idx) => <li key={idx}>{line.replace(/^(- |\* )/, '')}</li>);
+          elements.push(<ul key={i}>{items}</ul>);
+          return;
+        }
+        // Ordered list
+        if (/^(\d+\. )/m.test(b)) {
+          const items = b.split(/\n/).filter(line => /^(\d+\. )/.test(line)).map((line, idx) => <li key={idx}>{line.replace(/^(\d+\. )/, '')}</li>);
+          elements.push(<ol key={i}>{items}</ol>);
+          return;
+        }
+      }
+      // Paragraph (preserve line breaks)
+      const lines = b.split(/\n/);
+      elements.push(
+        <p key={i}>
+          {lines.map((line, idx) => [line, idx < lines.length - 1 ? <br key={idx} /> : null])}
+        </p>
+      );
+    });
+    return <div>{elements}</div>;
   };
 
   const renderLexicalContent = (root) => {
