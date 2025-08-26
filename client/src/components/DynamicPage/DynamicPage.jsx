@@ -62,16 +62,22 @@ export default function DynamicPage() {
     if (typeof parsedContent === 'string') {
       return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
     }
-  // Plain text formatting fallback
+  // Enhanced plain text formatting fallback
   let html = typeof content === 'string' ? content : '';
+  // Lists: convert lines starting with - or * to <li>
+  html = html.replace(/(^|\n)[ \t]*[-*] (.+)/g, '$1<li>$2</li>');
+  // Group consecutive <li> into <ul>
+  html = html.replace(/(<li>.*?<\/li>\s*)+/g, match => `<ul>${match.replace(/\s*$/,'')}</ul>`);
+  // Headings: numbers, section titles
+  html = html.replace(/(^|<br>)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
+  html = html.replace(/(^|<br>)(Terms of Service|Privacy Policy)/g, '$1<h1>$2</h1>');
+  html = html.replace(/(^|<br>)(Last updated:.*)/g, '$1<p class="last-updated">$2</p>');
   // Convert double newlines to paragraphs
   html = html.replace(/\n{2,}/g, '</p><p>');
   // Convert single newlines to line breaks
   html = html.replace(/\n/g, '<br>');
-  // Headings: lines starting with numbers or section titles
-  html = html.replace(/(<br>|^)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
-  html = html.replace(/(<br>|^)(Terms of Service|Privacy Policy)/g, '$1<h1>$2</h1>');
-  html = html.replace(/(<br>|^)(Last updated:.*)/g, '$1<p class="last-updated">$2</p>');
+  // Indents: preserve leading spaces
+  html = html.replace(/(^|<br>)([ ]{2,})/g, '$1<span style="white-space:pre">$2</span>');
   // Wrap in paragraph if not already
   if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
   // Remove extra <p></p> if already present
