@@ -113,15 +113,29 @@ export const createPage = async (req, res) => {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.adminUser.id;
 
+    // Lexical JSON validation
+    let lexicalContent;
+    try {
+      lexicalContent = typeof content === 'string' ? JSON.parse(content) : content;
+      if (!lexicalContent || !lexicalContent.root || !Array.isArray(lexicalContent.root.children)) {
+        throw new Error('Invalid Lexical JSON structure');
+      }
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Content must be valid Lexical JSON',
+        error: e.message
+      });
+    }
+
     const pool = getDbPool();
     const result = await pool.query(
       `INSERT INTO static_pages 
        (slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order, created_by, updated_by) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
        RETURNING *`,
-      [slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order, userId, userId]
+      [slug, title, meta_title, meta_description, JSON.stringify(lexicalContent), excerpt, is_published, show_in_menu, menu_order, userId, userId]
     );
-    
     res.status(201).json({
       success: true,
       message: 'Page created successfully',
@@ -144,6 +158,21 @@ export const updatePage = async (req, res) => {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.adminUser.id;
 
+    // Lexical JSON validation
+    let lexicalContent;
+    try {
+      lexicalContent = typeof content === 'string' ? JSON.parse(content) : content;
+      if (!lexicalContent || !lexicalContent.root || !Array.isArray(lexicalContent.root.children)) {
+        throw new Error('Invalid Lexical JSON structure');
+      }
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Content must be valid Lexical JSON',
+        error: e.message
+      });
+    }
+
     const pool = getDbPool();
     const result = await pool.query(
       `UPDATE static_pages 
@@ -151,16 +180,14 @@ export const updatePage = async (req, res) => {
            excerpt = $6, is_published = $7, show_in_menu = $8, menu_order = $9, updated_by = $10, updated_at = CURRENT_TIMESTAMP
        WHERE id = $11 
        RETURNING *`,
-      [slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order, userId, id]
+      [slug, title, meta_title, meta_description, JSON.stringify(lexicalContent), excerpt, is_published, show_in_menu, menu_order, userId, id]
     );
-    
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Page not found'
       });
     }
-    
     res.json({
       success: true,
       message: 'Page updated successfully',
