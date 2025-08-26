@@ -1,0 +1,125 @@
+Terms of Service
+Last updated: August 9, 2025
+
+1. Acceptance of Terms
+Welcome to Bedtime Blog. These Terms of Service ("Terms") govern your use of our website located at blog.ingasti.com operated by Bedtime Blog ("us", "we", or "our").
+By accessing and using our service, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
+
+2. Description of Service
+Bedtime Blog is a personal blog platform that provides:
+- Blog content and articles on various topics
+- User authentication through OAuth providers (Google, Facebook, Twitter)
+- Comment system for registered users
+- Contact forms for communication
+- Subscription and notification services
+
+3. User Accounts and Registration
+Account Creation
+To access certain features of our service, you may be required to create an account using OAuth authentication through Google, Facebook, or Twitter.
+Account Responsibilities
+- You are responsible for maintaining the confidentiality of your account
+- You agree to provide accurate and complete information
+- You are responsible for all activities that occur under your account
+- You must notify us immediately of any unauthorized use of your account
+Account Termination
+We reserve the right to terminate or suspend your account at any time, with or without cause, with or without notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties, or for any other reason.
+
+4. User Conduct and Content
+Acceptable Use
+You agree to use our service only for lawful purposes and in accordance with these Terms. You agree not to:
+- Post, upload, or distribute any content that is illegal, harmful, threatening, abusive, defamatory, or otherwise objectionable
+- Impersonate any person or entity or falsely state or misrepresent your affiliation
+- Engage in spamming, flooding, or other disruptive behavior
+- Attempt to gain unauthorized access to our systems or networks
+- Use automated systems or bots to access or interact with our service
+- Violate any applicable laws or regulations
+User-Generated Content
+When you post comments or other content on our site:
+- You retain ownership of your content
+- You grant us a non-exclusive license to use, display, and distribute your content on our platform
+- You represent that you have the right to post such content
+- We reserve the right to remove any content that violates these Terms
+
+5. Privacy and Data Protection
+Your privacy is important to us. Our collection and use of personal information is governed by our Privacy Policy, which is incorporated into these Terms by reference.
+OAuth Authentication
+When you use OAuth authentication services:
+- You authorize us to access certain information from your OAuth provider
+- We only collect the minimum information necessary to provide our services
+- You can revoke our access at any time through your OAuth provider's settings
+
+6. Intellectual Property Rights
+Our Content
+The content, features, and functionality of our service, including but not limited to text, graphics, logos, images, and software, are owned by us or our licensors and are protected by copyright, trademark, and other intellectual property laws.
+Limited License
+We grant you a limited, non-exclusive, non-transferable license to access and use our service for personal, non-commercial purposes, subject to these Terms.
+Restrictions
+You may not:
+- Copy, modify, distribute, sell, or lease any part of our service
+- Reverse engineer or attempt to extract the source code of our service
+- Use our service to create a competing product or service
+
+7. Third-Party Services
+Our service may contain links to third-party websites or services, including OAuth providers (Google, Facebook, Twitter). We are not responsible for:
+- The availability, accuracy, or content of third-party services
+- The privacy practices of third-party services
+- Any transactions between you and third-party services
+Your use of third-party services is subject to their respective terms and conditions.
+
+8. Disclaimers and Limitations of Liability
+Service Availability
+We strive to provide continuous service but cannot guarantee that our service will be available at all times. We may experience downtime due to maintenance, updates, or technical issues.
+Disclaimer of Warranties
+Our service is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, or non-infringement.
+Limitation of Liability
+To the fullest extent permitted by law, we shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, or use, arising out of or relating to your use of our service.
+
+9. Indemnification
+You agree to indemnify, defend, and hold harmless Bedtime Blog and its officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses, including reasonable legal fees, arising out of or relating to:
+- Your use of our service
+- Your violation of these Terms
+- Your violation of any rights of another party
+- Any content you post or submit through our service
+
+10. Data Retention and Deletion
+We retain your personal information for as long as necessary to provide our services and comply with legal obligations. You may request deletion of your account and associated data by contacting us.
+Account Deletion
+When you delete your account:
+- Your personal information will be deleted within 30 days
+- Comments and public content may be retained but anonymized
+- Some information may be retained for legal compliance purposes
+
+11. Modifications to Terms
+We reserve the right to modify these Terms at any time. We will notify users of material changes by:
+- Posting the updated Terms on our website
+- Updating the "Last updated" date
+- Sending notification emails to registered users (for significant changes)
+Your continued use of our service after any modifications constitutes your acceptance of the modified Terms.
+
+12. Governing Law and Jurisdiction
+These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction], without regard to its conflict of law provisions.
+Any disputes arising from these Terms or your use of our service shall be resolved in the courts of [Your Jurisdiction].
+
+13. Severability
+If any provision of these Terms is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary so that these Terms shall otherwise remain in full force and effect.
+
+14. Contact Information
+If you have any questions about these Terms of Service, please contact us:
+Email: legal@ingasti.com
+Website: https://blog.ingasti.com/contact (Contact Form)
+Address: [Your Business Address]
+
+15. Important Notice for OAuth Users
+When using OAuth authentication (Google, Facebook, Twitter):
+- You acknowledge that you have read and agree to the privacy policies of these providers
+- We only access the information necessary for authentication and basic profile data
+- You can revoke our access at any time through your provider's account settings
+- Revoking access may limit or prevent your ability to use certain features of our service
+Provider Links:
+- Google Privacy Policy: https://policies.google.com/privacy
+- Facebook Privacy Policy: https://www.facebook.com/privacy/explanation
+- Twitter Privacy Policy: https://twitter.com/privacy
+
+Effective Date: August 9, 2025
+Version: 1.0
+Next Review Date: February 9, 2026
