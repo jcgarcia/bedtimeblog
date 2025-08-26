@@ -111,10 +111,28 @@ export const getPageById = async (req, res) => {
         message: 'Page not found'
       });
     }
-    
+    let page = result.rows[0];
+    // If content is Lexical JSON, convert back to plain text for editor
+    try {
+      if (page.content && typeof page.content === 'string') {
+        const parsed = JSON.parse(page.content);
+        if (parsed && parsed.root && Array.isArray(parsed.root.children)) {
+          // Convert Lexical JSON to plain text blocks
+          const blocks = parsed.root.children.map(node => {
+            if (node.type === 'heading') return node.children?.map(child => child.text).join(' ');
+            if (node.type === 'paragraph') return node.children?.map(child => child.text).join(' ');
+            if (node.type === 'list') return node.children?.map(item => '- ' + item.children?.map(child => child.text).join(' ')).join('\n');
+            return '';
+          });
+          page.content = blocks.filter(Boolean).join('\n\n');
+        }
+      }
+    } catch (e) {
+      // If not valid JSON, keep as plain text
+    }
     res.json({
       success: true,
-      page: result.rows[0]
+      page
     });
   } catch (error) {
     console.error('Error fetching page by ID:', error);
