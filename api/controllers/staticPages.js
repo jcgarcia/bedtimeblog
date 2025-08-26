@@ -5,12 +5,22 @@ export const getAllPages = async (req, res) => {
   try {
     const pool = getDbPool();
     const result = await pool.query(
-      'SELECT id, slug, title, meta_title, meta_description, excerpt, is_published, show_in_menu, menu_order, created_at, updated_at FROM static_pages ORDER BY menu_order ASC, title ASC'
+      'SELECT * FROM static_pages ORDER BY menu_order ASC, title ASC'
     );
-    
+    // Gracefully handle invalid Lexical JSON in content field
+    const pages = result.rows.map(page => {
+      try {
+        if (page.content && typeof page.content === 'string') {
+          page.content = JSON.parse(page.content);
+        }
+      } catch (e) {
+        // If content is not valid JSON, keep as plain text
+      }
+      return page;
+    });
     res.json({
       success: true,
-      pages: result.rows
+      pages
     });
   } catch (error) {
     console.error('Error fetching all pages:', error);
