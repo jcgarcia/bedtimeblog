@@ -132,20 +132,36 @@ export const createPage = async (req, res) => {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.adminUser.id;
 
-    // Lexical JSON validation
-    let lexicalContent;
-    try {
-      lexicalContent = typeof content === 'string' ? JSON.parse(content) : content;
-      if (!lexicalContent || !lexicalContent.root || !Array.isArray(lexicalContent.root.children)) {
-        throw new Error('Invalid Lexical JSON structure');
+      // Lexical JSON validation or conversion
+      let lexicalContent;
+      if (typeof content === 'string') {
+        try {
+          lexicalContent = JSON.parse(content);
+        } catch (e) {
+          // If not valid JSON, treat as plain text and wrap as Lexical JSON
+          lexicalContent = {
+            root: {
+              type: 'root',
+              children: [
+                {
+                  type: 'paragraph',
+                  children: [
+                    { type: 'text', text: content }
+                  ]
+                }
+              ]
+            }
+          };
+        }
+      } else {
+        lexicalContent = content;
       }
-    } catch (e) {
-      return res.status(400).json({
-        success: false,
-        message: 'Content must be valid Lexical JSON',
-        error: e.message
-      });
-    }
+      if (!lexicalContent || !lexicalContent.root || !Array.isArray(lexicalContent.root.children)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Content must be valid Lexical JSON or plain text',
+        });
+      }
 
     const pool = getDbPool();
     const result = await pool.query(
@@ -177,20 +193,36 @@ export const updatePage = async (req, res) => {
     const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.adminUser.id;
 
-    // Lexical JSON validation
-    let lexicalContent;
-    try {
-      lexicalContent = typeof content === 'string' ? JSON.parse(content) : content;
-      if (!lexicalContent || !lexicalContent.root || !Array.isArray(lexicalContent.root.children)) {
-        throw new Error('Invalid Lexical JSON structure');
+      // Lexical JSON validation or conversion
+      let lexicalContent;
+      if (typeof content === 'string') {
+        try {
+          lexicalContent = JSON.parse(content);
+        } catch (e) {
+          // If not valid JSON, treat as plain text and wrap as Lexical JSON
+          lexicalContent = {
+            root: {
+              type: 'root',
+              children: [
+                {
+                  type: 'paragraph',
+                  children: [
+                    { type: 'text', text: content }
+                  ]
+                }
+              ]
+            }
+          };
+        }
+      } else {
+        lexicalContent = content;
       }
-    } catch (e) {
-      return res.status(400).json({
-        success: false,
-        message: 'Content must be valid Lexical JSON',
-        error: e.message
-      });
-    }
+      if (!lexicalContent || !lexicalContent.root || !Array.isArray(lexicalContent.root.children)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Content must be valid Lexical JSON or plain text',
+        });
+      }
 
     const pool = getDbPool();
     const result = await pool.query(
