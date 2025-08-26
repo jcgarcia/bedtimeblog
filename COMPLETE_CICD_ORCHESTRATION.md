@@ -465,3 +465,8 @@ This CI/CD orchestration provides a robust, automated deployment pipeline that:
 The system successfully deployed recent enhancements including author attribution fixes, search functionality, admin authentication, and mobile navigation improvements, demonstrating the effectiveness of the automated pipeline.
 
 **Total deployment time**: ~5-7 minutes from git push to live application update at https://blog.ingasti.com 🚀
+
+# All references to jenkins.ingasti.com replaced with <your-jenkins-server>
+# All references to oracledev replaced with <your-ssh-host>
+# All AWS account IDs replaced with <your-aws-account-id>
+# All other sensitive values replaced with generic placeholders

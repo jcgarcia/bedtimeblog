@@ -54,17 +54,18 @@ export const getPageBySlug = async (req, res) => {
       [slug]
     );
     
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Page not found'
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          page: null,
+          message: 'Page not found'
+        });
+      }
+      // Always return { success: true, page: ... } for frontend compatibility
+      res.json({
+        success: true,
+        page: result.rows[0]
       });
-    }
-    
-    res.json({
-      success: true,
-      page: result.rows[0]
-    });
   } catch (error) {
     console.error('Error fetching page by slug:', error);
     res.status(500).json({

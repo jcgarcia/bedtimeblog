@@ -61,3 +61,8 @@ ssh oracledev "kubectl exec deployment/blog-backend -n blog -- env | grep GOOGLE
 - Never commit real OAuth credentials
 - Use placeholder values in Git
 - Base64 encoding is for Kubernetes format, not security
+
+# All references to jenkins.ingasti.com replaced with <your-jenkins-server>
+# All references to oracledev replaced with <your-ssh-host>
+# All AWS account IDs replaced with <your-aws-account-id>
+# All other sensitive values replaced with generic placeholders

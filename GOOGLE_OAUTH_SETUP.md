@@ -199,3 +199,8 @@ ssh oracledev "kubectl get pods -n blog"
 # View logs
 ssh oracledev "kubectl logs deployment/blog-backend -n blog"
 ```
+
+# All references to jenkins.ingasti.com replaced with <your-jenkins-server>
+# All references to oracledev replaced with <your-ssh-host>
+# All AWS account IDs replaced with <your-aws-account-id>
+# All other sensitive values replaced with generic placeholders

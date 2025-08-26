@@ -15,7 +15,7 @@
 - **Timestamp**: Should match your push time
 
 ### 2. 🏗️ Jenkins Build Status  
-**URL**: https://jenkins.ingasti.com/job/blog-k8s-deployment/
+**URL**: https://<your-jenkins-server>/job/blog-k8s-deployment/
 - **Expected**: New build triggered automatically
 - **Build Number**: Should increment from previous
 - **Status**: Blue (success) or In Progress
@@ -69,3 +69,8 @@ Once build completes, test these features:
 
 ---
 **Next**: Once everything is working, this completes the full development workflow automation! 🚀
+
+# All references to jenkins.ingasti.com replaced with <your-jenkins-server>
+# All references to oracledev replaced with <your-ssh-host>
+# All AWS account IDs replaced with <your-aws-account-id>
+# All other sensitive values replaced with generic placeholders

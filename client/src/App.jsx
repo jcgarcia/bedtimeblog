@@ -15,6 +15,7 @@ import Home from "./pages/home/Home";
 import About from "./pages/about/About";
 import Contact from "./pages/contact/Contact";
 import DynamicPage from "./components/DynamicPage/DynamicPage";
+// import Privacy from "./pages/privacy/Privacy";
 import Terms from "./pages/terms/Terms";
 import AdminLogin from "./pages/adminlogin/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";

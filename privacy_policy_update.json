@@ -1,0 +1,46 @@
+{
+  "title": "Privacy Policy",
+  "slug": "privacy",
+  "meta_title": "Privacy Policy - Bedtime Blog",
+  "meta_description": "Understand how we collect, use, and protect your personal information at Bedtime Blog.",
+  "excerpt": "Our privacy policy and data practices.",
+  "is_published": true,
+  "show_in_menu": true,
+  "menu_order": 3,
+  "content": {
+    "root": {
+      "children": [
+        {"type": "heading", "tag": "h1", "children": [{"type": "text", "text": "Privacy Policy"}]},
+        {"type": "paragraph", "children": [{"type": "text", "text": "Last updated: August 9, 2025"}]},
+        {"type": "heading", "tag": "h2", "children": [{"type": "text", "text": "1. Introduction"}]},
+        {"type": "paragraph", "children": [{"type": "text", "text": "Welcome to Bedtime Blog (\"we,\" \"our,\" or \"us\"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website blog.ingasti.com and use our services."}]},
+        {"type": "paragraph", "children": [{"type": "text", "text": "Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site."}]},
+        {"type": "heading", "tag": "h2", "children": [{"type": "text", "text": "2. Information We Collect"}]},
+        {"type": "heading", "tag": "h3", "children": [{"type": "text", "text": "Personal Information"}]},
+        {"type": "paragraph", "children": [{"type": "text", "text": "We may collect the following personal information:"}]},
+        {"type": "list", "listType": "bullet", "children": [
+          {"type": "listitem", "children": [{"type": "text", "text": "Account Information: When you create an account using OAuth providers (Google, Facebook, Twitter), we collect your name, email address, and profile picture."}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "Contact Information: When you contact us through our contact form, we collect your name, email address, and message content."}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "Usage Information: We may collect information about how you use our website, including pages visited, time spent, and interactions."}]}
+        ]},
+        {"type": "heading", "tag": "h3", "children": [{"type": "text", "text": "Automatically Collected Information"}]},
+        {"type": "list", "listType": "bullet", "children": [
+          {"type": "listitem", "children": [{"type": "text", "text": "Log Data: Server logs, IP addresses, browser type, operating system"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "Cookies: We use cookies and similar technologies to enhance your experience"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "Analytics: We may use web analytics to understand site usage patterns"}]}
+        ]},
+        {"type": "heading", "tag": "h2", "children": [{"type": "text", "text": "3. How We Use Your Information"}]},
+        {"type": "paragraph", "children": [{"type": "text", "text": "We use the information we collect for the following purposes:"}]},
+        {"type": "list", "listType": "bullet", "children": [
+          {"type": "listitem", "children": [{"type": "text", "text": "To provide, operate, and maintain our blog services"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "To authenticate and manage user accounts"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "To respond to comments, questions, and provide customer support"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "To send you technical notices, updates, and administrative messages"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "To improve our website and develop new features"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "To monitor and analyze usage patterns and trends"}]},
+          {"type": "listitem", "children": [{"type": "text", "text": "To detect, prevent, and address technical issues and security vulnerabilities"}]}
+        ]}
+      ]
+    }
+  }
+}

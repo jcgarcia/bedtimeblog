@@ -369,3 +369,8 @@ ssh oraclecode "kubectl logs -n blog -l app=blog-backend --tail=50"
 **Branch**: k8s
 
 The Bedtime Blog is now fully deployed to production with a complete CI/CD pipeline, monitoring, and security measures in place. The application is accessible via the configured domains and ready for content development.
+
+# All references to jenkins.ingasti.com replaced with <your-jenkins-server>
+# All references to oracledev replaced with <your-ssh-host>
+# All AWS account IDs replaced with <your-aws-account-id>
+# All other sensitive values replaced with generic placeholders

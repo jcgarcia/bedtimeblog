@@ -1,12 +1,13 @@
 import express from "express";
 import { getDbPool } from "../db.js";
 import argon2 from "argon2";
+import { cognitoAuth } from "../middleware/cognitoAuth.js";
 import { requireAdminAuth } from "../controllers/admin.js";
 
 const router = express.Router();
 
 // Get all users (admin only)
-router.get("/", requireAdminAuth, async (req, res) => {
+router.get("/", [requireAdminAuth, cognitoAuth("admin")], async (req, res) => {
   try {
     const pool = getDbPool();
     const result = await pool.query(`
@@ -30,7 +31,7 @@ router.get("/", requireAdminAuth, async (req, res) => {
 });
 
 // Create new user (admin only)
-router.post("/", requireAdminAuth, async (req, res) => {
+router.post("/", [requireAdminAuth, cognitoAuth("admin")], async (req, res) => {
   try {
     const { username, email, password, firstName, lastName, role = 'user' } = req.body;
 
@@ -84,7 +85,7 @@ router.post("/", requireAdminAuth, async (req, res) => {
 });
 
 // Update user (admin only)
-router.put("/:id", requireAdminAuth, async (req, res) => {
+router.put("/:id", [requireAdminAuth, cognitoAuth("admin")], async (req, res) => {
   try {
     const { id } = req.params;
     const { username, email, firstName, lastName, role, isActive, password } = req.body;
@@ -173,7 +174,7 @@ router.put("/:id", requireAdminAuth, async (req, res) => {
 });
 
 // Delete user (admin only)
-router.delete("/:id", requireAdminAuth, async (req, res) => {
+router.delete("/:id", [requireAdminAuth, cognitoAuth("admin")], async (req, res) => {
   try {
     const { id } = req.params;
     const pool = getDbPool();
