@@ -190,8 +190,14 @@ export const createPage = async (req, res) => {
 export const updatePage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
+    let { slug, title, meta_title, meta_description, content, excerpt, is_published, show_in_menu, menu_order } = req.body;
     const userId = req.adminUser.id;
+    // Always publish when saving from editor
+    is_published = true;
+    // Ensure slug is set and not empty
+    if (!slug || typeof slug !== 'string' || slug.trim() === '') {
+      slug = title ? title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'untitled';
+    }
 
       // Lexical JSON validation or conversion
       let lexicalContent;
