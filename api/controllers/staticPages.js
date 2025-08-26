@@ -63,19 +63,28 @@ export const getPageBySlug = async (req, res) => {
       'SELECT * FROM static_pages WHERE slug = $1 AND is_published = true',
       [slug]
     );
-    
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          page: null,
-          message: 'Page not found'
-        });
-      }
-      // Always return { success: true, page: ... } for frontend compatibility
-      res.json({
-        success: true,
-        page: result.rows[0]
+    if (result.rows.length === 0) {
+      // If not found, return JSON not HTML
+      return res.status(404).json({
+        success: false,
+        page: null,
+        message: 'Page not found'
       });
+    }
+    // Parse Lexical JSON if possible
+    let page = result.rows[0];
+    try {
+      if (page.content && typeof page.content === 'string') {
+        page.content = JSON.parse(page.content);
+      }
+    } catch (e) {
+      // If content is not valid JSON, keep as plain text
+    }
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+      success: true,
+      page
+    });
   } catch (error) {
     console.error('Error fetching page by slug:', error);
     res.status(500).json({
