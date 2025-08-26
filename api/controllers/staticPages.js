@@ -138,18 +138,44 @@ export const createPage = async (req, res) => {
         try {
           lexicalContent = JSON.parse(content);
         } catch (e) {
-          // If not valid JSON, treat as plain text and wrap as Lexical JSON
+          // If not valid JSON, treat as plain text and convert to Lexical JSON with structure
+          const blocks = content.split(/\n{2,}/);
+          const children = blocks.map(block => {
+            const b = block.trim();
+            if (!b) return null;
+            // Main title
+            if (/^(Terms of Service|Privacy Policy)$/i.test(b)) {
+              return { type: 'heading', tag: 1, children: [{ type: 'text', text: b }] };
+            }
+            // Last updated
+            if (/^Last updated:/.test(b)) {
+              return { type: 'paragraph', children: [{ type: 'text', text: b }] };
+            }
+            // Section heading
+            if (/^\d+\.\s+.+/.test(b)) {
+              return { type: 'heading', tag: 2, children: [{ type: 'text', text: b }] };
+            }
+            // Subheading
+            if (/^[A-Z][A-Za-z ]{3,}$/.test(b) && b.length < 40) {
+              return { type: 'heading', tag: 3, children: [{ type: 'text', text: b }] };
+            }
+            // Unordered list
+            if (/^(- |\* )/m.test(b)) {
+              const items = b.split(/\n/).filter(line => /^(- |\* )/.test(line)).map(line => ({ type: 'listitem', children: [{ type: 'text', text: line.replace(/^(- |\* )/, '') }] }));
+              return { type: 'list', listType: 'bullet', children: items };
+            }
+            // Ordered list
+            if (/^(\d+\. )/m.test(b)) {
+              const items = b.split(/\n/).filter(line => /^(\d+\. )/.test(line)).map(line => ({ type: 'listitem', children: [{ type: 'text', text: line.replace(/^(\d+\. )/, '') }] }));
+              return { type: 'list', listType: 'number', children: items };
+            }
+            // Paragraph
+            return { type: 'paragraph', children: b.split(/\n/).map(line => ({ type: 'text', text: line })) };
+          }).filter(Boolean);
           lexicalContent = {
             root: {
               type: 'root',
-              children: [
-                {
-                  type: 'paragraph',
-                  children: [
-                    { type: 'text', text: content }
-                  ]
-                }
-              ]
+              children
             }
           };
         }
@@ -205,18 +231,44 @@ export const updatePage = async (req, res) => {
         try {
           lexicalContent = JSON.parse(content);
         } catch (e) {
-          // If not valid JSON, treat as plain text and wrap as Lexical JSON
+          // If not valid JSON, treat as plain text and convert to Lexical JSON with structure
+          const blocks = content.split(/\n{2,}/);
+          const children = blocks.map(block => {
+            const b = block.trim();
+            if (!b) return null;
+            // Main title
+            if (/^(Terms of Service|Privacy Policy)$/i.test(b)) {
+              return { type: 'heading', tag: 1, children: [{ type: 'text', text: b }] };
+            }
+            // Last updated
+            if (/^Last updated:/.test(b)) {
+              return { type: 'paragraph', children: [{ type: 'text', text: b }] };
+            }
+            // Section heading
+            if (/^\d+\.\s+.+/.test(b)) {
+              return { type: 'heading', tag: 2, children: [{ type: 'text', text: b }] };
+            }
+            // Subheading
+            if (/^[A-Z][A-Za-z ]{3,}$/.test(b) && b.length < 40) {
+              return { type: 'heading', tag: 3, children: [{ type: 'text', text: b }] };
+            }
+            // Unordered list
+            if (/^(- |\* )/m.test(b)) {
+              const items = b.split(/\n/).filter(line => /^(- |\* )/.test(line)).map(line => ({ type: 'listitem', children: [{ type: 'text', text: line.replace(/^(- |\* )/, '') }] }));
+              return { type: 'list', listType: 'bullet', children: items };
+            }
+            // Ordered list
+            if (/^(\d+\. )/m.test(b)) {
+              const items = b.split(/\n/).filter(line => /^(\d+\. )/.test(line)).map(line => ({ type: 'listitem', children: [{ type: 'text', text: line.replace(/^(\d+\. )/, '') }] }));
+              return { type: 'list', listType: 'number', children: items };
+            }
+            // Paragraph
+            return { type: 'paragraph', children: b.split(/\n/).map(line => ({ type: 'text', text: line })) };
+          }).filter(Boolean);
           lexicalContent = {
             root: {
               type: 'root',
-              children: [
-                {
-                  type: 'paragraph',
-                  children: [
-                    { type: 'text', text: content }
-                  ]
-                }
-              ]
+              children
             }
           };
         }
