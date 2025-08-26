@@ -39,27 +39,38 @@ export default function DynamicPage() {
 
   const renderContent = (content) => {
     if (!content) return '';
+    // Try Lexical JSON parsing first
     try {
       const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
-      // If content is an array, treat as children of root
-      if (Array.isArray(parsedContent)) {
-        return renderLexicalContent({ children: parsedContent });
-      }
-      // If content has root, use root
-      if (parsedContent && parsedContent.root) {
+      // Lexical JSON root node
+      if (parsedContent && parsedContent.root && parsedContent.root.children) {
         return renderLexicalContent(parsedContent.root);
       }
-      // If content itself looks like a root node
+      // Lexical JSON direct root
       if (parsedContent && parsedContent.type === 'root' && parsedContent.children) {
         return renderLexicalContent(parsedContent);
       }
-      // Fallback: try to render as plain text
-      return <div dangerouslySetInnerHTML={{ __html: JSON.stringify(parsedContent) }} />;
+      // Array of nodes (rare)
+      if (Array.isArray(parsedContent)) {
+        return renderLexicalContent({ children: parsedContent });
+      }
+      // If it's a string, treat as HTML
+      if (typeof parsedContent === 'string') {
+        return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
+      }
+      // Fallback: show nothing
+      return null;
     } catch (error) {
-      // If not JSON, render as plain text
-      return <div dangerouslySetInnerHTML={{ __html: content }} />;
+      // Plain text formatting fallback
+      let html = content
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+      html = html.replace(/(^|<br>)(Terms of Service|Privacy Policy)/, '$1<h1>$2</h1>');
+      html = html.replace(/(^|<br>)(Last updated:.*)/, '$1<p class="last-updated">$2</p>');
+      html = html.replace(/(^|<br>)(\d+\. [^<]+)/g, '$1<h2>$2</h2>');
+      if (!/^<p>/.test(html)) html = `<p>${html}</p>`;
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
     }
-    return <div dangerouslySetInnerHTML={{ __html: content }} />;
   };
 
   const renderLexicalContent = (root) => {
