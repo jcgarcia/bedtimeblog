@@ -9,6 +9,7 @@ import contactRoutes from "./routes/contact.js";
 import categoriesRoutes from "./routes/categories.js";
 import staticPagesRoutes from "./routes/staticPages.js";
 import mediaRoutes from "./routes/media.js";
+import likesRoutes from "./routes/likes.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import passport from "passport";
@@ -160,6 +161,7 @@ app.use("/api/contact", contactRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/pages", staticPagesRoutes);
 app.use("/api/media", mediaRoutes);
+app.use("/api/likes", likesRoutes);
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
