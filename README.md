@@ -196,3 +196,29 @@ MIT
 - To revert to pre-social features state, restore files from `activity/backup`
 
 ---
+
+## Social Media Authentication Configuration
+
+How to configure social login for your Bedtime Blog:
+
+### Google OAuth
+
+- Go to the [Google Cloud Console](https://console.cloud.google.com/).
+- Create or select a project, then navigate to **APIs & Services > Credentials**.
+- Click **Create Credentials > OAuth client ID**.
+- Set the application type to **Web application**.
+- Add the following redirect URI:
+  - `https://blog.ingasti.com/auth/google/callback`
+- Copy your **Client ID** and **Client Secret** and enter them in the operations panel.
+- For more details, see the [Google OAuth documentation](https://developers.google.com/identity/protocols/oauth2).
+
+### Facebook OAuth
+
+- Go to the [Facebook for Developers](https://developers.facebook.com/) portal.
+- Create a new app and configure **Facebook Login**.
+- Add the following redirect URI:
+  - `https://blog.ingasti.com/auth/facebook/callback`
+- Copy your **App ID** and **App Secret** and enter them in the operations panel.
+- For more details, see the [Facebook Login documentation](https://developers.facebook.com/docs/facebook-login/).
+
+---
