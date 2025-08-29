@@ -1,7 +1,7 @@
 # Bedtime Blog
 
 A full-stack blog platform featuring user authentication, post creation, categories, media support, and a modern responsive UI.  
-This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted MySQL database.  
+This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted **PostgreSQL** database (with CA certificate support for secure connections).  
 **Package manager:** [pnpm](https://pnpm.io/)  
 **Frontend build tool:** [Vite](https://vitejs.dev/)  
 **Backend:** Express, Passport.js (Google OAuth), Multer, JWT
@@ -39,17 +39,18 @@ blog/
 
 - [Node.js](https://nodejs.org/) (v18+ recommended)
 - [pnpm](https://pnpm.io/) (install with `npm i -g pnpm`)
-- Cloud MySQL database (credentials required)
+- Cloud PostgreSQL database (credentials and CA certificate required)
 - Google OAuth credentials (for social login)
+- CA certificate file for secure DB connection (see deployment notes)
 
 ---
 
 ## Installation
 
-1. **Clone the repository:**
+1. **Clone the public repository:**
    ```sh
-   git clone <your-repo-url>
-   cd blog
+   git clone https://github.com/jcgarcia/bedtimeblog.git
+   cd bedtimeblog
    ```
 
 2. **Install dependencies for all workspaces:**
@@ -69,10 +70,12 @@ blog/
   DB_USER=<your-db-user>
   DB_PASSWORD=<your-db-password>
   DB_NAME=<your-db-name>
+  DB_CA_CERT_PATH=<path-to-ca-cert>
   JWT_SECRET=<your-jwt-secret>
   GOOGLE_CLIENT_ID=<your-google-client-id>
   GOOGLE_CLIENT_SECRET=<your-google-client-secret>
   ```
+- Place your CA certificate file in a secure location and reference it in your `.env`.
 - Update `api/db.js` and `api/index.js` if you need to adjust connection details.
 
 ### 2. Frontend (`client/`)
@@ -113,12 +116,29 @@ pnpm dev
 
 ---
 
+## Static Pages & Editor Automation
+
+- **Terms of Service** and **Privacy Policy** pages are managed via the admin/editor panel.
+- Content is automatically converted between plain text and Lexical JSON for correct formatting on public pages and seamless editing.
+- No manual database edits required; all changes are automated and reflected instantly.
+- The backend ensures public pages are always published and formatted, and the frontend renders headings, lists, and paragraphs from both Lexical JSON and plain text.
+
+---
+
+## Compliance & Security Features
+
+- Google Analytics, Akismet, and OAuth integrations for privacy and compliance.
+- CA certificate support for secure PostgreSQL connections.
+- Sensitive files (certificates, deployment docs) are excluded from version control.
+
+---
+
 ## Deployment Notes
 
-- **Environment variables:** Set all required variables on your production server.
-- **Database:** Ensure your cloud MySQL database is accessible from your backend.
-- **Media uploads:** By default, uploads are stored in `client/public/upload`. For production, consider using a cloud storage service.
-- **OAuth:** Set correct callback URLs in your Google developer console.
+- **Kubernetes** is used for container orchestration and scaling.
+- **Caddy** reverse proxy routes API requests and serves static content securely.
+- All environment variables and CA certificates must be set on your production server.
+- Automated CI/CD pipeline (Jenkins) builds, tests, and deploys all changes.
 
 ---
 
