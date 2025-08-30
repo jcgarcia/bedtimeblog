@@ -1489,29 +1489,51 @@ function MediaManagement() {
                 <option value="aws">AWS S3</option>
               </select>
               {storageType === 'oci' && (
-                <div className="storage-config oci-config" style={{marginTop: '1em'}}>
-                  <label>OCI Bucket Name:</label>
-                  <input type="text" value={ociConfig.bucket} onChange={e => setOciConfig({ ...ociConfig, bucket: e.target.value })} />
-                  <label>OCI Access Key:</label>
-                  <input type="text" value={ociConfig.accessKey} onChange={e => setOciConfig({ ...ociConfig, accessKey: e.target.value })} />
-                  <label>OCI Secret Key:</label>
-                  <input type="password" value={ociConfig.secretKey} onChange={e => setOciConfig({ ...ociConfig, secretKey: e.target.value })} />
-                  <label>OCI Region:</label>
-                  <input type="text" value={ociConfig.region} onChange={e => setOciConfig({ ...ociConfig, region: e.target.value })} />
-                  <label>OCI Endpoint:</label>
-                  <input type="text" value={ociConfig.endpoint} onChange={e => setOciConfig({ ...ociConfig, endpoint: e.target.value })} />
+                <div className="storage-config oci-config" style={{marginTop: '1em', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1em'}}>
+                  <div>
+                    <label>OCI Bucket Name:</label>
+                    <input type="text" value={ociConfig.bucket} onChange={e => setOciConfig({ ...ociConfig, bucket: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>OCI Region:</label>
+                    <input type="text" value={ociConfig.region} onChange={e => setOciConfig({ ...ociConfig, region: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>OCI Access Key:</label>
+                    <input type="text" value={ociConfig.accessKey} onChange={e => setOciConfig({ ...ociConfig, accessKey: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>OCI Secret Key:</label>
+                    <input type="password" value={ociConfig.secretKey} onChange={e => setOciConfig({ ...ociConfig, secretKey: e.target.value })} />
+                  </div>
+                  <div style={{gridColumn: '1 / span 2'}}>
+                    <label>OCI Endpoint (custom, optional):</label>
+                    <input type="text" value={ociConfig.endpoint} onChange={e => setOciConfig({ ...ociConfig, endpoint: e.target.value })} placeholder="https://objectstorage.region.oraclecloud.com" />
+                  </div>
                 </div>
               )}
               {storageType === 'aws' && (
-                <div className="storage-config aws-config" style={{marginTop: '1em'}}>
-                  <label>AWS S3 Bucket Name:</label>
-                  <input type="text" value={awsConfig.bucket} onChange={e => setAwsConfig({ ...awsConfig, bucket: e.target.value })} />
-                  <label>
-                    <input type="checkbox" checked={awsConfig.useIamRole} onChange={e => setAwsConfig({ ...awsConfig, useIamRole: e.target.checked })} />
-                    Use IAM Role (recommended for cross-account access)
-                  </label>
+                <div className="storage-config aws-config" style={{marginTop: '1em', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1em'}}>
+                  <div style={{gridColumn: '1 / span 2'}}>
+                    <label>AWS S3 Bucket Name:</label>
+                    <input type="text" value={awsConfig.bucket} onChange={e => setAwsConfig({ ...awsConfig, bucket: e.target.value })} style={{width: '60%'}} />
+                  </div>
+                  <div>
+                    <label>Target AWS Account ID:</label>
+                    <input type="text" value={awsConfig.accountId || ''} onChange={e => setAwsConfig({ ...awsConfig, accountId: e.target.value })} placeholder="123456789012" />
+                  </div>
+                  <div>
+                    <label>AWS Region:</label>
+                    <input type="text" value={awsConfig.region} onChange={e => setAwsConfig({ ...awsConfig, region: e.target.value })} />
+                  </div>
+                  <div style={{gridColumn: '1 / span 2'}}>
+                    <label>
+                      <input type="checkbox" checked={awsConfig.useIamRole} onChange={e => setAwsConfig({ ...awsConfig, useIamRole: e.target.checked })} />
+                      Use IAM Role (recommended for cross-account access)
+                    </label>
+                  </div>
                   {awsConfig.useIamRole ? (
-                    <div style={{margin: '0.5em 0', color: '#555', fontSize: '0.95em'}}>
+                    <div style={{gridColumn: '1 / span 2', margin: '0.5em 0', color: '#555', fontSize: '0.95em'}}>
                       <p>
                         Access Key and Secret Key are not required when using an IAM Role.<br/>
                         The backend will assume the role via STS for secure access.<br/>
@@ -1520,16 +1542,20 @@ function MediaManagement() {
                     </div>
                   ) : (
                     <>
-                      <label>AWS Access Key:</label>
-                      <input type="text" value={awsConfig.accessKey} onChange={e => setAwsConfig({ ...awsConfig, accessKey: e.target.value })} />
-                      <label>AWS Secret Key:</label>
-                      <input type="password" value={awsConfig.secretKey} onChange={e => setAwsConfig({ ...awsConfig, secretKey: e.target.value })} />
+                      <div>
+                        <label>AWS Access Key:</label>
+                        <input type="text" value={awsConfig.accessKey} onChange={e => setAwsConfig({ ...awsConfig, accessKey: e.target.value })} />
+                      </div>
+                      <div>
+                        <label>AWS Secret Key:</label>
+                        <input type="password" value={awsConfig.secretKey} onChange={e => setAwsConfig({ ...awsConfig, secretKey: e.target.value })} />
+                      </div>
                     </>
                   )}
-                  <label>AWS Region:</label>
-                  <input type="text" value={awsConfig.region} onChange={e => setAwsConfig({ ...awsConfig, region: e.target.value })} />
-                  <label>AWS Endpoint (optional):</label>
-                  <input type="text" value={awsConfig.endpoint} onChange={e => setAwsConfig({ ...awsConfig, endpoint: e.target.value })} />
+                  <div style={{gridColumn: '1 / span 2'}}>
+                    <label>AWS Endpoint (custom, optional):</label>
+                    <input type="text" value={awsConfig.endpoint} onChange={e => setAwsConfig({ ...awsConfig, endpoint: e.target.value })} placeholder="https://s3.amazonaws.com" />
+                  </div>
                 </div>
               )}
               <button type="submit" className="btn-primary" style={{marginTop: '1em'}}>Save Storage Settings</button>
