@@ -1258,15 +1258,14 @@ function MediaManagement() {
   });
 
   useEffect(() => {
-    if (mediaServerType === 'internal') {
+    if (storageType === 'oci' || storageType === 'aws') {
       fetchMediaFiles();
       fetchFolders();
     } else {
-      // TODO: Integrate with external media server API when available
       setMediaFiles([]);
       setFolders([]);
     }
-  }, [currentFolder, pagination.page, filterType, searchTerm, mediaServerType]);
+  }, [currentFolder, pagination.page, filterType, searchTerm, storageType]);
 
   const fetchMediaFiles = async () => {
     try {
@@ -1513,14 +1512,14 @@ function MediaManagement() {
           <button 
             className="btn-secondary"
             onClick={() => setShowCreateFolder(true)}
-            disabled={mediaServerType === 'external'}
+            disabled={storageType !== 'oci' && storageType !== 'aws'}
           >
             <i className="fa-solid fa-folder-plus"></i> New Folder
           </button>
           <button 
             className="btn-primary"
             onClick={() => setShowUploadModal(true)}
-            disabled={mediaServerType === 'external'}
+            disabled={storageType !== 'oci' && storageType !== 'aws'}
           >
             <i className="fa-solid fa-upload"></i> Upload Media
           </button>
