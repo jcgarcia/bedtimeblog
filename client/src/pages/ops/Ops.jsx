@@ -1533,13 +1533,19 @@ function MediaManagement() {
                     </label>
                   </div>
                   {awsConfig.useIamRole ? (
-                    <div style={{gridColumn: '1 / span 2', margin: '0.5em 0', color: '#555', fontSize: '0.95em'}}>
-                      <p>
-                        Access Key and Secret Key are not required when using an IAM Role.<br/>
-                        The backend will assume the role via STS for secure access.<br/>
-                        <b>Make sure your EC2/K8s service account has permission to assume the target role.</b>
-                      </p>
-                    </div>
+                    <>
+                      <div>
+                        <label>IAM Role Name or ARN:</label>
+                        <input type="text" value={awsConfig.roleArn || ''} onChange={e => setAwsConfig({ ...awsConfig, roleArn: e.target.value })} placeholder="arn:aws:iam::123456789012:role/YourRoleName" />
+                      </div>
+                      <div style={{gridColumn: '1 / span 2', margin: '0.5em 0', color: '#555', fontSize: '0.95em'}}>
+                        <p>
+                          Access Key and Secret Key are not required when using an IAM Role.<br/>
+                          The backend will assume <b>this role</b> via STS for secure access.<br/>
+                          <b>Make sure your EC2/K8s service account has permission to assume the target role.</b>
+                        </p>
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div>
