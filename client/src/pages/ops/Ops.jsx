@@ -1279,7 +1279,7 @@ function MediaManagement() {
         ...(searchTerm && { search: searchTerm })
       });
 
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
+  const response = await fetch(`${API_URL}/api/media/files?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -1295,7 +1295,7 @@ function MediaManagement() {
             ...(filterType !== 'all' && { type: filterType }),
             ...(searchTerm && { search: searchTerm })
           });
-          const fallbackResponse = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${fallbackParams}`, {
+          const fallbackResponse = await fetch(`${API_URL}/api/media/files?${fallbackParams}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },
@@ -1319,7 +1319,7 @@ function MediaManagement() {
 
   const fetchFolders = async () => {
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/folders`, {
+  const response = await fetch(`${API_URL}/api/media/folders`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -1344,7 +1344,7 @@ function MediaManagement() {
       formData.append('folderPath', currentFolder);
 
       try {
-        const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/upload`, {
+  const response = await fetch(`${API_URL}/api/media/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1378,7 +1378,7 @@ function MediaManagement() {
     if (!newFolderName.trim()) return;
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/folders`, {
+  const response = await fetch(`${API_URL}/api/media/folders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1404,7 +1404,7 @@ function MediaManagement() {
     if (!confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files/${fileId}`, {
+  const response = await fetch(`${API_URL}/api/media/files/${fileId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
