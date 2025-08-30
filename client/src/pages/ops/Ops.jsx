@@ -1240,7 +1240,9 @@ function MediaManagement() {
     total: 0,
     totalPages: 0
   });
-  // NEW: Media storage selection
+  // Media source selection
+  const [mediaSource, setMediaSource] = useState('library'); // 'library' or 'external'
+  // Media storage selection (for library)
   const [storageType, setStorageType] = useState('oci'); // 'oci' or 'aws'
   const [ociConfig, setOciConfig] = useState({
     bucket: '',
@@ -1254,7 +1256,8 @@ function MediaManagement() {
     accessKey: '',
     secretKey: '',
     region: '',
-    endpoint: ''
+    endpoint: '',
+    useIamRole: true
   });
 
   useEffect(() => {
@@ -1443,83 +1446,114 @@ function MediaManagement() {
   return (
     <div className="media-management">
       <div className="section-header">
-        <h2>Media Library</h2>
-        <div className="media-server-config">
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const settings = {
-                media_storage_type: storageType,
-                oci_config: ociConfig,
-                aws_config: awsConfig
-              };
-              try {
-                const response = await fetch(`${API_URL}/api/settings`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                  },
-                  body: JSON.stringify(settings)
-                });
-                if (response.ok) {
-                  alert('Media storage settings saved!');
-                } else {
-                  alert('Failed to save settings');
-                }
-              } catch (err) {
-                alert('Error saving settings');
-              }
-            }}
-          >
-          <label>Media Storage:</label>
-          <select value={storageType} onChange={e => setStorageType(e.target.value)}>
-            <option value="oci">OCI Object Storage</option>
-            <option value="aws">AWS S3</option>
+        <h2>Media Center</h2>
+        <div className="media-source-select" style={{marginBottom: '1em'}}>
+          <label style={{marginRight: '1em'}}>Source:</label>
+          <select value={mediaSource} onChange={e => setMediaSource(e.target.value)}>
+            <option value="library">Media Library (OCI/AWS)</option>
+            <option value="external">External Media Server</option>
           </select>
-          {storageType === 'oci' && (
-            <div className="storage-config oci-config">
-              <label>OCI Bucket Name:</label>
-              <input type="text" value={ociConfig.bucket} onChange={e => setOciConfig({ ...ociConfig, bucket: e.target.value })} />
-              <label>OCI Access Key:</label>
-              <input type="text" value={ociConfig.accessKey} onChange={e => setOciConfig({ ...ociConfig, accessKey: e.target.value })} />
-              <label>OCI Secret Key:</label>
-              <input type="password" value={ociConfig.secretKey} onChange={e => setOciConfig({ ...ociConfig, secretKey: e.target.value })} />
-              <label>OCI Region:</label>
-              <input type="text" value={ociConfig.region} onChange={e => setOciConfig({ ...ociConfig, region: e.target.value })} />
-              <label>OCI Endpoint:</label>
-              <input type="text" value={ociConfig.endpoint} onChange={e => setOciConfig({ ...ociConfig, endpoint: e.target.value })} />
-            </div>
-          )}
-          {storageType === 'aws' && (
-            <div className="storage-config aws-config">
-              <label>AWS S3 Bucket Name:</label>
-              <input type="text" value={awsConfig.bucket} onChange={e => setAwsConfig({ ...awsConfig, bucket: e.target.value })} />
-              <label>AWS Access Key:</label>
-              <input type="text" value={awsConfig.accessKey} onChange={e => setAwsConfig({ ...awsConfig, accessKey: e.target.value })} />
-              <label>AWS Secret Key:</label>
-              <input type="password" value={awsConfig.secretKey} onChange={e => setAwsConfig({ ...awsConfig, secretKey: e.target.value })} />
-              <label>AWS Region:</label>
-              <input type="text" value={awsConfig.region} onChange={e => setAwsConfig({ ...awsConfig, region: e.target.value })} />
-              <label>AWS Endpoint (optional):</label>
-              <input type="text" value={awsConfig.endpoint} onChange={e => setAwsConfig({ ...awsConfig, endpoint: e.target.value })} />
-            </div>
-          )}
-            <button type="submit" className="btn-primary" style={{marginTop: '1em'}}>Save Storage Settings</button>
-          </form>
         </div>
-        <div className="media-actions">
+        {mediaSource === 'library' && (
+          <div className="media-server-config" style={{marginBottom: '2em', padding: '1em', border: '1px solid #eee', borderRadius: '8px'}}>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const settings = {
+                  media_storage_type: storageType,
+                  oci_config: ociConfig,
+                  aws_config: awsConfig
+                };
+                try {
+                  const response = await fetch(`${API_URL}/api/settings`, {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    },
+                    body: JSON.stringify(settings)
+                  });
+                  if (response.ok) {
+                    alert('Media storage settings saved!');
+                  } else {
+                    alert('Failed to save settings');
+                  }
+                } catch (err) {
+                  alert('Error saving settings');
+                }
+              }}
+            >
+              <label style={{marginRight: '1em'}}>Storage Type:</label>
+              <select value={storageType} onChange={e => setStorageType(e.target.value)} style={{marginRight: '2em'}}>
+                <option value="oci">OCI Object Storage</option>
+                <option value="aws">AWS S3</option>
+              </select>
+              {storageType === 'oci' && (
+                <div className="storage-config oci-config" style={{marginTop: '1em'}}>
+                  <label>OCI Bucket Name:</label>
+                  <input type="text" value={ociConfig.bucket} onChange={e => setOciConfig({ ...ociConfig, bucket: e.target.value })} />
+                  <label>OCI Access Key:</label>
+                  <input type="text" value={ociConfig.accessKey} onChange={e => setOciConfig({ ...ociConfig, accessKey: e.target.value })} />
+                  <label>OCI Secret Key:</label>
+                  <input type="password" value={ociConfig.secretKey} onChange={e => setOciConfig({ ...ociConfig, secretKey: e.target.value })} />
+                  <label>OCI Region:</label>
+                  <input type="text" value={ociConfig.region} onChange={e => setOciConfig({ ...ociConfig, region: e.target.value })} />
+                  <label>OCI Endpoint:</label>
+                  <input type="text" value={ociConfig.endpoint} onChange={e => setOciConfig({ ...ociConfig, endpoint: e.target.value })} />
+                </div>
+              )}
+              {storageType === 'aws' && (
+                <div className="storage-config aws-config" style={{marginTop: '1em'}}>
+                  <label>AWS S3 Bucket Name:</label>
+                  <input type="text" value={awsConfig.bucket} onChange={e => setAwsConfig({ ...awsConfig, bucket: e.target.value })} />
+                  <label>
+                    <input type="checkbox" checked={awsConfig.useIamRole} onChange={e => setAwsConfig({ ...awsConfig, useIamRole: e.target.checked })} />
+                    Use IAM Role (recommended for cross-account access)
+                  </label>
+                  {awsConfig.useIamRole ? (
+                    <div style={{margin: '0.5em 0', color: '#555', fontSize: '0.95em'}}>
+                      <p>
+                        Access Key and Secret Key are not required when using an IAM Role.<br/>
+                        The backend will assume the role via STS for secure access.<br/>
+                        <b>Make sure your EC2/K8s service account has permission to assume the target role.</b>
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <label>AWS Access Key:</label>
+                      <input type="text" value={awsConfig.accessKey} onChange={e => setAwsConfig({ ...awsConfig, accessKey: e.target.value })} />
+                      <label>AWS Secret Key:</label>
+                      <input type="password" value={awsConfig.secretKey} onChange={e => setAwsConfig({ ...awsConfig, secretKey: e.target.value })} />
+                    </>
+                  )}
+                  <label>AWS Region:</label>
+                  <input type="text" value={awsConfig.region} onChange={e => setAwsConfig({ ...awsConfig, region: e.target.value })} />
+                  <label>AWS Endpoint (optional):</label>
+                  <input type="text" value={awsConfig.endpoint} onChange={e => setAwsConfig({ ...awsConfig, endpoint: e.target.value })} />
+                </div>
+              )}
+              <button type="submit" className="btn-primary" style={{marginTop: '1em'}}>Save Storage Settings</button>
+            </form>
+          </div>
+        )}
+        {mediaSource === 'external' && (
+          <div className="external-server-info" style={{marginBottom: '2em', padding: '1em', border: '1px solid #eee', borderRadius: '8px', background: '#fafafa'}}>
+            <h3>External Media Server</h3>
+            <p>Integration coming soon. Configure your external server in future releases.</p>
+          </div>
+        )}
+        <div className="media-actions" style={{display: 'flex', gap: '1em', marginBottom: '1em'}}>
           <button 
             className="btn-secondary"
             onClick={() => setShowCreateFolder(true)}
-            disabled={storageType !== 'oci' && storageType !== 'aws'}
+            disabled={mediaSource !== 'library' || (storageType !== 'oci' && storageType !== 'aws')}
           >
             <i className="fa-solid fa-folder-plus"></i> New Folder
           </button>
           <button 
             className="btn-primary"
             onClick={() => setShowUploadModal(true)}
-            disabled={storageType !== 'oci' && storageType !== 'aws'}
+            disabled={mediaSource !== 'library' || (storageType !== 'oci' && storageType !== 'aws')}
           >
             <i className="fa-solid fa-upload"></i> Upload Media
           </button>
