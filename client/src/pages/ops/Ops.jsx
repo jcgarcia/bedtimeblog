@@ -1240,11 +1240,20 @@ function MediaManagement() {
     total: 0,
     totalPages: 0
   });
+  // NEW: Media server selection
+  const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal' or 'external'
+  const [externalMediaServerUrl, setExternalMediaServerUrl] = useState('');
 
   useEffect(() => {
-    fetchMediaFiles();
-    fetchFolders();
-  }, [currentFolder, pagination.page, filterType, searchTerm]);
+    if (mediaServerType === 'internal') {
+      fetchMediaFiles();
+      fetchFolders();
+    } else {
+      // TODO: Integrate with external media server API when available
+      setMediaFiles([]);
+      setFolders([]);
+    }
+  }, [currentFolder, pagination.page, filterType, searchTerm, mediaServerType]);
 
   const fetchMediaFiles = async () => {
     try {
@@ -1398,20 +1407,46 @@ function MediaManagement() {
 
   const isImage = (mimeType) => mimeType && mimeType.startsWith('image/');
 
+  // Insert UI for media server selection at the top of the return block:
   return (
     <div className="media-management">
       <div className="section-header">
         <h2>Media Library</h2>
+        <div className="media-server-config">
+          <label>Media Server:</label>
+          <select value={mediaServerType} onChange={e => setMediaServerType(e.target.value)}>
+            <option value="internal">Internal (Blog)</option>
+            <option value="external">External (MediaServer)</option>
+          </select>
+          {mediaServerType === 'external' && (
+            <div className="external-media-server-url">
+              <label>External Media Server URL:</label>
+              <input
+                type="url"
+                value={externalMediaServerUrl}
+                onChange={e => setExternalMediaServerUrl(e.target.value)}
+                placeholder="https://mediaserver.example.com/api"
+              />
+              <div className="media-server-warning">
+                <small style={{ color: 'orange' }}>
+                  External media server integration is not yet implemented. Please use internal server for now.
+                </small>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="media-actions">
           <button 
             className="btn-secondary"
             onClick={() => setShowCreateFolder(true)}
+            disabled={mediaServerType === 'external'}
           >
             <i className="fa-solid fa-folder-plus"></i> New Folder
           </button>
           <button 
             className="btn-primary"
             onClick={() => setShowUploadModal(true)}
+            disabled={mediaServerType === 'external'}
           >
             <i className="fa-solid fa-upload"></i> Upload Media
           </button>
