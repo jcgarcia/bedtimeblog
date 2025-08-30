@@ -1274,6 +1274,26 @@ function MediaManagement() {
 
       if (response.ok) {
         const data = await response.json();
+        if ((data.media || []).length === 0 && currentFolder === '/') {
+          // Fallback: try fetching all files without folder filter
+          const fallbackParams = new URLSearchParams({
+            page: pagination.page.toString(),
+            limit: pagination.limit.toString(),
+            ...(filterType !== 'all' && { type: filterType }),
+            ...(searchTerm && { search: searchTerm })
+          });
+          const fallbackResponse = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${fallbackParams}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            setMediaFiles(fallbackData.media || []);
+            setPagination(fallbackData.pagination || pagination);
+            return;
+          }
+        }
         setMediaFiles(data.media || []);
         setPagination(data.pagination || pagination);
       }
