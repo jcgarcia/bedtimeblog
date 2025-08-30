@@ -1240,9 +1240,22 @@ function MediaManagement() {
     total: 0,
     totalPages: 0
   });
-  // NEW: Media server selection
-  const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal' or 'external'
-  const [externalMediaServerUrl, setExternalMediaServerUrl] = useState('');
+  // NEW: Media storage selection
+  const [storageType, setStorageType] = useState('oci'); // 'oci' or 'aws'
+  const [ociConfig, setOciConfig] = useState({
+    bucket: '',
+    accessKey: '',
+    secretKey: '',
+    region: '',
+    endpoint: ''
+  });
+  const [awsConfig, setAwsConfig] = useState({
+    bucket: '',
+    accessKey: '',
+    secretKey: '',
+    region: '',
+    endpoint: ''
+  });
 
   useEffect(() => {
     if (mediaServerType === 'internal') {
@@ -1433,27 +1446,68 @@ function MediaManagement() {
       <div className="section-header">
         <h2>Media Library</h2>
         <div className="media-server-config">
-          <label>Media Server:</label>
-          <select value={mediaServerType} onChange={e => setMediaServerType(e.target.value)}>
-            <option value="internal">Internal (Blog)</option>
-            <option value="external">External (MediaServer)</option>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const settings = {
+                media_storage_type: storageType,
+                oci_config: ociConfig,
+                aws_config: awsConfig
+              };
+              try {
+                const response = await fetch(`${API_URL}/api/settings`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                  },
+                  body: JSON.stringify(settings)
+                });
+                if (response.ok) {
+                  alert('Media storage settings saved!');
+                } else {
+                  alert('Failed to save settings');
+                }
+              } catch (err) {
+                alert('Error saving settings');
+              }
+            }}
+          >
+          <label>Media Storage:</label>
+          <select value={storageType} onChange={e => setStorageType(e.target.value)}>
+            <option value="oci">OCI Object Storage</option>
+            <option value="aws">AWS S3</option>
           </select>
-          {mediaServerType === 'external' && (
-            <div className="external-media-server-url">
-              <label>External Media Server URL:</label>
-              <input
-                type="url"
-                value={externalMediaServerUrl}
-                onChange={e => setExternalMediaServerUrl(e.target.value)}
-                placeholder="https://mediaserver.example.com/api"
-              />
-              <div className="media-server-warning">
-                <small style={{ color: 'orange' }}>
-                  External media server integration is not yet implemented. Please use internal server for now.
-                </small>
-              </div>
+          {storageType === 'oci' && (
+            <div className="storage-config oci-config">
+              <label>OCI Bucket Name:</label>
+              <input type="text" value={ociConfig.bucket} onChange={e => setOciConfig({ ...ociConfig, bucket: e.target.value })} />
+              <label>OCI Access Key:</label>
+              <input type="text" value={ociConfig.accessKey} onChange={e => setOciConfig({ ...ociConfig, accessKey: e.target.value })} />
+              <label>OCI Secret Key:</label>
+              <input type="password" value={ociConfig.secretKey} onChange={e => setOciConfig({ ...ociConfig, secretKey: e.target.value })} />
+              <label>OCI Region:</label>
+              <input type="text" value={ociConfig.region} onChange={e => setOciConfig({ ...ociConfig, region: e.target.value })} />
+              <label>OCI Endpoint:</label>
+              <input type="text" value={ociConfig.endpoint} onChange={e => setOciConfig({ ...ociConfig, endpoint: e.target.value })} />
             </div>
           )}
+          {storageType === 'aws' && (
+            <div className="storage-config aws-config">
+              <label>AWS S3 Bucket Name:</label>
+              <input type="text" value={awsConfig.bucket} onChange={e => setAwsConfig({ ...awsConfig, bucket: e.target.value })} />
+              <label>AWS Access Key:</label>
+              <input type="text" value={awsConfig.accessKey} onChange={e => setAwsConfig({ ...awsConfig, accessKey: e.target.value })} />
+              <label>AWS Secret Key:</label>
+              <input type="password" value={awsConfig.secretKey} onChange={e => setAwsConfig({ ...awsConfig, secretKey: e.target.value })} />
+              <label>AWS Region:</label>
+              <input type="text" value={awsConfig.region} onChange={e => setAwsConfig({ ...awsConfig, region: e.target.value })} />
+              <label>AWS Endpoint (optional):</label>
+              <input type="text" value={awsConfig.endpoint} onChange={e => setAwsConfig({ ...awsConfig, endpoint: e.target.value })} />
+            </div>
+          )}
+            <button type="submit" className="btn-primary" style={{marginTop: '1em'}}>Save Storage Settings</button>
+          </form>
         </div>
         <div className="media-actions">
           <button 

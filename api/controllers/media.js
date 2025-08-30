@@ -1,19 +1,31 @@
 import AWS from 'aws-sdk';
+import util from 'util';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { getDbPool } from '../db.js';
 import jwt from 'jsonwebtoken';
 
-// Configure AWS S3
-const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION || 'us-east-1'
-});
-
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'bedtime-blog-media';
-const CDN_URL = process.env.CDN_URL || 'https://media.ingasti.com';
+// Helper: Assume IAM Role and get temporary credentials
+async function getS3ClientFromRole(config) {
+  const sts = new AWS.STS({ region: config.region });
+  const assumeRole = util.promisify(sts.assumeRole.bind(sts));
+  const params = {
+    RoleArn: config.roleArn,
+    RoleSessionName: 'MediaLibrarySession',
+    DurationSeconds: 3600,
+    ...(config.externalId ? { ExternalId: config.externalId } : {})
+  };
+  const data = await assumeRole(params);
+  return new AWS.S3({
+    accessKeyId: data.Credentials.AccessKeyId,
+    secretAccessKey: data.Credentials.SecretAccessKey,
+    sessionToken: data.Credentials.SessionToken,
+    region: config.region,
+    endpoint: config.endpoint || undefined,
+    s3ForcePathStyle: true
+  });
+}
 
 // Configure multer for memory storage (files will be uploaded to S3)
 const upload = multer({
@@ -86,21 +98,13 @@ export const uploadToS3 = async (req, res) => {
     }
 
     const uploadSingle = upload.single('file');
-    
     uploadSingle(req, res, async (err) => {
       if (err) {
         console.error('Upload error:', err);
-        return res.status(400).json({ 
-          success: false, 
-          message: err.message 
-        });
+        return res.status(400).json({ success: false, message: err.message });
       }
-
       if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No file provided' 
-        });
+        return res.status(400).json({ success: false, message: 'No file provided' });
       }
 
       const file = req.file;
@@ -108,14 +112,54 @@ export const uploadToS3 = async (req, res) => {
       const altText = req.body.altText || '';
       const tags = req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [];
 
+      // --- NEW: Read storage settings from DB ---
+      const pool = getDbPool();
+      const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'oci_config', 'aws_config')");
+      const settings = {};
+      settingsRes.rows.forEach(row => {
+        if (row.type === 'json') {
+          try { settings[row.key] = JSON.parse(row.value); } catch (e) { settings[row.key] = {}; }
+        } else {
+          settings[row.key] = row.value;
+        }
+      });
+      const storageType = settings.media_storage_type || 'oci';
+      let s3, BUCKET_NAME, CDN_URL;
+      if (storageType === 'aws' && settings.aws_config.roleArn) {
+        // Use IAM Role with STS for AWS
+        s3 = await getS3ClientFromRole(settings.aws_config);
+        BUCKET_NAME = settings.aws_config.bucket;
+        CDN_URL = settings.aws_config.cdnUrl || '';
+      } else if (storageType === 'aws') {
+        // Fallback: Use static keys if role not set
+        s3 = new AWS.S3({
+          accessKeyId: settings.aws_config.accessKey,
+          secretAccessKey: settings.aws_config.secretKey,
+          region: settings.aws_config.region,
+          endpoint: settings.aws_config.endpoint || undefined,
+          s3ForcePathStyle: true
+        });
+        BUCKET_NAME = settings.aws_config.bucket;
+        CDN_URL = settings.aws_config.cdnUrl || '';
+      } else {
+        // OCI or other provider
+        s3 = new AWS.S3({
+          accessKeyId: settings.oci_config.accessKey,
+          secretAccessKey: settings.oci_config.secretKey,
+          region: settings.oci_config.region,
+          endpoint: settings.oci_config.endpoint || undefined,
+          s3ForcePathStyle: true
+        });
+        BUCKET_NAME = settings.oci_config.bucket;
+        CDN_URL = settings.oci_config.endpoint || '';
+      }
+
       try {
         // Generate S3 key
         const s3Key = generateS3Key(file.originalname, userId, folderPath);
-        
         // Get image dimensions if it's an image
         const { width, height } = await getImageDimensions(file.buffer, file.mimetype);
-
-        // Upload to S3
+        // Upload to S3/OCI
         const uploadParams = {
           Bucket: BUCKET_NAME,
           Key: s3Key,
@@ -128,12 +172,9 @@ export const uploadToS3 = async (req, res) => {
             uploadedAt: new Date().toISOString()
           }
         };
-
         const s3Result = await s3.upload(uploadParams).promise();
         const publicUrl = `${CDN_URL}/${s3Key}`;
-
         // Save to database
-        const pool = getDbPool();
         const dbQuery = `
           INSERT INTO media (
             filename, original_name, file_type, file_size, s3_key, s3_bucket, 
@@ -141,7 +182,6 @@ export const uploadToS3 = async (req, res) => {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
           RETURNING *
         `;
-        
         const values = [
           path.basename(s3Key),
           file.originalname,
@@ -158,31 +198,17 @@ export const uploadToS3 = async (req, res) => {
           width,
           height
         ];
-
         const result = await pool.query(dbQuery, values);
         const mediaRecord = result.rows[0];
-
-        res.status(201).json({
-          success: true,
-          message: 'File uploaded successfully',
-          media: mediaRecord
-        });
-
+        res.status(201).json({ success: true, message: 'File uploaded successfully', media: mediaRecord });
       } catch (uploadError) {
-        console.error('S3 upload error:', uploadError);
-        res.status(500).json({
-          success: false,
-          message: 'Failed to upload file to cloud storage'
-        });
+        console.error('S3/OCI upload error:', uploadError);
+        res.status(500).json({ success: false, message: 'Failed to upload file to cloud storage' });
       }
     });
-
   } catch (error) {
     console.error('Upload controller error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
