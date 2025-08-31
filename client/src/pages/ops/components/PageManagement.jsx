@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
 
@@ -7,7 +8,7 @@ export default function PageManagement() {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [form, setForm] = useState({ title: '', slug: '', content: '', published: false });
 
@@ -45,7 +46,7 @@ export default function PageManagement() {
       });
       if (response.ok) {
         setMessage('Page added successfully!');
-        setShowAddForm(false);
+        setShowForm(false);
         setForm({ title: '', slug: '', content: '', published: false });
         fetchPages();
       } else {
@@ -59,7 +60,7 @@ export default function PageManagement() {
   const handleEditPage = (page) => {
     setEditingPage(page);
     setForm({ ...page });
-    setShowAddForm(true);
+    setShowForm(true);
   };
 
   const handleUpdatePage = async () => {
@@ -71,7 +72,7 @@ export default function PageManagement() {
       });
       if (response.ok) {
         setMessage('Page updated successfully!');
-        setShowAddForm(false);
+        setShowForm(false);
         setEditingPage(null);
         setForm({ title: '', slug: '', content: '', published: false });
         fetchPages();
@@ -100,16 +101,64 @@ export default function PageManagement() {
     }
   };
 
+  // Quick Actions for static pages
+  const quickActions = [
+    { label: 'Edit About', slug: 'about' },
+    { label: 'Edit Terms', slug: 'terms' },
+    { label: 'Edit Privacy', slug: 'privacy' }
+  ];
+
   return (
     <div className="page-management">
       <div className="section-header">
-        <h2>Pages</h2>
-        <button className="btn-primary" onClick={() => { setShowAddForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>Add New Page</button>
+        <h2>Static Page Management</h2>
+        <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>
+          <i className="fa-solid fa-plus"></i> Create New Page
+        </button>
       </div>
       {message && (
         <div className="error-message">{message}</div>
       )}
-      {showAddForm && (
+      <div className="quick-actions">
+        <h3>Quick Actions</h3>
+        <div className="quick-btns">
+          {quickActions.map(action => (
+            <button key={action.slug} className="btn-secondary" onClick={() => {
+              const page = pages.find(p => p.slug === action.slug);
+              if (page) handleEditPage(page);
+            }}>{action.label}</button>
+          ))}
+          <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>+ New Page</button>
+        </div>
+      </div>
+      <div className="pages-cards">
+        {loading ? (
+          <div>Loading pages...</div>
+        ) : (
+          pages.length === 0 ? (
+            <div>No pages found.</div>
+          ) : (
+            pages.map(page => (
+              <div key={page.id} className="page-card">
+                <h3>{page.title}</h3>
+                <div className="page-slug"><i className="fa-solid fa-link"></i> /{page.slug}</div>
+                <div className="page-meta">
+                  <div>Template: {page.template || 'Default'}</div>
+                  <div>Updated: {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : 'N/A'}</div>
+                  <div>{page.seo ? 'SEO optimized' : 'Not optimized'}</div>
+                  <div>{page.menu ? 'Shown in menu' : 'Hidden from menu'}</div>
+                </div>
+                <div className="page-actions">
+                  <button className="btn-secondary" onClick={() => handleEditPage(page)}>Edit</button>
+                  <button className="btn-secondary" onClick={() => window.open(`/pages/${page.slug}`, '_blank')}>View</button>
+                  <button className="btn-danger" onClick={() => handleDeletePage(page.id)}>Delete</button>
+                </div>
+              </div>
+            ))
+          )
+        )}
+      </div>
+      {showForm && (
         <div className="page-form-modal">
           <div className="modal-content">
             <h3>{editingPage ? 'Edit Page' : 'Add New Page'}</h3>
@@ -120,7 +169,7 @@ export default function PageManagement() {
               <input type="checkbox" name="published" checked={form.published} onChange={handleInputChange} /> Published
             </label>
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => { setShowAddForm(false); setEditingPage(null); }}>Cancel</button>
+              <button className="btn-secondary" onClick={() => { setShowForm(false); setEditingPage(null); }}>Cancel</button>
               <button className="btn-primary" onClick={editingPage ? handleUpdatePage : handleAddPage}>
                 {editingPage ? 'Update Page' : 'Add Page'}
               </button>
@@ -128,39 +177,6 @@ export default function PageManagement() {
           </div>
         </div>
       )}
-      <div className="pages-list">
-        {loading ? (
-          <div>Loading pages...</div>
-        ) : (
-          <table className="pages-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Slug</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pages.length === 0 ? (
-                <tr><td colSpan={4}>No pages found.</td></tr>
-              ) : (
-                pages.map(page => (
-                  <tr key={page.id}>
-                    <td>{page.title}</td>
-                    <td>{page.slug}</td>
-                    <td>{page.published ? 'Published' : 'Draft'}</td>
-                    <td>
-                      <button className="btn-secondary" onClick={() => handleEditPage(page)}>Edit</button>
-                      <button className="btn-danger" onClick={() => handleDeletePage(page.id)}>Delete</button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
     </div>
   );
 }
