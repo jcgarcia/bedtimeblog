@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
-import CognitoAdminPanel from '../../components/cognito-admin/CognitoAdminPanel';
+import CognitoAdminPanel from '../../../components/cognito-admin/CognitoAdminPanel';
 
 export default function SiteSettings() {
 	const [settings, setSettings] = useState({
