@@ -207,27 +207,6 @@ export default function MediaManagement() {
       )}
     </div>
   );
-}
-                      alt={file.alt_text || file.original_name}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div 
-                    className="file-icon" 
-                    style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}
-                  >
-                    <i className={`fa-solid ${getFileIcon(file.file_type, file.mime_type)}`}></i>
-                  </div>
-                </div>
-                
-                <div className="media-info">
-                  <h4 title={file.original_name}>{file.original_name}</h4>
-                  <p className="file-size">{formatFileSize(file.file_size)}</p>
-                  <p className="file-type">{file.file_type.toUpperCase()}</p>
-                  <p className="upload-date">
                     {new Date(file.created_at).toLocaleDateString()}
                   </p>
                 </div>
