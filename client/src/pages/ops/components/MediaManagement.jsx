@@ -207,27 +207,6 @@ export default function MediaManagement() {
       )}
     </div>
   );
-                    {new Date(file.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="media-actions">
-                  <button 
-                    className="btn-icon"
-                    onClick={() => window.open(file.public_url, '_blank')}
-                    title="View file"
-                  >
-                    <i className="fa-solid fa-eye"></i>
-                  </button>
-                  <button 
-                    className="btn-icon"
-                    onClick={() => navigator.clipboard.writeText(file.public_url)}
-                    title="Copy URL"
-                  >
-                    <i className="fa-solid fa-copy"></i>
-                  </button>
-                  <button 
-                    className="btn-icon delete"
                     onClick={() => handleDeleteFile(file.id)}
                     title="Delete file"
                   >
