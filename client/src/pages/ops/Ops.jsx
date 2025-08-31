@@ -4,6 +4,14 @@ import { staticPagesAPI } from '../../config/apiService';
 import { API_ENDPOINTS } from '../../config/api';
 import './ops.css';
 import CognitoAdminPanel from '../../components/cognito-admin/CognitoAdminPanel';
+import PostManagement from './components/PostManagement';
+import PageManagement from './components/PageManagement';
+import UserManagement from './components/UserManagement';
+import CategoryManagement from './components/CategoryManagement';
+import SocialMediaManagement from './components/SocialMediaManagement';
+import SiteSettings from './components/SiteSettings';
+import Analytics from './components/Analytics';
+import MediaManagement from './components/MediaManagement';
 
 export default function Ops() {
   const [activeTab, setActiveTab] = useState('posts');
