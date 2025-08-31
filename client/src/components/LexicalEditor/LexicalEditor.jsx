@@ -169,11 +169,9 @@ function UpdateContentPlugin({ onChange }) {
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
-      editorState.read(() => {
-        const root = $getRoot();
-        const htmlString = root.getTextContent();
-        onChange(htmlString);
-      });
+      // Return the full Lexical JSON string
+      const jsonString = JSON.stringify(editorState.toJSON());
+      onChange(jsonString);
     });
   }, [editor, onChange]);
 
