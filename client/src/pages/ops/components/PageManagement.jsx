@@ -2,6 +2,8 @@
 
 
 import React, { useState, useEffect } from 'react';
+import LexicalEditor from '../../../components/LexicalEditor/LexicalEditor';
+import '../../../components/LexicalEditor/LexicalEditor.css';
 import { staticPagesAPI } from '../../../config/apiService';
 
 export default function PageManagement() {
@@ -171,7 +173,14 @@ export default function PageManagement() {
             <h3>{editingPage ? 'Edit Page' : 'Add New Page'}</h3>
             <input type="text" name="title" value={form.title} onChange={handleInputChange} placeholder="Title" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
             <input type="text" name="slug" value={form.slug} onChange={handleInputChange} placeholder="Slug" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
-            <textarea name="content" value={form.content} onChange={handleInputChange} placeholder="Content" rows={16} style={{ width: 650, fontSize: 15, minHeight: 300, marginBottom: 10 }} />
+            <div style={{ marginBottom: 10 }}>
+              <label>Page Content</label>
+              <LexicalEditor
+                value={form.content}
+                onChange={content => setForm(prev => ({ ...prev, content }))}
+                placeholder="Start writing your page content..."
+              />
+            </div>
             <label style={{ display: 'block', marginBottom: 10 }}>
               <input type="checkbox" name="published" checked={form.published} onChange={handleInputChange} /> Published
             </label>
