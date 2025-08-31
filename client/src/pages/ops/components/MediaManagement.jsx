@@ -431,5 +431,4 @@ export default function MediaManagement() {
         )}
       )}
       </div>
-    ); 
-  }
+    }
