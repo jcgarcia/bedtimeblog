@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { API_ENDPOINTS } from '../../../config/api';
+import { staticPagesAPI } from '../../../config/apiService';
 
 export default function PageManagement() {
   const [pages, setPages] = useState([]);
@@ -18,14 +18,15 @@ export default function PageManagement() {
 
   const fetchPages = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.PAGES.LIST);
-      if (response.ok) {
-        const data = await response.json();
-        setPages(Array.isArray(data) ? data : data.pages || []);
+      const response = await staticPagesAPI.getAllPages();
+      if (response.success) {
+        setPages(response.data);
+        setMessage('');
       } else {
         setMessage('Error loading pages');
       }
     } catch (error) {
+      console.error('Error fetching pages:', error);
       setMessage('Error loading pages');
     } finally {
       setLoading(false);
@@ -149,11 +150,9 @@ export default function PageManagement() {
                   <div>{page.menu ? 'Shown in menu' : 'Hidden from menu'}</div>
                 </div>
                 <div className="page-actions">
-                  <button className="btn-secondary" onClick={() => handleEditPage(page)}>Edit</button>
-                  <button className="btn-secondary" onClick={() => window.open(`/pages/${page.slug}`, '_blank')}>View</button>
-                  <button className="btn-danger" onClick={() => handleDeletePage(page.id)}>Delete</button>
-                </div>
-              </div>
+                  {message && (
+                    <div className={`message error`} style={{marginBottom: '1rem'}}>{message}</div>
+                  )}
             ))
           )
         )}

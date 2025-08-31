@@ -20,26 +20,35 @@ export default function UserManagement() {
 		fetchUsers();
 	}, []);
 
-	const fetchUsers = async () => {
-		try {
-			const token = localStorage.getItem('adminToken');
-			const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
-				headers: {
-					'Authorization': `Bearer ${token}`
+			const fetchUsers = async () => {
+				try {
+					const token = localStorage.getItem('adminToken');
+					console.log('Fetching users with token:', token ? 'Token exists' : 'No token found');
+					console.log('API URL:', API_ENDPOINTS.ADMIN.USERS);
+					const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
+						headers: {
+							'Authorization': `Bearer ${token}`
+						}
+					});
+					console.log('Response status:', response.status);
+					console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+					if (response.ok) {
+						const data = await response.json();
+						console.log('Users data received:', data);
+						setUsers(data.users);
+						setMessage('');
+					} else {
+						const errorData = await response.text();
+						console.log('Error response:', errorData);
+						setMessage('Error loading users: ' + errorData);
+					}
+				} catch (error) {
+					console.error('Error fetching users:', error);
+					setMessage('Error loading users: ' + error.message);
+				} finally {
+					setLoading(false);
 				}
-			});
-			if (response.ok) {
-				const data = await response.json();
-				setUsers(data.users);
-			} else {
-				throw new Error('Failed to fetch users');
-			}
-		} catch (error) {
-			setMessage('Error loading users');
-		} finally {
-			setLoading(false);
-		}
-	};
+			};
 
 		// Helper functions for role color and formatting
 		const getUserRoleColor = (role) => {
@@ -82,11 +91,9 @@ export default function UserManagement() {
 					</button>
 				</div>
 
-				{message && (
-					<div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
-						{message}
-					</div>
-				)}
+						{message && (
+							<div className={`message error`} style={{marginBottom: '1rem'}}>{message}</div>
+						)}
 
 				{showAddForm && (
 					<div className="add-user-form">

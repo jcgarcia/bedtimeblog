@@ -19,40 +19,47 @@ export default function MediaManagement() {
 		total: 0,
 		totalPages: 0
 	});
+	const [message, setMessage] = useState('');
 
 	useEffect(() => {
 		fetchMediaFiles();
 		fetchFolders();
 	}, [currentFolder, pagination.page, filterType, searchTerm]);
 
-	const fetchMediaFiles = async () => {
-		try {
-			setLoading(true);
-			const params = new URLSearchParams({
-				folder: currentFolder,
-				page: pagination.page.toString(),
-				limit: pagination.limit.toString(),
-				...(filterType !== 'all' && { type: filterType }),
-				...(searchTerm && { search: searchTerm })
-			});
+		const fetchMediaFiles = async () => {
+			try {
+				setLoading(true);
+				const params = new URLSearchParams({
+					folder: currentFolder,
+					page: pagination.page.toString(),
+					limit: pagination.limit.toString(),
+					...(filterType !== 'all' && { type: filterType }),
+					...(searchTerm && { search: searchTerm })
+				});
 
-			const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`,
-				},
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				setMediaFiles(data.media || []);
-				setPagination(data.pagination || pagination);
+						const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
+							headers: {
+								'Authorization': `Bearer ${localStorage.getItem('token')}`,
+							},
+						});
+						if (response.ok) {
+							const data = await response.json();
+							setMediaFiles(data.media || []);
+							setPagination(data.pagination || pagination);
+							setMessage('');
+						} else {
+							const errorText = await response.text();
+							setMediaFiles([]);
+							setMessage('Error loading media files: ' + errorText);
+						}
+			} catch (error) {
+				console.error('Error fetching media files:', error);
+				setMediaFiles([]);
+				setMessage('Error loading media files: ' + error.message);
+			} finally {
+				setLoading(false);
 			}
-		} catch (error) {
-			console.error('Error fetching media files:', error);
-		} finally {
-			setLoading(false);
-		}
-	};
+		};
 
 	const fetchFolders = async () => {
 		try {
@@ -290,81 +297,84 @@ export default function MediaManagement() {
 					</div>
 				)}
 
-				{/* Media Grid */}
-				{loading ? (
-					<div className="loading">Loading media files...</div>
-				) : (
-					<div className="media-grid">
-						{mediaFiles.length === 0 ? (
-							<div className="media-empty">
-								<i className="fa-solid fa-image"></i>
-								<p>No media files found</p>
-								<button 
-									className="btn-primary"
-									onClick={() => setShowUploadModal(true)}
-								>
-									Upload your first file
-								</button>
-							</div>
-						) : (
-							mediaFiles.map(file => (
-								<div key={file.id} className="media-item">
-									<div className="media-thumbnail">
-										{isImage(file.mime_type) ? (
-											<img 
-												src={file.public_url} 
-												alt={file.alt_text || file.original_name}
-												onError={(e) => {
-													e.target.style.display = 'none';
-													e.target.nextSibling.style.display = 'flex';
-												}}
-											/>
-										) : null}
-										<div 
-											className="file-icon" 
-											style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}
-										>
-											<i className={`fa-solid ${getFileIcon(file.file_type, file.mime_type)}`}></i>
-										</div>
-									</div>
-                
-									<div className="media-info">
-										<h4 title={file.original_name}>{file.original_name}</h4>
-										<p className="file-size">{formatFileSize(file.file_size)}</p>
-										<p className="file-type">{file.file_type.toUpperCase()}</p>
-										<p className="upload-date">
-											{new Date(file.created_at).toLocaleDateString()}
-										</p>
-									</div>
-
-									<div className="media-actions">
-										<button 
-											className="btn-icon"
-											onClick={() => window.open(file.public_url, '_blank')}
-											title="View file"
-										>
-											<i className="fa-solid fa-eye"></i>
-										</button>
-										<button 
-											className="btn-icon"
-											onClick={() => navigator.clipboard.writeText(file.public_url)}
-											title="Copy URL"
-										>
-											<i className="fa-solid fa-copy"></i>
-										</button>
-										<button 
-											className="btn-icon delete"
-											onClick={() => handleDeleteFile(file.id)}
-											title="Delete file"
-										>
-											<i className="fa-solid fa-trash"></i>
-										</button>
-									</div>
-								</div>
-							))
+						{/* Media Grid */}
+						{message && (
+							<div className="message error" style={{marginBottom: '1rem'}}>{message}</div>
 						)}
-					</div>
-				)}
+						{loading ? (
+							<div className="loading">Loading media files...</div>
+						) : (
+							<div className="media-grid">
+								{mediaFiles.length === 0 ? (
+									<div className="media-empty">
+										<i className="fa-solid fa-image"></i>
+										<p>No media files found</p>
+										<button 
+											className="btn-primary"
+											onClick={() => setShowUploadModal(true)}
+										>
+											Upload your first file
+										</button>
+									</div>
+								) : (
+									mediaFiles.map(file => (
+										<div key={file.id} className="media-item">
+											<div className="media-thumbnail">
+												{isImage(file.mime_type) ? (
+													<img 
+														src={file.public_url} 
+														alt={file.alt_text || file.original_name}
+														onError={(e) => {
+															e.target.style.display = 'none';
+															e.target.nextSibling.style.display = 'flex';
+														}}
+													/>
+												) : null}
+												<div 
+													className="file-icon" 
+													style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}
+												>
+													<i className={`fa-solid ${getFileIcon(file.file_type, file.mime_type)}`}></i>
+												</div>
+											</div>
+                
+											<div className="media-info">
+												<h4 title={file.original_name}>{file.original_name}</h4>
+												<p className="file-size">{formatFileSize(file.file_size)}</p>
+												<p className="file-type">{file.file_type.toUpperCase()}</p>
+												<p className="upload-date">
+													{new Date(file.created_at).toLocaleDateString()}
+												</p>
+											</div>
+
+											<div className="media-actions">
+												<button 
+													className="btn-icon"
+													onClick={() => window.open(file.public_url, '_blank')}
+													title="View file"
+												>
+													<i className="fa-solid fa-eye"></i>
+												</button>
+												<button 
+													className="btn-icon"
+													onClick={() => navigator.clipboard.writeText(file.public_url)}
+													title="Copy URL"
+												>
+													<i className="fa-solid fa-copy"></i>
+												</button>
+												<button 
+													className="btn-icon delete"
+													onClick={() => handleDeleteFile(file.id)}
+													title="Delete file"
+												>
+													<i className="fa-solid fa-trash"></i>
+												</button>
+											</div>
+										</div>
+									))
+								)}
+							</div>
+						)}
 
 				{/* Pagination */}
 				{pagination.totalPages > 1 && (
