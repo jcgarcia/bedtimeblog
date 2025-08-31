@@ -208,26 +208,6 @@ export default function MediaManagement() {
     </div>
   );
 }
-      ) : (
-        <div className="media-grid">
-          {mediaFiles.length === 0 ? (
-            <div className="media-empty">
-              <i className="fa-solid fa-image"></i>
-              <p>No media files found</p>
-              <button 
-                className="btn-primary"
-                onClick={() => setShowUploadModal(true)}
-              >
-                Upload your first file
-              </button>
-            </div>
-          ) : (
-            mediaFiles.map(file => (
-              <div key={file.id} className="media-item">
-                <div className="media-thumbnail">
-                  {isImage(file.mime_type) ? (
-                    <img 
-                      src={file.public_url} 
                       alt={file.alt_text || file.original_name}
                       onError={(e) => {
                         e.target.style.display = 'none';
