@@ -5,6 +5,12 @@ import './PageManagement.css';
 import { staticPagesAPI } from '../../../config/apiService';
 
 export default function PageManagement() {
+  // Quick Actions for static pages
+  const quickActions = [
+    { label: 'Edit About', slug: 'about' },
+    { label: 'Edit Terms', slug: 'terms' },
+    { label: 'Edit Privacy', slug: 'privacy' }
+  ];
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
