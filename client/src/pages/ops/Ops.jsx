@@ -1,17 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
-import { staticPagesAPI } from '../../config/apiService';
-import { API_ENDPOINTS } from '../../config/api';
 import './ops.css';
 import CognitoAdminPanel from '../../components/cognito-admin/CognitoAdminPanel';
 import PostManagement from './components/PostManagement';
-import PageManagement from './components/PageManagement';
 import UserManagement from './components/UserManagement';
 import CategoryManagement from './components/CategoryManagement';
 import SocialMediaManagement from './components/SocialMediaManagement';
 import SiteSettings from './components/SiteSettings';
 import Analytics from './components/Analytics';
 import MediaManagement from './components/MediaManagement';
+import PageManagement from './components/PageManagement';
 
 export default function Ops() {
   const [activeTab, setActiveTab] = useState('posts');
@@ -52,36 +50,61 @@ export default function Ops() {
           </button>
         </div>
       </div>
+
       <div className="ops-navigation">
-        <button className={activeTab === 'posts' ? 'active' : ''} onClick={() => setActiveTab('posts')}>
+        <button 
+          className={activeTab === 'posts' ? 'active' : ''} 
+          onClick={() => setActiveTab('posts')}
+        >
           <i className="fa-solid fa-file-lines"></i> Posts
         </button>
-        <button className={activeTab === 'pages' ? 'active' : ''} onClick={() => setActiveTab('pages')}>
+        <button 
+          className={activeTab === 'pages' ? 'active' : ''} 
+          onClick={() => setActiveTab('pages')}
+        >
           <i className="fa-solid fa-file-text"></i> Pages
         </button>
-        <button className={activeTab === 'users' ? 'active' : ''} onClick={() => setActiveTab('users')}>
+        <button 
+          className={activeTab === 'users' ? 'active' : ''} 
+          onClick={() => setActiveTab('users')}
+        >
           <i className="fa-solid fa-users"></i> Users
         </button>
-        <button className={activeTab === 'categories' ? 'active' : ''} onClick={() => setActiveTab('categories')}>
+        <button 
+          className={activeTab === 'categories' ? 'active' : ''} 
+          onClick={() => setActiveTab('categories')}
+        >
           <i className="fa-solid fa-tags"></i> Categories
         </button>
-        <button className={activeTab === 'social' ? 'active' : ''} onClick={() => setActiveTab('social')}>
+        <button 
+          className={activeTab === 'social' ? 'active' : ''} 
+          onClick={() => setActiveTab('social')}
+        >
           <i className="fa-solid fa-share-nodes"></i> Social Media
         </button>
-        <button className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
+        <button 
+          className={activeTab === 'settings' ? 'active' : ''} 
+          onClick={() => setActiveTab('settings')}
+        >
           <i className="fa-solid fa-gear"></i> Settings
         </button>
-        <button className={activeTab === 'analytics' ? 'active' : ''} onClick={() => setActiveTab('analytics')}>
+        <button 
+          className={activeTab === 'analytics' ? 'active' : ''} 
+          onClick={() => setActiveTab('analytics')}
+        >
           <i className="fa-solid fa-chart-line"></i> Analytics
         </button>
-        <button className={activeTab === 'media' ? 'active' : ''} onClick={() => setActiveTab('media')}>
+        <button 
+          className={activeTab === 'media' ? 'active' : ''} 
+          onClick={() => setActiveTab('media')}
+        >
           <i className="fa-solid fa-images"></i> Media
         </button>
       </div>
+
       <div className="ops-content">
         {renderContent()}
       </div>
     </div>
   );
 }
-

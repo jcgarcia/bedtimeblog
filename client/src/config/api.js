@@ -45,22 +45,12 @@ export const API_ENDPOINTS = {
   
   // Settings
   SETTINGS: {
-    GET: `${API_URL}/api/settings`,
-    UPDATE: `${API_URL}/api/settings`,
     SOCIAL: `${API_URL}/api/settings/social`,
     CONTACT: `${API_URL}/api/settings/contact`,
     SMTP: `${API_URL}/api/settings/smtp`,
     SMTP_TEST: `${API_URL}/api/settings/smtp/test`,
     OAUTH: `${API_URL}/api/settings/oauth`,
     OAUTH_TEST: (provider) => `${API_URL}/api/settings/oauth/test/${provider}`,
-  },
-  // Pages
-  PAGES: {
-    LIST: `${API_URL}/api/pages`,
-    CREATE: `${API_URL}/api/pages`,
-    GET: (id) => `${API_URL}/api/pages/${id}`,
-    UPDATE: (id) => `${API_URL}/api/pages/${id}`,
-    DELETE: (id) => `${API_URL}/api/pages/${id}`,
   },
   
   // Contact
