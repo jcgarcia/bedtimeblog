@@ -150,9 +150,14 @@ export default function PageManagement() {
                   <div>{page.menu ? 'Shown in menu' : 'Hidden from menu'}</div>
                 </div>
                 <div className="page-actions">
-                  {message && (
-                    <div className={`message error`} style={{marginBottom: '1rem'}}>{message}</div>
-                  )}
+                  <button className="btn-secondary" onClick={() => handleEditPage(page)}>
+                    <i className="fa-solid fa-edit"></i> Edit
+                  </button>
+                  <button className="btn-danger" onClick={() => handleDeletePage(page.id)}>
+                    <i className="fa-solid fa-trash"></i> Delete
+                  </button>
+                </div>
+              </div>
             ))
           )
         )}
