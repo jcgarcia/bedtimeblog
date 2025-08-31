@@ -7,22 +7,6 @@ import '../../components/LexicalEditor/LexicalEditor.css';
 import './editPage.css';
 
 export default function EditPage() {
-  // Helper: Convert plain text to Lexical JSON
-  function plainTextToLexicalJSON(text) {
-    return JSON.stringify({
-      root: {
-        children: [
-          {
-            children: [
-              { detail: 0, format: 0, mode: 'normal', style: '', text, type: 'text', version: 1 }
-            ],
-            direction: 'ltr', format: '', indent: 0, type: 'paragraph', version: 1
-          }
-        ],
-        direction: 'ltr', format: '', indent: 0, type: 'root', version: 1
-      }
-    });
-  }
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { adminUser, isAdmin } = useAdmin();
@@ -143,13 +127,13 @@ export default function EditPage() {
       setLoading(true);
       setError('');
       setSuccess('');
-      // Convert plain text to Lexical JSON for backend
+      // Save Lexical JSON from editor as-is
       const pageData = {
         slug: formData.slug.trim(),
         title: formData.title.trim(),
         meta_title: formData.meta_title.trim() || null,
         meta_description: formData.meta_description.trim() || null,
-        content: plainTextToLexicalJSON(formData.content),
+        content: formData.content,
         content_type: formData.content_type,
         status: formData.status,
         template: formData.template,
