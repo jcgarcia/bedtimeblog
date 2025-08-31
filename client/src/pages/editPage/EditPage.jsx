@@ -7,6 +7,22 @@ import '../../components/LexicalEditor/LexicalEditor.css';
 import './editPage.css';
 
 export default function EditPage() {
+  // Helper: Convert plain text to Lexical JSON
+  function plainTextToLexicalJSON(text) {
+    return JSON.stringify({
+      root: {
+        children: [
+          {
+            children: [
+              { detail: 0, format: 0, mode: 'normal', style: '', text, type: 'text', version: 1 }
+            ],
+            direction: 'ltr', format: '', indent: 0, type: 'paragraph', version: 1
+          }
+        ],
+        direction: 'ltr', format: '', indent: 0, type: 'root', version: 1
+      }
+    });
+  }
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { adminUser, isAdmin } = useAdmin();
@@ -119,30 +135,27 @@ export default function EditPage() {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.title.trim() || !formData.slug.trim() || !formData.content.trim()) {
       setError('Title, slug, and content are required');
       return;
     }
-
     try {
       setLoading(true);
       setError('');
       setSuccess('');
-
+      // Convert plain text to Lexical JSON for backend
       const pageData = {
         slug: formData.slug.trim(),
         title: formData.title.trim(),
         meta_title: formData.meta_title.trim() || null,
         meta_description: formData.meta_description.trim() || null,
-        content: formData.content,
+        content: plainTextToLexicalJSON(formData.content),
         content_type: formData.content_type,
         status: formData.status,
         template: formData.template,
         show_in_menu: formData.show_in_menu,
         menu_order: parseInt(formData.menu_order) || 0
       };
-
       if (isEditing) {
         const response = await staticPagesAPI.updatePage(pageId, pageData);
         if (response.success) {
@@ -157,7 +170,6 @@ export default function EditPage() {
         const response = await staticPagesAPI.createPage(pageData);
         if (response.success) {
           setSuccess('Page created successfully!');
-          // Reset form if creating new page
           setFormData({
             slug: '',
             title: '',
