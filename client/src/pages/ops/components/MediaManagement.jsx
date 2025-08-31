@@ -27,38 +27,50 @@ export default function MediaManagement() {
 	}, [currentFolder, pagination.page, filterType, searchTerm]);
 
 		const fetchMediaFiles = async () => {
-			try {
-				setLoading(true);
-				const params = new URLSearchParams({
-					folder: currentFolder,
-					page: pagination.page.toString(),
-					limit: pagination.limit.toString(),
-					...(filterType !== 'all' && { type: filterType }),
-					...(searchTerm && { search: searchTerm })
-				});
-
-						const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
-							headers: {
-								'Authorization': `Bearer ${localStorage.getItem('token')}`,
-							},
-						});
-						if (response.ok) {
+				try {
+					setLoading(true);
+					const token = localStorage.getItem('token');
+					if (!token) {
+						setMessage('No media access token found. Please log in.');
+						setMediaFiles([]);
+						setLoading(false);
+						return;
+					}
+					const params = new URLSearchParams({
+						folder: currentFolder,
+						page: pagination.page.toString(),
+						limit: pagination.limit.toString(),
+						...(filterType !== 'all' && { type: filterType }),
+						...(searchTerm && { search: searchTerm })
+					});
+					const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
+						headers: {
+							'Authorization': `Bearer ${token}`,
+						},
+					});
+					if (response.ok) {
+						// Try to parse JSON, fallback to error message
+						try {
 							const data = await response.json();
 							setMediaFiles(data.media || []);
 							setPagination(data.pagination || pagination);
 							setMessage('');
-						} else {
+						} catch (jsonError) {
 							const errorText = await response.text();
 							setMediaFiles([]);
-							setMessage('Error loading media files: ' + errorText);
+							setMessage('Error loading media files: Invalid JSON response.');
 						}
-			} catch (error) {
-				console.error('Error fetching media files:', error);
-				setMediaFiles([]);
-				setMessage('Error loading media files: ' + error.message);
-			} finally {
-				setLoading(false);
-			}
+					} else {
+						const errorText = await response.text();
+						setMediaFiles([]);
+						setMessage('Error loading media files: ' + errorText);
+					}
+				} catch (error) {
+					setMediaFiles([]);
+					setMessage('Error loading media files: ' + error.message);
+				} finally {
+					setLoading(false);
+				}
 		};
 
 	const fetchFolders = async () => {

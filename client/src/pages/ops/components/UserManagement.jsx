@@ -21,33 +21,31 @@ export default function UserManagement() {
 	}, []);
 
 			const fetchUsers = async () => {
-				try {
-					const token = localStorage.getItem('adminToken');
-					console.log('Fetching users with token:', token ? 'Token exists' : 'No token found');
-					console.log('API URL:', API_ENDPOINTS.ADMIN.USERS);
-					const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
-						headers: {
-							'Authorization': `Bearer ${token}`
+					try {
+						const token = localStorage.getItem('adminToken');
+						if (!token) {
+							setMessage('No admin token found. Please log in as admin.');
+							setLoading(false);
+							return;
 						}
-					});
-					console.log('Response status:', response.status);
-					console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-					if (response.ok) {
-						const data = await response.json();
-						console.log('Users data received:', data);
-						setUsers(data.users);
-						setMessage('');
-					} else {
-						const errorData = await response.text();
-						console.log('Error response:', errorData);
-						setMessage('Error loading users: ' + errorData);
+						const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
+							headers: {
+								'Authorization': `Bearer ${token}`
+							}
+						});
+						if (response.ok) {
+							const data = await response.json();
+							setUsers(data.users);
+							setMessage('');
+						} else {
+							const errorData = await response.text();
+							setMessage('Error loading users: ' + errorData);
+						}
+					} catch (error) {
+						setMessage('Error loading users: ' + error.message);
+					} finally {
+						setLoading(false);
 					}
-				} catch (error) {
-					console.error('Error fetching users:', error);
-					setMessage('Error loading users: ' + error.message);
-				} finally {
-					setLoading(false);
-				}
 			};
 
 		// Helper functions for role color and formatting

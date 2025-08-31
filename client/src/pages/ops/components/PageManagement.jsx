@@ -60,7 +60,10 @@ export default function PageManagement() {
 
   const handleEditPage = (page) => {
     setEditingPage(page);
-    setForm({ ...page });
+    setForm({
+      ...page,
+      content: typeof page.content === 'string' ? page.content : JSON.stringify(page.content, null, 2)
+    });
     setShowForm(true);
   };
 
@@ -164,12 +167,12 @@ export default function PageManagement() {
       </div>
       {showForm && (
         <div className="page-form-modal">
-          <div className="modal-content">
+          <div className="modal-content" style={{ maxWidth: 700 }}>
             <h3>{editingPage ? 'Edit Page' : 'Add New Page'}</h3>
-            <input type="text" name="title" value={form.title} onChange={handleInputChange} placeholder="Title" />
-            <input type="text" name="slug" value={form.slug} onChange={handleInputChange} placeholder="Slug" />
-            <textarea name="content" value={form.content} onChange={handleInputChange} placeholder="Content" />
-            <label>
+            <input type="text" name="title" value={form.title} onChange={handleInputChange} placeholder="Title" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
+            <input type="text" name="slug" value={form.slug} onChange={handleInputChange} placeholder="Slug" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
+            <textarea name="content" value={form.content} onChange={handleInputChange} placeholder="Content" rows={16} style={{ width: 650, fontSize: 15, minHeight: 300, marginBottom: 10 }} />
+            <label style={{ display: 'block', marginBottom: 10 }}>
               <input type="checkbox" name="published" checked={form.published} onChange={handleInputChange} /> Published
             </label>
             <div className="modal-actions">
