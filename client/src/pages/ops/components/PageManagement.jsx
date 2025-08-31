@@ -1,9 +1,7 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import LexicalEditor from '../../../components/LexicalEditor/LexicalEditor';
 import '../../../components/LexicalEditor/LexicalEditor.css';
+import './PageManagement.css';
 import { staticPagesAPI } from '../../../config/apiService';
 
 export default function PageManagement() {
@@ -62,10 +60,16 @@ export default function PageManagement() {
 
   const handleEditPage = (page) => {
     setEditingPage(page);
+    let contentString = '';
+    if (typeof page.content === 'string') {
+      contentString = page.content;
+    } else if (page.content && typeof page.content === 'object') {
+      contentString = JSON.stringify(page.content);
+    }
     setForm({
       title: page.title || '',
       slug: page.slug || '',
-      content: page.content && typeof page.content === 'string' ? page.content : (page.content && page.content.root ? JSON.stringify(page.content) : ''),
+      content: contentString,
       published: page.published || false,
       id: page.id
     });
@@ -74,7 +78,7 @@ export default function PageManagement() {
 
   const handleUpdatePage = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.PAGES.UPDATE(form.id), {
+      const response = await fetch(`${API_ENDPOINTS.PAGES.UPDATE}/${form.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
@@ -82,7 +86,6 @@ export default function PageManagement() {
       if (response.ok) {
         setMessage('Page updated successfully!');
         setShowForm(false);
-        setEditingPage(null);
         setForm({ title: '', slug: '', content: '', published: false });
         fetchPages();
       } else {
@@ -94,67 +97,62 @@ export default function PageManagement() {
   };
 
   const handleDeletePage = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this page?')) return;
-    try {
-      const response = await fetch(API_ENDPOINTS.PAGES.DELETE(id), {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        setMessage('Page deleted successfully!');
-        fetchPages();
-      } else {
+    if (window.confirm('Are you sure you want to delete this page?')) {
+      try {
+        const response = await fetch(`${API_ENDPOINTS.PAGES.DELETE}/${id}`, {
+          method: 'DELETE'
+        });
+        if (response.ok) {
+          setMessage('Page deleted successfully!');
+          fetchPages();
+        } else {
+          setMessage('Error deleting page');
+        }
+      } catch (error) {
         setMessage('Error deleting page');
       }
-    } catch (error) {
-      setMessage('Error deleting page');
     }
   };
 
-  // Quick Actions for static pages
-  const quickActions = [
-    { label: 'Edit About', slug: 'about' },
-    { label: 'Edit Terms', slug: 'terms' },
-    { label: 'Edit Privacy', slug: 'privacy' }
-  ];
-
   return (
-    <div className="page-management dashboard-style">
-      <div className="panel-header">
-        <div className="quick-actions-box">
-          <h3>Quick Actions</h3>
-          <div className="quick-btns">
-            {quickActions.map(action => (
-              <button key={action.slug} className="btn-secondary" onClick={() => {
-                const page = pages.find(p => p.slug === action.slug);
-                if (page) handleEditPage(page);
-              }}>{action.label}</button>
-            ))}
-            <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>+ New Page</button>
-          </div>
+    <div className="page-management">
+      <div className="section-header">
+        <h2>Static Page Management</h2>
+        <div className="quick-buttons">
+          {quickActions.map(action => (
+            <button key={action.slug} className="btn-secondary" onClick={() => {
+              const page = pages.find(p => p.slug === action.slug);
+              if (page) handleEditPage(page);
+            }}>{action.label}</button>
+          ))}
+          <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>+ New Page</button>
         </div>
-        <button className="btn-primary create-page-btn" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>
-          <i className="fa-solid fa-plus"></i> Create New Page
-        </button>
       </div>
       {message && (
-        <div className="error-message">{message}</div>
+        <div className="message error">{message}</div>
       )}
-      <div className="pages-cards dashboard-grid">
+      <div className="pages-grid">
         {loading ? (
-          <div>Loading pages...</div>
+          <div className="loading">Loading pages...</div>
         ) : (
           pages.length === 0 ? (
-            <div>No pages found.</div>
+            <div className="no-pages">
+              <i className="fa-solid fa-file"></i>
+              <h3>No pages found</h3>
+              <p>Create your first page by clicking the "New Page" button above.</p>
+            </div>
           ) : (
             pages.map(page => (
-              <div key={page.id} className="page-card dashboard-card">
-                <h3>{page.title}</h3>
-                <div className="page-slug"><i className="fa-solid fa-link"></i> /{page.slug}</div>
-                <div className="page-meta">
-                  <div>Template: {page.template || 'Default'}</div>
-                  <div>Updated: {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : 'N/A'}</div>
-                  <div>{page.seo ? 'SEO optimized' : 'Not optimized'}</div>
-                  <div>{page.menu ? 'Shown in menu' : 'Hidden from menu'}</div>
+              <div key={page.id} className="page-card">
+                <div className="page-header">
+                  <h3>{page.title}</h3>
+                  <span className="page-slug"><i className="fa-solid fa-link"></i> /{page.slug}</span>
+                </div>
+                <div className="page-info">
+                  <p><i className="fa-solid fa-file"></i> Template: {page.template || 'Default'}</p>
+                  <p><i className="fa-solid fa-calendar"></i> Updated: {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : 'N/A'}</p>
+                  <p><i className="fa-solid fa-search"></i> {page.seo ? 'SEO optimized' : 'Not optimized'}</p>
+                  <p><i className="fa-solid fa-bars"></i> {page.menu ? 'Shown in menu' : 'Hidden from menu'}</p>
                 </div>
                 <div className="page-actions">
                   <button className="btn-secondary" onClick={() => handleEditPage(page)}>

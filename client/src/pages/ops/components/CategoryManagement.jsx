@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './CategoryManagement.css';
 
 export default function CategoryManagement() {
 	const [categories, setCategories] = useState([

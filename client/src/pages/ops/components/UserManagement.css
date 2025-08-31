@@ -1,0 +1,121 @@
+/* UserManagement styles extracted from ops.css */
+
+.user-management {
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  margin-bottom: 32px;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.user-card {
+  background: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-info p {
+  margin: 0 0 4px 0;
+  font-size: 0.98em;
+}
+
+.user-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.no-users {
+  text-align: center;
+  color: #aaa;
+  padding: 40px 0;
+}
+
+.message.error {
+  color: #d32f2f;
+  background: #fff0f0;
+  border-radius: 6px;
+  padding: 8px 16px;
+  margin-bottom: 18px;
+}
+
+.loading {
+  text-align: center;
+  color: #888;
+  padding: 30px 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content.user-modal {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.13);
+  padding: 32px 36px;
+  min-width: 340px;
+  max-width: 700px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.3em;
+  color: #888;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: block;
+}
+
+input[type="text"] {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 1em;
+  width: 100%;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}

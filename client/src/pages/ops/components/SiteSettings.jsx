@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './SiteSettings.css';
 import { API_ENDPOINTS } from '../../../config/api';
 import CognitoAdminPanel from '../../../components/cognito-admin/CognitoAdminPanel';
 

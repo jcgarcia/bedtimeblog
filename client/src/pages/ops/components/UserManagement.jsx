@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './UserManagement.css';
 import { API_ENDPOINTS } from '../../../config/api';
 
 export default function UserManagement() {

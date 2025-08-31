@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import './SocialMediaManagement.css';
 import { API_ENDPOINTS } from '../../../config/api';
 
 export default function SocialMediaManagement() {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './MediaManagement.css';
 import { API_ENDPOINTS } from '../../../config/api';
 
 export default function MediaManagement() {
