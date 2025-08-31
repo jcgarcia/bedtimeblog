@@ -67,10 +67,16 @@ export default function PageManagement() {
   const handleEditPage = (page) => {
     setEditingPage(page);
     let contentString = '';
-    if (typeof page.content === 'string') {
+    if (page.content === undefined || page.content === null) {
+      contentString = '';
+    } else if (typeof page.content === 'string') {
       contentString = page.content;
-    } else if (page.content && typeof page.content === 'object') {
-      contentString = JSON.stringify(page.content);
+    } else if (typeof page.content === 'object') {
+      try {
+        contentString = JSON.stringify(page.content);
+      } catch {
+        contentString = '';
+      }
     }
     setForm({
       title: page.title || '',
