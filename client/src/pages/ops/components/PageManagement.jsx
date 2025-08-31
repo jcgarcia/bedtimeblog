@@ -63,8 +63,11 @@ export default function PageManagement() {
   const handleEditPage = (page) => {
     setEditingPage(page);
     setForm({
-      ...page,
-      content: typeof page.content === 'string' ? page.content : JSON.stringify(page.content, null, 2)
+      title: page.title || '',
+      slug: page.slug || '',
+      content: page.content && typeof page.content === 'string' ? page.content : (page.content && page.content.root ? JSON.stringify(page.content) : ''),
+      published: page.published || false,
+      id: page.id
     });
     setShowForm(true);
   };
@@ -115,29 +118,28 @@ export default function PageManagement() {
   ];
 
   return (
-    <div className="page-management">
-      <div className="section-header">
-        <h2>Static Page Management</h2>
-        <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>
+    <div className="page-management dashboard-style">
+      <div className="panel-header">
+        <div className="quick-actions-box">
+          <h3>Quick Actions</h3>
+          <div className="quick-btns">
+            {quickActions.map(action => (
+              <button key={action.slug} className="btn-secondary" onClick={() => {
+                const page = pages.find(p => p.slug === action.slug);
+                if (page) handleEditPage(page);
+              }}>{action.label}</button>
+            ))}
+            <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>+ New Page</button>
+          </div>
+        </div>
+        <button className="btn-primary create-page-btn" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>
           <i className="fa-solid fa-plus"></i> Create New Page
         </button>
       </div>
       {message && (
         <div className="error-message">{message}</div>
       )}
-      <div className="quick-actions">
-        <h3>Quick Actions</h3>
-        <div className="quick-btns">
-          {quickActions.map(action => (
-            <button key={action.slug} className="btn-secondary" onClick={() => {
-              const page = pages.find(p => p.slug === action.slug);
-              if (page) handleEditPage(page);
-            }}>{action.label}</button>
-          ))}
-          <button className="btn-primary" onClick={() => { setShowForm(true); setEditingPage(null); setForm({ title: '', slug: '', content: '', published: false }); }}>+ New Page</button>
-        </div>
-      </div>
-      <div className="pages-cards">
+      <div className="pages-cards dashboard-grid">
         {loading ? (
           <div>Loading pages...</div>
         ) : (
@@ -145,7 +147,7 @@ export default function PageManagement() {
             <div>No pages found.</div>
           ) : (
             pages.map(page => (
-              <div key={page.id} className="page-card">
+              <div key={page.id} className="page-card dashboard-card">
                 <h3>{page.title}</h3>
                 <div className="page-slug"><i className="fa-solid fa-link"></i> /{page.slug}</div>
                 <div className="page-meta">
