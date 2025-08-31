@@ -17,22 +17,6 @@ export default function PageManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [form, setForm] = useState({ title: '', slug: '', content: '', published: false });
-  // Helper: Convert plain text to Lexical JSON
-  function plainTextToLexicalJSON(text) {
-    return JSON.stringify({
-      root: {
-        children: [
-          {
-            children: [
-              { detail: 0, format: 0, mode: 'normal', style: '', text, type: 'text', version: 1 }
-            ],
-            direction: 'ltr', format: '', indent: 0, type: 'paragraph', version: 1
-          }
-        ],
-        direction: 'ltr', format: '', indent: 0, type: 'root', version: 1
-      }
-    });
-  }
 
   useEffect(() => {
     fetchPages();
@@ -62,8 +46,8 @@ export default function PageManagement() {
 
   const handleAddPage = async () => {
     try {
-      // Convert plain text to Lexical JSON for backend
-      const pageData = { ...form, content: plainTextToLexicalJSON(form.content) };
+      // Save Lexical JSON from editor as-is
+      const pageData = { ...form };
       const response = await fetch(API_ENDPOINTS.PAGES.CREATE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,8 +91,8 @@ export default function PageManagement() {
 
   const handleUpdatePage = async () => {
     try {
-      // Convert plain text to Lexical JSON for backend
-      const pageData = { ...form, content: plainTextToLexicalJSON(form.content) };
+      // Save Lexical JSON from editor as-is
+      const pageData = { ...form };
       const response = await fetch(`${API_ENDPOINTS.PAGES.UPDATE}/${form.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
