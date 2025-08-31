@@ -58,12 +58,44 @@ export default function EditPage() {
       if (response.success && response.data) {
         const page = response.data;
         console.log('Setting page data:', page); // Debug log
+        let contentString = '';
+        if (typeof page.content === 'string') {
+          try {
+            const parsed = JSON.parse(page.content);
+            if (parsed && parsed.root) {
+              contentString = page.content;
+            } else {
+              throw new Error('Not Lexical JSON');
+            }
+          } catch {
+            // Legacy plain text fallback
+            contentString = JSON.stringify({
+              root: {
+                children: [
+                  {
+                    children: [
+                      { detail: 0, format: 0, mode: 'normal', style: '', text: page.content, type: 'text', version: 1 }
+                    ],
+                    direction: 'ltr', format: '', indent: 0, type: 'paragraph', version: 1
+                  }
+                ],
+                direction: 'ltr', format: '', indent: 0, type: 'root', version: 1
+              }
+            });
+          }
+        } else if (typeof page.content === 'object') {
+          try {
+            contentString = JSON.stringify(page.content);
+          } catch {
+            contentString = '';
+          }
+        }
         setFormData({
           slug: page.slug || '',
           title: page.title || '',
           meta_title: page.meta_title || '',
           meta_description: page.meta_description || '',
-          content: page.content || '',
+          content: contentString,
           content_type: page.content_type || 'html',
           status: page.status || 'active',
           template: page.template || 'default',
@@ -93,12 +125,44 @@ export default function EditPage() {
         const page = response.data;
         console.log('Setting page data from slug:', page); // Debug log
         setPageId(page.id); // Set the page ID for updating
+        let contentString = '';
+        if (typeof page.content === 'string') {
+          try {
+            const parsed = JSON.parse(page.content);
+            if (parsed && parsed.root) {
+              contentString = page.content;
+            } else {
+              throw new Error('Not Lexical JSON');
+            }
+          } catch {
+            // Legacy plain text fallback
+            contentString = JSON.stringify({
+              root: {
+                children: [
+                  {
+                    children: [
+                      { detail: 0, format: 0, mode: 'normal', style: '', text: page.content, type: 'text', version: 1 }
+                    ],
+                    direction: 'ltr', format: '', indent: 0, type: 'paragraph', version: 1
+                  }
+                ],
+                direction: 'ltr', format: '', indent: 0, type: 'root', version: 1
+              }
+            });
+          }
+        } else if (typeof page.content === 'object') {
+          try {
+            contentString = JSON.stringify(page.content);
+          } catch {
+            contentString = '';
+          }
+        }
         setFormData({
           slug: page.slug || '',
           title: page.title || '',
           meta_title: page.meta_title || '',
           meta_description: page.meta_description || '',
-          content: page.content || '',
+          content: contentString,
           content_type: page.content_type || 'html',
           status: page.status || 'active',
           template: page.template || 'default',
