@@ -168,28 +168,43 @@ export default function PageManagement() {
         )}
       </div>
       {showForm && (
-        <div className="page-form-modal">
-          <div className="modal-content" style={{ maxWidth: 700 }}>
-            <h3>{editingPage ? 'Edit Page' : 'Add New Page'}</h3>
-            <input type="text" name="title" value={form.title} onChange={handleInputChange} placeholder="Title" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
-            <input type="text" name="slug" value={form.slug} onChange={handleInputChange} placeholder="Slug" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
-            <div style={{ marginBottom: 10 }}>
-              <label>Page Content</label>
-              <LexicalEditor
-                value={form.content}
-                onChange={content => setForm(prev => ({ ...prev, content }))}
-                placeholder="Start writing your page content..."
-              />
-            </div>
-            <label style={{ display: 'block', marginBottom: 10 }}>
-              <input type="checkbox" name="published" checked={form.published} onChange={handleInputChange} /> Published
-            </label>
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => { setShowForm(false); setEditingPage(null); }}>Cancel</button>
-              <button className="btn-primary" onClick={editingPage ? handleUpdatePage : handleAddPage}>
-                {editingPage ? 'Update Page' : 'Add Page'}
+        <div className="modal-overlay" onClick={() => { setShowForm(false); setEditingPage(null); }}>
+          <div className="modal-content page-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700 }}>
+            <div className="modal-header">
+              <h3>{editingPage ? `Edit Page: ${form.title}` : 'Add New Page'}</h3>
+              <button className="modal-close" onClick={() => { setShowForm(false); setEditingPage(null); }}>
+                <i className="fa-solid fa-times"></i>
               </button>
             </div>
+            <form onSubmit={e => { e.preventDefault(); editingPage ? handleUpdatePage() : handleAddPage(); }}>
+              <div className="form-group">
+                <label>Title</label>
+                <input type="text" name="title" value={form.title} onChange={handleInputChange} placeholder="Title" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
+              </div>
+              <div className="form-group">
+                <label>Slug</label>
+                <input type="text" name="slug" value={form.slug} onChange={handleInputChange} placeholder="Slug" style={{ width: 400, fontSize: 16, marginBottom: 10 }} />
+              </div>
+              <div className="form-group">
+                <label>Page Content</label>
+                <LexicalEditor
+                  value={form.content}
+                  onChange={content => setForm(prev => ({ ...prev, content }))}
+                  placeholder="Start writing your page content..."
+                />
+              </div>
+              <div className="form-group">
+                <label>
+                  <input type="checkbox" name="published" checked={form.published} onChange={handleInputChange} /> Published
+                </label>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => { setShowForm(false); setEditingPage(null); }}>Cancel</button>
+                <button type="submit" className="btn-primary">
+                  {editingPage ? 'Update Page' : 'Add Page'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
