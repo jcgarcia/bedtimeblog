@@ -213,8 +213,16 @@ function PostManagement({ navigate }) {
                       <button 
                         className="btn-small"
                         onClick={() => {
-                          console.log('Navigating to edit post:', post.id);
-                          navigate(`/write?id=${post.id}`);
+                          console.log('=== EDIT BUTTON CLICKED ===');
+                          console.log('Post ID:', post.id);
+                          console.log('Navigate function:', typeof navigate);
+                          console.log('Target URL:', `/write?id=${post.id}`);
+                          try {
+                            navigate(`/write?id=${post.id}`);
+                            console.log('Navigation called successfully');
+                          } catch (error) {
+                            console.error('Navigation error:', error);
+                          }
                         }}
                       >
                         Edit
