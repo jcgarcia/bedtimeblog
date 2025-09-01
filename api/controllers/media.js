@@ -1,5 +1,5 @@
-import AWS from 'aws-sdk';
-import util from 'util';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -8,22 +8,24 @@ import jwt from 'jsonwebtoken';
 
 // Helper: Assume IAM Role and get temporary credentials
 async function getS3ClientFromRole(config) {
-  const sts = new AWS.STS({ region: config.region });
-  const assumeRole = util.promisify(sts.assumeRole.bind(sts));
-  const params = {
+  const stsClient = new STSClient({ region: config.region });
+  const assumeRoleCommand = new AssumeRoleCommand({
     RoleArn: config.roleArn,
     RoleSessionName: 'MediaLibrarySession',
     DurationSeconds: 3600,
     ...(config.externalId ? { ExternalId: config.externalId } : {})
-  };
-  const data = await assumeRole(params);
-  return new AWS.S3({
-    accessKeyId: data.Credentials.AccessKeyId,
-    secretAccessKey: data.Credentials.SecretAccessKey,
-    sessionToken: data.Credentials.SessionToken,
+  });
+  
+  const data = await stsClient.send(assumeRoleCommand);
+  
+  return new S3Client({
     region: config.region,
-    endpoint: config.endpoint || undefined,
-    s3ForcePathStyle: true
+    credentials: {
+      accessKeyId: data.Credentials.AccessKeyId,
+      secretAccessKey: data.Credentials.SecretAccessKey,
+      sessionToken: data.Credentials.SessionToken,
+    },
+    forcePathStyle: true
   });
 }
 
@@ -120,27 +122,31 @@ export const uploadToS3 = async (req, res) => {
       if (storageType === 'aws' && settings.aws_config.roleArn) {
         // Use IAM Role with STS for AWS
         s3 = await getS3ClientFromRole(settings.aws_config);
-        BUCKET_NAME = settings.aws_config.bucket;
+        BUCKET_NAME = settings.aws_config.bucketName;
         CDN_URL = settings.aws_config.cdnUrl || '';
       } else if (storageType === 'aws') {
         // Fallback: Use static keys if role not set
-        s3 = new AWS.S3({
-          accessKeyId: settings.aws_config.accessKey,
-          secretAccessKey: settings.aws_config.secretKey,
+        s3 = new S3Client({
+          credentials: {
+            accessKeyId: settings.aws_config.accessKey,
+            secretAccessKey: settings.aws_config.secretKey,
+          },
           region: settings.aws_config.region,
           endpoint: settings.aws_config.endpoint || undefined,
-          s3ForcePathStyle: true
+          forcePathStyle: true
         });
-        BUCKET_NAME = settings.aws_config.bucket;
+        BUCKET_NAME = settings.aws_config.bucketName;
         CDN_URL = settings.aws_config.cdnUrl || '';
       } else {
         // OCI or other provider
-        s3 = new AWS.S3({
-          accessKeyId: settings.oci_config.accessKey,
-          secretAccessKey: settings.oci_config.secretKey,
+        s3 = new S3Client({
+          credentials: {
+            accessKeyId: settings.oci_config.accessKey,
+            secretAccessKey: settings.oci_config.secretKey,
+          },
           region: settings.oci_config.region,
           endpoint: settings.oci_config.endpoint || undefined,
-          s3ForcePathStyle: true
+          forcePathStyle: true
         });
         BUCKET_NAME = settings.oci_config.bucket;
         CDN_URL = settings.oci_config.endpoint || '';
@@ -152,7 +158,7 @@ export const uploadToS3 = async (req, res) => {
         // Get image dimensions if it's an image
         const { width, height } = await getImageDimensions(file.buffer, file.mimetype);
         // Upload to S3/OCI
-        const uploadParams = {
+        const uploadCommand = new PutObjectCommand({
           Bucket: BUCKET_NAME,
           Key: s3Key,
           Body: file.buffer,
@@ -163,8 +169,9 @@ export const uploadToS3 = async (req, res) => {
             uploadedBy: userId.toString(),
             uploadedAt: new Date().toISOString()
           }
-        };
-        const s3Result = await s3.upload(uploadParams).promise();
+        });
+        
+        const s3Result = await s3.send(uploadCommand);
         const publicUrl = `${CDN_URL}/${s3Key}`;
         // Save to database
         const dbQuery = `
@@ -370,10 +377,11 @@ export const deleteMediaFile = async (req, res) => {
 
     // Delete from S3
     try {
-      await s3.deleteObject({
+      const deleteCommand = new DeleteObjectCommand({
         Bucket: BUCKET_NAME,
         Key: mediaFile.s3_key
-      }).promise();
+      });
+      await s3.send(deleteCommand);
     } catch (s3Error) {
       console.error('S3 delete error:', s3Error);
       // Continue with database deletion even if S3 delete fails
