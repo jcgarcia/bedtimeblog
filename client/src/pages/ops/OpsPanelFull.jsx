@@ -210,7 +210,10 @@ function PostManagement() {
                     <td>
                       <button 
                         className="btn-small"
-                        onClick={() => window.location.href = `/write?id=${post.id}`}
+                        onClick={() => {
+                          console.log('Navigating to edit post:', post.id);
+                          window.location.href = `/write?id=${post.id}`;
+                        }}
                       >
                         Edit
                       </button>

@@ -94,10 +94,16 @@ export default function MediaManagement() {
   };
 
   const handleFileUpload = async (files) => {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      console.log('No files selected');
+      return;
+    }
 
+    console.log('Starting upload for', files.length, 'files');
     setUploading(true);
+    
     const uploadPromises = Array.from(files).map(async (file) => {
+      console.log('Uploading file:', file.name, 'size:', file.size);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folderPath', currentFolder);
@@ -111,23 +117,37 @@ export default function MediaManagement() {
           body: formData,
         });
 
+        console.log('Upload response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error(`Upload failed for ${file.name}`);
+          const errorText = await response.text();
+          console.error('Upload failed:', errorText);
+          throw new Error(`Upload failed for ${file.name}: ${response.status} ${response.statusText}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        console.log('Upload successful:', result);
+        return result;
       } catch (error) {
         console.error(`Error uploading ${file.name}:`, error);
+        alert(`Failed to upload ${file.name}: ${error.message}`);
         return null;
       }
     });
 
     try {
-      await Promise.all(uploadPromises);
-      await fetchMediaFiles();
+      const results = await Promise.all(uploadPromises);
+      const successful = results.filter(r => r !== null);
+      console.log(`Upload complete: ${successful.length}/${files.length} files uploaded`);
+      
+      if (successful.length > 0) {
+        await fetchMediaFiles();
+        alert(`Successfully uploaded ${successful.length} file(s)`);
+      }
       setShowUploadModal(false);
     } catch (error) {
       console.error('Error during upload:', error);
+      alert('Upload process failed: ' + error.message);
     } finally {
       setUploading(false);
     }

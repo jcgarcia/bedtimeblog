@@ -26,6 +26,12 @@ export default function UserManagement() {
       console.log('Fetching users with token:', token ? 'Token exists' : 'No token found');
       console.log('API URL:', API_ENDPOINTS.ADMIN.USERS);
       
+      if (!token) {
+        setMessage('Authentication required. Please login again.');
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -40,14 +46,19 @@ export default function UserManagement() {
         const data = await response.json();
         console.log('Users data received:', data);
         setUsers(data.users || data);
+        setMessage(''); // Clear any previous error messages
+      } else if (response.status === 401) {
+        setMessage('Session expired. Please login again.');
+        localStorage.removeItem('adminToken');
+        // Optionally redirect to login
       } else {
         const errorData = await response.text();
         console.log('Error response:', errorData);
-        throw new Error(`Failed to fetch users: ${response.status}`);
+        setMessage(`Failed to fetch users: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setMessage('Error loading users: ' + error.message);
+      setMessage('Network error: ' + error.message);
     } finally {
       setLoading(false);
     }

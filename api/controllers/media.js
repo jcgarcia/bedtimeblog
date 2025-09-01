@@ -83,18 +83,10 @@ const getImageDimensions = async (buffer, mimetype) => {
 // Upload file to S3
 export const uploadToS3 = async (req, res) => {
   try {
-    // Verify authentication
-    const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'Authentication required' });
-    }
-
-    let userId;
-    try {
-      const userInfo = jwt.verify(token, "jwtkey");
-      userId = userInfo.id;
-    } catch (jwtErr) {
-      return res.status(403).json({ success: false, message: 'Invalid token' });
+    // Use admin authentication (req.adminUser is set by requireAdminAuth middleware)
+    const userId = req.adminUser?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Admin authentication required' });
     }
 
     const uploadSingle = upload.single('file');
@@ -441,19 +433,8 @@ export const createMediaFolder = async (req, res) => {
   try {
     const { name, parentPath } = req.body;
     
-    // Verify authentication
-    const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'Authentication required' });
-    }
-
-    let userId;
-    try {
-      const userInfo = jwt.verify(token, "jwtkey");
-      userId = userInfo.id;
-    } catch (jwtErr) {
-      return res.status(403).json({ success: false, message: 'Invalid token' });
-    }
+    // Admin authentication is handled by requireAdminAuth middleware
+    const userId = req.adminUser.id;
 
     const sanitizedName = name.replace(/[^a-zA-Z0-9-_\s]/g, '').trim();
     const folderPath = parentPath === '/' ? `/${sanitizedName}` : `${parentPath}/${sanitizedName}`;
