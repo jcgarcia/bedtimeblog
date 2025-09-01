@@ -474,33 +474,60 @@ export const updateAwsConfig = async (req, res) => {
   try {
     const { bucketName, region, roleArn, externalId } = req.body;
     
-    const updates = [];
-    
-    if (bucketName !== undefined) {
-      updates.push({ key: 'aws_bucket_name', value: bucketName });
+    // Validate required fields
+    if (!bucketName || !region || !roleArn || !externalId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'All AWS configuration fields are required' 
+      });
     }
     
-    if (region !== undefined) {
-      updates.push({ key: 'aws_region', value: region });
-    }
+    // Create consolidated AWS config object
+    const awsConfig = {
+      bucket: bucketName,
+      region: region,
+      roleArn: roleArn,
+      externalId: externalId,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.adminUser.id
+    };
     
-    if (roleArn !== undefined) {
-      updates.push({ key: 'aws_role_arn', value: roleArn });
-    }
+    const pool = getDbPool();
     
-    if (externalId !== undefined) {
-      // Use the saveAwsExternalId function for External ID
-      const externalIdData = {
-        externalId,
-        generatedAt: new Date().toISOString(),
-        generatedBy: 'admin',
-        adminUserId: req.adminUser.id
-      };
-      updates.push({ key: 'aws_external_id', value: JSON.stringify(externalIdData) });
-    }
+    // Save the consolidated aws_config object
+    await pool.query(
+      'INSERT INTO settings (key, value, type) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, type = EXCLUDED.type',
+      ['aws_config', JSON.stringify(awsConfig), 'json']
+    );
     
-    // Update database
-    for (const update of updates) {
+    // Also save External ID separately for the External ID management
+    const externalIdData = {
+      externalId,
+      generatedAt: new Date().toISOString(),
+      generatedBy: 'admin',
+      adminUserId: req.adminUser.id
+    };
+    
+    await pool.query(
+      'INSERT INTO settings (key, value, type) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, type = EXCLUDED.type',
+      ['aws_external_id', JSON.stringify(externalIdData), 'json']
+    );
+    
+    console.log('AWS configuration saved successfully:', awsConfig);
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'AWS configuration saved successfully',
+      config: awsConfig
+    });
+  } catch (error) {
+    console.error('Error updating AWS configuration:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error saving AWS configuration' 
+    });
+  }
+};
       const existing = await pool.query(
         "SELECT id FROM settings WHERE key = $1",
         [update.key]
