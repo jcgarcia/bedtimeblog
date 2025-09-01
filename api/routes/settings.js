@@ -5,7 +5,11 @@ import {
   getSocialMediaLinks,
   updateSocialMediaLinks,
   getOAuthSettings,
-  updateOAuthSettings
+  updateOAuthSettings,
+  getAwsExternalId,
+  saveAwsExternalId,
+  getAwsConfig,
+  updateAwsConfig
 } from "../controllers/settings.js";
 import { requireAdminAuth } from "../controllers/admin.js";
 
@@ -28,5 +32,13 @@ router.get("/oauth", requireAdminAuth, getOAuthSettings);
 
 // Update OAuth configuration (admin only) 
 router.put("/oauth", requireAdminAuth, updateOAuthSettings);
+
+// AWS External ID management (admin only)
+router.get("/aws-external-id", requireAdminAuth, getAwsExternalId);
+router.post("/aws-external-id", requireAdminAuth, saveAwsExternalId);
+
+// AWS Configuration management (admin only)
+router.get("/aws-config", requireAdminAuth, getAwsConfig);
+router.put("/aws-config", requireAdminAuth, updateAwsConfig);
 
 export default router;

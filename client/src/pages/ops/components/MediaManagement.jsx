@@ -32,7 +32,7 @@ export default function MediaManagement() {
     },
     aws: {
       bucketName: '',
-      region: 'us-east-1',
+      region: 'eu-west-2',
       roleArn: '',
       externalId: ''
     }
@@ -42,6 +42,11 @@ export default function MediaManagement() {
     if (mediaServerType === 'internal') {
       fetchMediaFiles();
       fetchFolders();
+    } else if (mediaServerType === 'aws') {
+      // Load existing AWS configuration including External ID
+      loadAwsConfiguration();
+      setMediaFiles([]);
+      setFolders([]);
     } else {
       // TODO: Integrate with external media server API when available
       setMediaFiles([]);
@@ -92,6 +97,32 @@ export default function MediaManagement() {
       }
     } catch (error) {
       console.error('Error fetching folders:', error);
+    }
+  };
+
+  // Load existing AWS configuration from database
+  const loadAwsConfiguration = async () => {
+    try {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.AWS_CONFIG, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.awsConfig) {
+          setCloudConfig(prev => ({
+            ...prev,
+            aws: {
+              ...prev.aws,
+              ...data.awsConfig
+            }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading AWS configuration:', error);
     }
   };
 
@@ -222,7 +253,7 @@ export default function MediaManagement() {
   const isImage = (mimeType) => mimeType && mimeType.startsWith('image/');
 
   // Generate secure External ID for AWS S3 integration
-  const generateExternalId = () => {
+  const generateExternalId = async () => {
     // Generate cryptographically secure External ID
     // Format: alphanumeric + allowed special chars (+-=,.@:/-)
     // Length: 32 characters for high entropy
@@ -233,19 +264,63 @@ export default function MediaManagement() {
     
     const externalId = Array.from(array, byte => chars[byte % chars.length]).join('');
     
-    // Update the configuration
-    setCloudConfig(prev => ({
-      ...prev,
-      aws: { 
-        ...prev.aws, 
-        externalId: externalId 
-      }
-    }));
+    try {
+      // Save External ID to database via settings API
+      const response = await fetch(API_ENDPOINTS.SETTINGS.AWS_EXTERNAL_ID, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({
+          externalId: externalId,
+          generatedAt: new Date().toISOString(),
+          generatedBy: 'admin'
+        })
+      });
 
-    // Show success message
-    alert(`Secure External ID generated successfully!\n\nExternal ID: ${externalId}\n\n⚠️ IMPORTANT SECURITY NOTE:\n• Keep this External ID secret and secure\n• Copy this value to your AWS IAM role trust policy\n• Never share in public repositories or documentation\n• Rotate this ID quarterly for best security`);
-    
-    console.log('Generated External ID for AWS S3 integration:', externalId);
+      if (response.ok) {
+        // Update the configuration
+        setCloudConfig(prev => ({
+          ...prev,
+          aws: { 
+            ...prev.aws, 
+            externalId: externalId 
+          }
+        }));
+
+        // Copy to clipboard
+        try {
+          await navigator.clipboard.writeText(externalId);
+          alert(`✅ Secure External ID generated and copied to clipboard!\n\n🔐 External ID: ${externalId}\n\n⚠️ IMPORTANT SECURITY NOTES:\n• External ID has been saved securely in the database\n• Value copied to clipboard for easy AWS configuration\n• Keep this External ID secret and secure\n• Use this value in your AWS IAM role trust policy\n• Never share in public repositories or documentation\n• Rotate this ID quarterly for best security`);
+        } catch (clipboardError) {
+          alert(`✅ Secure External ID generated and saved!\n\n🔐 External ID: ${externalId}\n\n📋 Please manually copy this value (clipboard access not available)\n\n⚠️ IMPORTANT SECURITY NOTES:\n• External ID has been saved securely in the database\n• Keep this External ID secret and secure\n• Use this value in your AWS IAM role trust policy\n• Never share in public repositories or documentation\n• Rotate this ID quarterly for best security`);
+        }
+        
+        console.log('Generated and saved External ID for AWS S3 integration:', externalId);
+      } else {
+        throw new Error('Failed to save External ID to database');
+      }
+    } catch (error) {
+      console.error('Error saving External ID:', error);
+      alert(`❌ Error saving External ID to database.\n\nGenerated ID: ${externalId}\n\nPlease contact your system administrator.`);
+    }
+  };
+
+  // Copy External ID to clipboard
+  const copyExternalId = async () => {
+    const externalId = cloudConfig.aws.externalId;
+    if (!externalId) {
+      alert('No External ID available. Please generate one first.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(externalId);
+      alert(`📋 External ID copied to clipboard!\n\n🔐 External ID: ${externalId}\n\n⚠️ Remember: Use this value in your AWS IAM role trust policy`);
+    } catch (error) {
+      alert(`Manual copy required:\n\n🔐 External ID: ${externalId}\n\nPlease manually copy this value (clipboard access not available)`);
+    }
   };
 
   return (
@@ -360,7 +435,10 @@ export default function MediaManagement() {
                     <option value="us-east-1">US East (N. Virginia)</option>
                     <option value="us-west-2">US West (Oregon)</option>
                     <option value="eu-west-1">Europe (Ireland)</option>
+                    <option value="eu-west-2">Europe (London)</option>
+                    <option value="eu-central-1">Europe (Frankfurt)</option>
                     <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                    <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
                   </select>
                 </div>
                 <div className="config-field">
@@ -388,20 +466,52 @@ export default function MediaManagement() {
                       }))}
                       placeholder="Click Generate to create secure External ID"
                       className="external-id-input"
+                      readOnly={!!cloudConfig.aws.externalId}
                     />
                     <button
                       type="button"
                       className="btn-generate-external-id"
                       onClick={generateExternalId}
                       title="Generate secure External ID"
+                      disabled={!!cloudConfig.aws.externalId}
                     >
                       <i className="fa-solid fa-refresh"></i> Generate
                     </button>
+                    {cloudConfig.aws.externalId && (
+                      <button
+                        type="button"
+                        className="btn-copy-external-id"
+                        onClick={copyExternalId}
+                        title="Copy External ID to clipboard"
+                      >
+                        <i className="fa-solid fa-copy"></i> Copy
+                      </button>
+                    )}
+                    {cloudConfig.aws.externalId && (
+                      <button
+                        type="button"
+                        className="btn-regenerate-external-id"
+                        onClick={() => {
+                          if (confirm('⚠️ WARNING: Regenerating the External ID will invalidate the current AWS IAM role configuration.\n\nYou will need to update your AWS IAM role trust policy with the new External ID.\n\nAre you sure you want to continue?')) {
+                            setCloudConfig(prev => ({
+                              ...prev,
+                              aws: { ...prev.aws, externalId: '' }
+                            }));
+                          }
+                        }}
+                        title="Regenerate External ID (requires AWS configuration update)"
+                      >
+                        <i className="fa-solid fa-rotate"></i> Regenerate
+                      </button>
+                    )}
                   </div>
                   <div className="external-id-info">
                     <small><strong>Critical Security:</strong> External ID prevents confused deputy attacks</small>
                     <small><strong>Requirements:</strong> 2-1,224 characters, alphanumeric + special chars (+-=,.@:/-)</small>
                     <small><strong>Best Practice:</strong> Generate unique ID per AWS account, rotate quarterly</small>
+                    {cloudConfig.aws.externalId && (
+                      <small><strong>Status:</strong> ✅ External ID configured and saved securely in database</small>
+                    )}
                   </div>
                 </div>
               </div>

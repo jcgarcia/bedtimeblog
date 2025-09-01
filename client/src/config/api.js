@@ -51,6 +51,8 @@ export const API_ENDPOINTS = {
     SMTP_TEST: `${API_URL}/api/settings/smtp/test`,
     OAUTH: `${API_URL}/api/settings/oauth`,
     OAUTH_TEST: (provider) => `${API_URL}/api/settings/oauth/test/${provider}`,
+    AWS_EXTERNAL_ID: `${API_URL}/api/settings/aws-external-id`,
+    AWS_CONFIG: `${API_URL}/api/settings/aws-config`,
   },
   
   // Contact

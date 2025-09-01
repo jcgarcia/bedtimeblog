@@ -334,3 +334,204 @@ export const updateOAuthSettings = async (req, res) => {
     });
   }
 };
+
+// Get AWS External ID (admin only)
+export const getAwsExternalId = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT value, updated_at FROM settings WHERE key = 'aws_external_id'"
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        externalId: null,
+        generatedAt: null
+      });
+    }
+    
+    const setting = result.rows[0];
+    let configData;
+    try {
+      configData = JSON.parse(setting.value);
+    } catch (e) {
+      configData = { externalId: setting.value };
+    }
+    
+    res.status(200).json({
+      success: true,
+      externalId: configData.externalId,
+      generatedAt: configData.generatedAt || setting.updated_at,
+      generatedBy: configData.generatedBy || 'admin'
+    });
+  } catch (error) {
+    console.error("Error fetching AWS External ID:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching AWS External ID" 
+    });
+  }
+};
+
+// Save AWS External ID (admin only)
+export const saveAwsExternalId = async (req, res) => {
+  try {
+    const { externalId, generatedAt, generatedBy } = req.body;
+    
+    if (!externalId) {
+      return res.status(400).json({
+        success: false,
+        message: 'External ID is required'
+      });
+    }
+    
+    // Validate External ID format (AWS requirements)
+    const externalIdRegex = /^[a-zA-Z0-9+\-=,.@:\/]+$/;
+    if (!externalIdRegex.test(externalId) || externalId.length < 2 || externalId.length > 1224) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid External ID format. Must be 2-1224 characters, alphanumeric with allowed special characters: +-=,.@:/-'
+      });
+    }
+    
+    const configData = {
+      externalId,
+      generatedAt: generatedAt || new Date().toISOString(),
+      generatedBy: generatedBy || 'admin',
+      adminUserId: req.adminUser.id
+    };
+    
+    // Check if setting exists
+    const existing = await pool.query(
+      "SELECT id FROM settings WHERE key = 'aws_external_id'"
+    );
+    
+    if (existing.rows.length > 0) {
+      // Update existing
+      await pool.query(
+        `UPDATE settings SET 
+           value = $1, 
+           updated_at = CURRENT_TIMESTAMP
+         WHERE key = 'aws_external_id'`,
+        [JSON.stringify(configData)]
+      );
+    } else {
+      // Insert new
+      await pool.query(
+        `INSERT INTO settings (key, value, type, group_name, description, is_public, created_at, updated_at)
+         VALUES ($1, $2, 'json', 'aws', 'AWS External ID for S3 integration security', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        ['aws_external_id', JSON.stringify(configData)]
+      );
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: "AWS External ID saved successfully",
+      externalId: configData.externalId,
+      generatedAt: configData.generatedAt
+    });
+  } catch (error) {
+    console.error("Error saving AWS External ID:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error saving AWS External ID" 
+    });
+  }
+};
+
+// Get AWS Configuration (admin only)
+export const getAwsConfig = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key LIKE 'aws_%' ORDER BY key"
+    );
+    
+    const awsConfig = {};
+    result.rows.forEach(row => {
+      const key = row.key.replace('aws_', '');
+      try {
+        awsConfig[key] = JSON.parse(row.value);
+      } catch (e) {
+        awsConfig[key] = row.value;
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      awsConfig
+    });
+  } catch (error) {
+    console.error("Error fetching AWS configuration:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching AWS configuration" 
+    });
+  }
+};
+
+// Update AWS Configuration (admin only)
+export const updateAwsConfig = async (req, res) => {
+  try {
+    const { bucketName, region, roleArn, externalId } = req.body;
+    
+    const updates = [];
+    
+    if (bucketName !== undefined) {
+      updates.push({ key: 'aws_bucket_name', value: bucketName });
+    }
+    
+    if (region !== undefined) {
+      updates.push({ key: 'aws_region', value: region });
+    }
+    
+    if (roleArn !== undefined) {
+      updates.push({ key: 'aws_role_arn', value: roleArn });
+    }
+    
+    if (externalId !== undefined) {
+      // Use the saveAwsExternalId function for External ID
+      const externalIdData = {
+        externalId,
+        generatedAt: new Date().toISOString(),
+        generatedBy: 'admin',
+        adminUserId: req.adminUser.id
+      };
+      updates.push({ key: 'aws_external_id', value: JSON.stringify(externalIdData) });
+    }
+    
+    // Update database
+    for (const update of updates) {
+      const existing = await pool.query(
+        "SELECT id FROM settings WHERE key = $1",
+        [update.key]
+      );
+      
+      if (existing.rows.length > 0) {
+        await pool.query(
+          `UPDATE settings SET 
+             value = $1, 
+             updated_at = CURRENT_TIMESTAMP
+           WHERE key = $2`,
+          [update.value, update.key]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO settings (key, value, type, group_name, description, is_public, created_at, updated_at)
+           VALUES ($1, $2, 'string', 'aws', 'AWS S3 configuration', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [update.key, update.value]
+        );
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: "AWS configuration updated successfully"
+    });
+  } catch (error) {
+    console.error("Error updating AWS configuration:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error updating AWS configuration" 
+    });
+  }
+};
