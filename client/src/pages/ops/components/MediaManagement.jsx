@@ -543,6 +543,24 @@ export default function MediaManagement() {
                     )}
                   </div>
                 </div>
+                
+                {/* Debug Information */}
+                <div className="debug-info" style={{ 
+                  background: '#f8f9fa', 
+                  padding: '10px', 
+                  marginTop: '15px', 
+                  border: '1px solid #dee2e6',
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  borderRadius: '4px'
+                }}>
+                  <strong>🔧 Configuration Debug Status:</strong><br/>
+                  • Bucket Name: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
+                  • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
+                  • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? `${cloudConfig.aws.roleArn.substring(0, 40)}...` : 'MISSING'}</span><br/>
+                  • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                  • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                </div>
               </div>
               <div className="media-server-status">
                 <div className="status-item">
@@ -598,7 +616,14 @@ export default function MediaManagement() {
               className="btn-warning"
               onClick={mediaServerType === 'aws' ? saveAwsConfiguration : () => alert('OCI configuration will be implemented in future version.')}
               disabled={mediaServerType === 'aws' && (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId)}
-              title={mediaServerType === 'aws' ? 'Save AWS S3 configuration to database' : 'Configure OCI Object Storage'}
+              title={
+                mediaServerType === 'aws' 
+                  ? `Save AWS S3 configuration to database. Debug: bucket=${cloudConfig.aws.bucketName}, region=${cloudConfig.aws.region}, role=${cloudConfig.aws.roleArn}, externalId=${cloudConfig.aws.externalId ? 'SET' : 'MISSING'}` 
+                  : 'Configure OCI Object Storage'
+              }
+              style={{
+                opacity: mediaServerType === 'aws' && (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 0.5 : 1
+              }}
             >
               <i className="fa-solid fa-cloud"></i> {mediaServerType === 'aws' ? 'Save AWS Config' : 'Configure Cloud'}
             </button>
