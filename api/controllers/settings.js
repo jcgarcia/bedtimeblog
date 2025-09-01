@@ -474,8 +474,14 @@ export const updateAwsConfig = async (req, res) => {
   try {
     const { bucketName, region, roleArn, externalId } = req.body;
     
+    // Trim all string inputs to prevent whitespace issues
+    const trimmedBucketName = bucketName?.trim();
+    const trimmedRegion = region?.trim();
+    const trimmedRoleArn = roleArn?.trim();
+    const trimmedExternalId = externalId?.trim();
+    
     // Validate required fields
-    if (!bucketName || !region || !roleArn || !externalId) {
+    if (!trimmedBucketName || !trimmedRegion || !trimmedRoleArn || !trimmedExternalId) {
       return res.status(400).json({ 
         success: false, 
         message: 'All AWS configuration fields are required' 
@@ -484,10 +490,10 @@ export const updateAwsConfig = async (req, res) => {
     
     // Create consolidated AWS config object
     const awsConfig = {
-      bucketName: bucketName,
-      region: region,
-      roleArn: roleArn,
-      externalId: externalId,
+      bucketName: trimmedBucketName,
+      region: trimmedRegion,
+      roleArn: trimmedRoleArn,
+      externalId: trimmedExternalId,
       updatedAt: new Date().toISOString(),
       updatedBy: req.adminUser.id
     };
@@ -502,7 +508,7 @@ export const updateAwsConfig = async (req, res) => {
     
     // Also save External ID separately for the External ID management
     const externalIdData = {
-      externalId,
+      externalId: trimmedExternalId,
       generatedAt: new Date().toISOString(),
       generatedBy: 'admin',
       adminUserId: req.adminUser.id

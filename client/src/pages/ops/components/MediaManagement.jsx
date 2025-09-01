@@ -447,7 +447,7 @@ export default function MediaManagement() {
                     value={cloudConfig.aws.bucketName}
                     onChange={e => setCloudConfig(prev => ({
                       ...prev,
-                      aws: { ...prev.aws, bucketName: e.target.value }
+                      aws: { ...prev.aws, bucketName: e.target.value.trim() }
                     }))}
                     placeholder="my-media-bucket"
                   />
@@ -477,7 +477,7 @@ export default function MediaManagement() {
                     value={cloudConfig.aws.roleArn || ''}
                     onChange={e => setCloudConfig(prev => ({
                       ...prev,
-                      aws: { ...prev.aws, roleArn: e.target.value }
+                      aws: { ...prev.aws, roleArn: e.target.value.trim() }
                     }))}
                     placeholder="arn:aws:iam::ACCOUNT:role/MediaUploadRole"
                   />
@@ -491,7 +491,7 @@ export default function MediaManagement() {
                       value={cloudConfig.aws.externalId || ''}
                       onChange={e => setCloudConfig(prev => ({
                         ...prev,
-                        aws: { ...prev.aws, externalId: e.target.value }
+                        aws: { ...prev.aws, externalId: e.target.value.trim() }
                       }))}
                       placeholder="Click Generate to create secure External ID"
                       className="external-id-input"
