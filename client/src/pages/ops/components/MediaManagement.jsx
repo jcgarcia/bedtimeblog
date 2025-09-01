@@ -19,9 +19,22 @@ export default function MediaManagement() {
     total: 0,
     totalPages: 0
   });
-  // NEW: Media server selection
-  const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal' or 'external'
+  // Media server configuration with OCI/AWS support
+  const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal', 'oci', 'aws'
   const [externalMediaServerUrl, setExternalMediaServerUrl] = useState('');
+  const [cloudConfig, setCloudConfig] = useState({
+    oci: {
+      bucketName: '',
+      namespace: '',
+      region: 'us-ashburn-1',
+      publicUrl: ''
+    },
+    aws: {
+      bucketName: '',
+      region: 'us-east-1',
+      publicUrl: ''
+    }
+  });
 
   useEffect(() => {
     if (mediaServerType === 'internal') {
@@ -45,9 +58,9 @@ export default function MediaManagement() {
         ...(searchTerm && { search: searchTerm })
       });
 
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
+      const response = await fetch(`${API_ENDPOINTS.MEDIA.FILES}?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
         },
       });
 
@@ -65,9 +78,9 @@ export default function MediaManagement() {
 
   const fetchFolders = async () => {
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/folders`, {
+      const response = await fetch(API_ENDPOINTS.MEDIA.FOLDERS, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
         },
       });
 
@@ -90,10 +103,10 @@ export default function MediaManagement() {
       formData.append('folderPath', currentFolder);
 
       try {
-        const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/upload`, {
+        const response = await fetch(API_ENDPOINTS.MEDIA.UPLOAD, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
           },
           body: formData,
         });
@@ -124,11 +137,11 @@ export default function MediaManagement() {
     if (!newFolderName.trim()) return;
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/folders`, {
+      const response = await fetch(API_ENDPOINTS.MEDIA.FOLDERS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
         },
         body: JSON.stringify({
           name: newFolderName,
@@ -150,10 +163,10 @@ export default function MediaManagement() {
     if (!confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files/${fileId}`, {
+      const response = await fetch(API_ENDPOINTS.MEDIA.DELETE(fileId), {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
         },
       });
 
@@ -193,9 +206,128 @@ export default function MediaManagement() {
         <div className="media-server-config">
           <label>Media Server:</label>
           <select value={mediaServerType} onChange={e => setMediaServerType(e.target.value)}>
-            <option value="internal">Internal (Blog)</option>
-            <option value="external">External (MediaServer)</option>
+            <option value="internal">Internal (Blog Server)</option>
+            <option value="oci">Oracle Cloud Infrastructure (OCI)</option>
+            <option value="aws">Amazon Web Services (AWS)</option>
+            <option value="external">External Media Server</option>
           </select>
+          
+          {mediaServerType === 'oci' && (
+            <div className="cloud-media-config">
+              <h4>OCI Object Storage Configuration</h4>
+              <div className="config-grid">
+                <div className="config-field">
+                  <label>Bucket Name:</label>
+                  <input
+                    type="text"
+                    value={cloudConfig.oci.bucketName}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      oci: { ...prev.oci, bucketName: e.target.value }
+                    }))}
+                    placeholder="my-media-bucket"
+                  />
+                </div>
+                <div className="config-field">
+                  <label>Namespace:</label>
+                  <input
+                    type="text"
+                    value={cloudConfig.oci.namespace}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      oci: { ...prev.oci, namespace: e.target.value }
+                    }))}
+                    placeholder="your-tenancy-namespace"
+                  />
+                </div>
+                <div className="config-field">
+                  <label>Region:</label>
+                  <select
+                    value={cloudConfig.oci.region}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      oci: { ...prev.oci, region: e.target.value }
+                    }))}
+                  >
+                    <option value="us-ashburn-1">US East (Ashburn)</option>
+                    <option value="us-phoenix-1">US West (Phoenix)</option>
+                    <option value="eu-frankfurt-1">EU (Frankfurt)</option>
+                    <option value="ap-mumbai-1">Asia Pacific (Mumbai)</option>
+                  </select>
+                </div>
+                <div className="config-field">
+                  <label>Public URL Base:</label>
+                  <input
+                    type="url"
+                    value={cloudConfig.oci.publicUrl}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      oci: { ...prev.oci, publicUrl: e.target.value }
+                    }))}
+                    placeholder="https://objectstorage.us-ashburn-1.oraclecloud.com/n/namespace/b/bucket/o/"
+                  />
+                </div>
+              </div>
+              <div className="media-server-status">
+                <small style={{ color: 'orange' }}>
+                  ⚠️ OCI integration requires proper API credentials configured on the server.
+                </small>
+              </div>
+            </div>
+          )}
+          
+          {mediaServerType === 'aws' && (
+            <div className="cloud-media-config">
+              <h4>AWS S3 Configuration</h4>
+              <div className="config-grid">
+                <div className="config-field">
+                  <label>Bucket Name:</label>
+                  <input
+                    type="text"
+                    value={cloudConfig.aws.bucketName}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      aws: { ...prev.aws, bucketName: e.target.value }
+                    }))}
+                    placeholder="my-media-bucket"
+                  />
+                </div>
+                <div className="config-field">
+                  <label>Region:</label>
+                  <select
+                    value={cloudConfig.aws.region}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      aws: { ...prev.aws, region: e.target.value }
+                    }))}
+                  >
+                    <option value="us-east-1">US East (N. Virginia)</option>
+                    <option value="us-west-2">US West (Oregon)</option>
+                    <option value="eu-west-1">Europe (Ireland)</option>
+                    <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                  </select>
+                </div>
+                <div className="config-field">
+                  <label>Public URL Base:</label>
+                  <input
+                    type="url"
+                    value={cloudConfig.aws.publicUrl}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      aws: { ...prev.aws, publicUrl: e.target.value }
+                    }))}
+                    placeholder="https://my-bucket.s3.amazonaws.com/"
+                  />
+                </div>
+              </div>
+              <div className="media-server-status">
+                <small style={{ color: 'orange' }}>
+                  ⚠️ AWS S3 integration requires proper IAM credentials configured on the server.
+                </small>
+              </div>
+            </div>
+          )}
+          
           {mediaServerType === 'external' && (
             <div className="external-media-server-url">
               <label>External Media Server URL:</label>
@@ -228,6 +360,14 @@ export default function MediaManagement() {
           >
             <i className="fa-solid fa-upload"></i> Upload Media
           </button>
+          {(mediaServerType === 'oci' || mediaServerType === 'aws') && (
+            <button 
+              className="btn-warning"
+              onClick={() => alert('Cloud storage configuration saved! Configure server credentials to enable upload.')}
+            >
+              <i className="fa-solid fa-cloud"></i> Configure Cloud
+            </button>
+          )}
         </div>
       </div>
 

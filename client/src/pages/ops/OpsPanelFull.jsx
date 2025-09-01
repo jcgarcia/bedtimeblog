@@ -208,7 +208,12 @@ function PostManagement() {
                     </td>
                     <td>{new Date(post.created_at).toLocaleDateString()}</td>
                     <td>
-                      <button className="btn-small">Edit</button>
+                      <button 
+                        className="btn-small"
+                        onClick={() => window.location.href = `/write?id=${post.id}`}
+                      >
+                        Edit
+                      </button>
                       <button 
                         className="btn-small btn-danger"
                         onClick={() => handleDeletePost(post.id)}

@@ -61,7 +61,19 @@ export const API_ENDPOINTS = {
   
   // Health check
   HEALTH: `${API_URL}/health`,
+  
+  // Media management
+  MEDIA: {
+    BASE_URL: API_URL,
+    FILES: `${API_URL}/api/media/files`,
+    FOLDERS: `${API_URL}/api/media/folders`,
+    UPLOAD: `${API_URL}/api/media/upload`,
+    DELETE: (id) => `${API_URL}/api/media/files/${id}`,
+  },
 };
+
+// Export the base URL for media management
+export const BASE_URL = API_URL;
 
 // Helper function to build API URLs
 export const buildApiUrl = (endpoint) => {

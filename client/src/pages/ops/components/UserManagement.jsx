@@ -28,7 +28,8 @@ export default function UserManagement() {
       
       const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -38,7 +39,7 @@ export default function UserManagement() {
       if (response.ok) {
         const data = await response.json();
         console.log('Users data received:', data);
-        setUsers(data.users);
+        setUsers(data.users || data);
       } else {
         const errorData = await response.text();
         console.log('Error response:', errorData);
@@ -46,7 +47,7 @@ export default function UserManagement() {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setMessage('Error loading users');
+      setMessage('Error loading users: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -56,6 +57,11 @@ export default function UserManagement() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken');
+      if (!token) {
+        setMessage('Authentication required. Please login again.');
+        return;
+      }
+      
       const response = await fetch(API_ENDPOINTS.ADMIN.USERS, {
         method: 'POST',
         headers: {
@@ -81,11 +87,11 @@ export default function UserManagement() {
         setMessage('User created successfully!');
         setTimeout(() => setMessage(''), 3000);
       } else {
-        setMessage(data.message || 'Error creating user');
+        setMessage(data.message || `Error creating user: ${response.status}`);
       }
     } catch (error) {
       console.error('Error creating user:', error);
-      setMessage('Error creating user');
+      setMessage('Error creating user: ' + error.message);
     }
   };
 
