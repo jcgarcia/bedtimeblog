@@ -100,6 +100,35 @@ export default function MediaManagement() {
     }
   };
 
+  // Save AWS configuration to database
+  const saveAwsConfiguration = async () => {
+    try {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.AWS_CONFIG, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          bucketName: cloudConfig.aws.bucketName,
+          region: cloudConfig.aws.region,
+          roleArn: cloudConfig.aws.roleArn,
+          externalId: cloudConfig.aws.externalId
+        }),
+      });
+
+      if (response.ok) {
+        alert('✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• IAM Role ARN configured\n• External ID secured in database\n• Region settings applied\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Ensure AWS IAM role trust policy includes your External ID\n• Test upload functionality\n• Monitor CloudTrail for access logs');
+      } else {
+        const error = await response.text();
+        alert(`❌ Failed to save AWS configuration: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error saving AWS configuration:', error);
+      alert('❌ Error saving AWS configuration. Please check your connection and try again.');
+    }
+  };
+
   // Load existing AWS configuration from database
   const loadAwsConfiguration = async () => {
     try {
@@ -567,9 +596,11 @@ export default function MediaManagement() {
           {(mediaServerType === 'oci' || mediaServerType === 'aws') && (
             <button 
               className="btn-warning"
-              onClick={() => alert('Cloud storage configuration saved! Configure server credentials to enable upload.')}
+              onClick={mediaServerType === 'aws' ? saveAwsConfiguration : () => alert('OCI configuration will be implemented in future version.')}
+              disabled={mediaServerType === 'aws' && (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId)}
+              title={mediaServerType === 'aws' ? 'Save AWS S3 configuration to database' : 'Configure OCI Object Storage'}
             >
-              <i className="fa-solid fa-cloud"></i> Configure Cloud
+              <i className="fa-solid fa-cloud"></i> {mediaServerType === 'aws' ? 'Save AWS Config' : 'Configure Cloud'}
             </button>
           )}
         </div>
