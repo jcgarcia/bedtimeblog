@@ -484,7 +484,7 @@ export const updateAwsConfig = async (req, res) => {
     
     // Create consolidated AWS config object
     const awsConfig = {
-      bucket: bucketName,
+      bucketName: bucketName,
       region: region,
       roleArn: roleArn,
       externalId: externalId,
