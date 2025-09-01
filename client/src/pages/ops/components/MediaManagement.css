@@ -229,3 +229,33 @@
     align-self: flex-start;
   }
 }
+
+/* Debug: Make media-actions visible and prominent */
+.media-management .media-actions {
+  display: flex !important;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #fff3cd !important;  /* Bright yellow background for debugging */
+  border: 3px solid #ff6b6b !important;  /* Bright red border for debugging */
+  border-radius: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.media-management .media-actions button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  font-weight: bold !important;
+}
+
+/* Make the AWS save button extra visible */
+.media-management .media-actions .btn-warning {
+  background: #ff9800 !important;
+  color: white !important;
+  border: 2px solid #f57c00 !important;
+  font-size: 16px !important;
+  padding: 12px 20px !important;
+}

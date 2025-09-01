@@ -561,6 +561,28 @@ export default function MediaManagement() {
                   • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
                   • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
                 </div>
+                
+                {/* Prominent Save Button */}
+                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                  <button 
+                    className="btn-warning"
+                    onClick={saveAwsConfiguration}
+                    disabled={!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId}
+                    style={{
+                      backgroundColor: '#ff9800',
+                      color: 'white',
+                      border: '2px solid #f57c00',
+                      fontSize: '18px',
+                      padding: '15px 30px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      opacity: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 0.5 : 1
+                    }}
+                  >
+                    <i className="fa-solid fa-save"></i> Save AWS S3 Configuration
+                  </button>
+                </div>
               </div>
               <div className="media-server-status">
                 <div className="status-item">
