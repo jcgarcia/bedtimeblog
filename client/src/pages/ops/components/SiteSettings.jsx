@@ -165,10 +165,12 @@ export default function SiteSettings() {
 
       <div className="settings-section">
         <h3>AWS Cognito Integration</h3>
-        <CognitoAdminPanel />
+        <div className="setting-item">
+          <p>Cognito configuration will be available in a future update.</p>
+        </div>
       </div>
 
-      {/* OAuthSettings can be added here if needed */}
+      {/* OAuth Settings can be added here if needed */}
     </div>
   );
 }

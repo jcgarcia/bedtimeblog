@@ -8,15 +8,224 @@ export default function MediaManagement() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
+  // NEW: Media server selection
+  const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal' or 'external'
+  const [externalMediaServerUrl, setExternalMediaServerUrl] = useState('');
+
+  useEffect(() => {
+    if (mediaServerType === 'internal') {
+      fetchMediaFiles();
+      fetchFolders();
+    } else {
+      // TODO: Integrate with external media server API when available
+      setMediaFiles([]);
+      setFolders([]);
+    }
+  }, [currentFolder, pagination.page, filterType, searchTerm, mediaServerType]);
+
+  const fetchMediaFiles = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        folder: currentFolder,
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        ...(filterType !== 'all' && { type: filterType }),
+        ...(searchTerm && { search: searchTerm })
+      });
+
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMediaFiles(data.media || []);
+        setPagination(data.pagination || pagination);
+      }
+    } catch (error) {
+      console.error('Error fetching media files:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFolders = async () => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/folders`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data.folders || []);
+      }
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+    }
+  };
+
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const uploadPromises = Array.from(files).map(async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folderPath', currentFolder);
+
+      try {
+        const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed for ${file.name}`);
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        return null;
+      }
+    });
+
+    try {
+      await Promise.all(uploadPromises);
+      await fetchMediaFiles();
+      setShowUploadModal(false);
+    } catch (error) {
+      console.error('Error during upload:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+
+    try {
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/folders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          name: newFolderName,
+          parentPath: currentFolder
+        }),
+      });
+
+      if (response.ok) {
+        await fetchFolders();
+        setNewFolderName('');
+        setShowCreateFolder(false);
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error);
+    }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+
+    try {
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/files/${fileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        await fetchMediaFiles();
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (fileType, mimeType) => {
+    if (mimeType && mimeType.startsWith('image/')) {
+      return 'fa-image';
+    } else if (mimeType && mimeType.startsWith('video/')) {
+      return 'fa-video';
+    } else if (fileType === 'pdf') {
+      return 'fa-file-pdf';
+    }
+    return 'fa-file';
+  };
+
+  const isImage = (mimeType) => mimeType && mimeType.startsWith('image/');
+
   return (
     <div className="media-management">
       <div className="section-header">
         <h2>Media Library</h2>
+        <div className="media-server-config">
+          <label>Media Server:</label>
+          <select value={mediaServerType} onChange={e => setMediaServerType(e.target.value)}>
+            <option value="internal">Internal (Blog)</option>
+            <option value="external">External (MediaServer)</option>
+          </select>
+          {mediaServerType === 'external' && (
+            <div className="external-media-server-url">
+              <label>External Media Server URL:</label>
+              <input
+                type="url"
+                value={externalMediaServerUrl}
+                onChange={e => setExternalMediaServerUrl(e.target.value)}
+                placeholder="https://mediaserver.example.com/api"
+              />
+              <div className="media-server-warning">
+                <small style={{ color: 'orange' }}>
+                  External media server integration is not yet implemented. Please use internal server for now.
+                </small>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="media-actions">
-          <button className="btn-secondary" onClick={() => setShowCreateFolder(true)}>
+          <button 
+            className="btn-secondary"
+            onClick={() => setShowCreateFolder(true)}
+            disabled={mediaServerType === 'external'}
+          >
             <i className="fa-solid fa-folder-plus"></i> New Folder
           </button>
-          <button className="btn-primary" onClick={() => setShowUploadModal(true)}>
+          <button 
+            className="btn-primary"
+            onClick={() => setShowUploadModal(true)}
+            disabled={mediaServerType === 'external'}
+          >
             <i className="fa-solid fa-upload"></i> Upload Media
           </button>
         </div>
@@ -33,8 +242,13 @@ export default function MediaManagement() {
             className="search-input"
           />
         </div>
+        
         <div className="media-filters">
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="filter-select">
+          <select 
+            value={filterType} 
+            onChange={(e) => setFilterType(e.target.value)}
+            className="filter-select"
+          >
             <option value="all">All Files</option>
             <option value="jpg">Images (JPG)</option>
             <option value="png">Images (PNG)</option>
@@ -43,6 +257,7 @@ export default function MediaManagement() {
             <option value="mp4">Videos (MP4)</option>
           </select>
         </div>
+
         <div className="folder-breadcrumb">
           <span>Location: {currentFolder}</span>
         </div>
@@ -54,14 +269,23 @@ export default function MediaManagement() {
           <h3>Folders</h3>
           <div className="folders-grid">
             {currentFolder !== '/' && (
-              <div className="folder-item" onClick={() => setCurrentFolder('/')}> 
+              <div 
+                className="folder-item"
+                onClick={() => setCurrentFolder('/')}
+              >
                 <i className="fa-solid fa-arrow-up"></i>
                 <span>.. (Back to root)</span>
               </div>
             )}
-            {folders.filter(folder => folder.path.startsWith(currentFolder) && folder.path !== currentFolder)
+            {folders
+              .filter(folder => folder.path.startsWith(currentFolder) && 
+                               folder.path !== currentFolder)
               .map(folder => (
-                <div key={folder.id} className="folder-item" onClick={() => setCurrentFolder(folder.path)}>
+                <div 
+                  key={folder.id}
+                  className="folder-item"
+                  onClick={() => setCurrentFolder(folder.path)}
+                >
                   <i className="fa-solid fa-folder"></i>
                   <span>{folder.name}</span>
                   <small>({folder.file_count} files)</small>
@@ -80,7 +304,10 @@ export default function MediaManagement() {
             <div className="media-empty">
               <i className="fa-solid fa-image"></i>
               <p>No media files found</p>
-              <button className="btn-primary" onClick={() => setShowUploadModal(true)}>
+              <button 
+                className="btn-primary"
+                onClick={() => setShowUploadModal(true)}
+              >
                 Upload your first file
               </button>
             </div>
@@ -98,24 +325,43 @@ export default function MediaManagement() {
                       }}
                     />
                   ) : null}
-                  <div className="file-icon" style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}>
+                  <div 
+                    className="file-icon" 
+                    style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}
+                  >
                     <i className={`fa-solid ${getFileIcon(file.file_type, file.mime_type)}`}></i>
                   </div>
                 </div>
+                
                 <div className="media-info">
                   <h4 title={file.original_name}>{file.original_name}</h4>
                   <p className="file-size">{formatFileSize(file.file_size)}</p>
                   <p className="file-type">{file.file_type.toUpperCase()}</p>
-                  <p className="upload-date">{new Date(file.created_at).toLocaleDateString()}</p>
+                  <p className="upload-date">
+                    {new Date(file.created_at).toLocaleDateString()}
+                  </p>
                 </div>
+
                 <div className="media-actions">
-                  <button className="btn-icon" onClick={() => window.open(file.public_url, '_blank')} title="View file">
+                  <button 
+                    className="btn-icon"
+                    onClick={() => window.open(file.public_url, '_blank')}
+                    title="View file"
+                  >
                     <i className="fa-solid fa-eye"></i>
                   </button>
-                  <button className="btn-icon" onClick={() => navigator.clipboard.writeText(file.public_url)} title="Copy URL">
+                  <button 
+                    className="btn-icon"
+                    onClick={() => navigator.clipboard.writeText(file.public_url)}
+                    title="Copy URL"
+                  >
                     <i className="fa-solid fa-copy"></i>
                   </button>
-                  <button className="btn-icon delete" onClick={() => handleDeleteFile(file.id)} title="Delete file">
+                  <button 
+                    className="btn-icon delete"
+                    onClick={() => handleDeleteFile(file.id)}
+                    title="Delete file"
+                  >
                     <i className="fa-solid fa-trash"></i>
                   </button>
                 </div>
@@ -128,11 +374,17 @@ export default function MediaManagement() {
       {/* Pagination */}
       {pagination.totalPages > 1 && (
         <div className="pagination">
-          <button disabled={pagination.page === 1} onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}>
+          <button 
+            disabled={pagination.page === 1}
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+          >
             Previous
           </button>
           <span>Page {pagination.page} of {pagination.totalPages}</span>
-          <button disabled={pagination.page === pagination.totalPages} onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}>
+          <button 
+            disabled={pagination.page === pagination.totalPages}
+            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+          >
             Next
           </button>
         </div>
@@ -194,10 +446,17 @@ export default function MediaManagement() {
                 className="folder-input"
               />
               <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setShowCreateFolder(false)}>
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowCreateFolder(false)}
+                >
                   Cancel
                 </button>
-                <button className="btn-primary" onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+                <button 
+                  className="btn-primary"
+                  onClick={handleCreateFolder}
+                  disabled={!newFolderName.trim()}
+                >
                   Create Folder
                 </button>
               </div>
@@ -207,5 +466,4 @@ export default function MediaManagement() {
       )}
     </div>
   );
-
 }
