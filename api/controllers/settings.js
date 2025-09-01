@@ -443,18 +443,18 @@ export const saveAwsExternalId = async (req, res) => {
 export const getAwsConfig = async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key LIKE 'aws_%' ORDER BY key"
+      "SELECT value FROM settings WHERE key = 'aws_config'"
     );
     
-    const awsConfig = {};
-    result.rows.forEach(row => {
-      const key = row.key.replace('aws_', '');
+    let awsConfig = {};
+    if (result.rows.length > 0) {
       try {
-        awsConfig[key] = JSON.parse(row.value);
+        awsConfig = JSON.parse(result.rows[0].value);
       } catch (e) {
-        awsConfig[key] = row.value;
+        console.error('Error parsing aws_config JSON:', e);
+        awsConfig = {};
       }
-    });
+    }
     
     res.status(200).json({
       success: true,
