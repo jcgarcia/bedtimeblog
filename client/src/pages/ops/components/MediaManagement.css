@@ -107,18 +107,78 @@
   color: #155724;
 }
 
+/* External ID input group styling */
+.media-management .external-id-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.media-management .external-id-input {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.media-management .btn-generate-external-id {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.media-management .btn-generate-external-id:hover {
+  background: linear-gradient(135deg, #218838 0%, #1e7e6b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.media-management .btn-generate-external-id:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.media-management .external-id-info {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.media-management .external-id-info small {
+  color: #495057;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.media-management .external-id-info small:first-child {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.media-management .external-id-info small:nth-child(2) {
+  color: #6c757d;
+}
+
+.media-management .external-id-info small:last-child {
+  color: #28a745;
+  font-weight: 500;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .media-management .config-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .media-management .security-notice {
+  .media-management .external-id-input-group {
     flex-direction: column;
-    text-align: left;
   }
   
-  .media-management .security-notice i {
+  .media-management .btn-generate-external-id {
     align-self: flex-start;
   }
 }

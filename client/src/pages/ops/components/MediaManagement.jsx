@@ -221,6 +221,33 @@ export default function MediaManagement() {
 
   const isImage = (mimeType) => mimeType && mimeType.startsWith('image/');
 
+  // Generate secure External ID for AWS S3 integration
+  const generateExternalId = () => {
+    // Generate cryptographically secure External ID
+    // Format: alphanumeric + allowed special chars (+-=,.@:/-)
+    // Length: 32 characters for high entropy
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-=,.@:/-';
+    const length = 32;
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    
+    const externalId = Array.from(array, byte => chars[byte % chars.length]).join('');
+    
+    // Update the configuration
+    setCloudConfig(prev => ({
+      ...prev,
+      aws: { 
+        ...prev.aws, 
+        externalId: externalId 
+      }
+    }));
+
+    // Show success message
+    alert(`Secure External ID generated successfully!\n\nExternal ID: ${externalId}\n\n⚠️ IMPORTANT SECURITY NOTE:\n• Keep this External ID secret and secure\n• Copy this value to your AWS IAM role trust policy\n• Never share in public repositories or documentation\n• Rotate this ID quarterly for best security`);
+    
+    console.log('Generated External ID for AWS S3 integration:', externalId);
+  };
+
   return (
     <div className="media-management">
       <div className="section-header">
@@ -350,17 +377,32 @@ export default function MediaManagement() {
                   <small>Cross-account IAM role for secure access</small>
                 </div>
                 <div className="config-field">
-                  <label>External ID (Optional):</label>
-                  <input
-                    type="text"
-                    value={cloudConfig.aws.externalId || ''}
-                    onChange={e => setCloudConfig(prev => ({
-                      ...prev,
-                      aws: { ...prev.aws, externalId: e.target.value }
-                    }))}
-                    placeholder="unique-external-id"
-                  />
-                  <small>Additional security layer for role assumption</small>
+                  <label>External ID (Required):</label>
+                  <div className="external-id-input-group">
+                    <input
+                      type="text"
+                      value={cloudConfig.aws.externalId || ''}
+                      onChange={e => setCloudConfig(prev => ({
+                        ...prev,
+                        aws: { ...prev.aws, externalId: e.target.value }
+                      }))}
+                      placeholder="Click Generate to create secure External ID"
+                      className="external-id-input"
+                    />
+                    <button
+                      type="button"
+                      className="btn-generate-external-id"
+                      onClick={generateExternalId}
+                      title="Generate secure External ID"
+                    >
+                      <i className="fa-solid fa-refresh"></i> Generate
+                    </button>
+                  </div>
+                  <div className="external-id-info">
+                    <small><strong>Critical Security:</strong> External ID prevents confused deputy attacks</small>
+                    <small><strong>Requirements:</strong> 2-1,224 characters, alphanumeric + special chars (+-=,.@:/-)</small>
+                    <small><strong>Best Practice:</strong> Generate unique ID per AWS account, rotate quarterly</small>
+                  </div>
                 </div>
               </div>
               <div className="media-server-status">
