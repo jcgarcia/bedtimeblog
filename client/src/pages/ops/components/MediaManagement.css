@@ -1,0 +1,124 @@
+/* Media Management Component Styles */
+
+.media-management .cloud-media-config {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.media-management .security-notice {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.media-management .security-notice i {
+  color: #1976d2;
+  font-size: 1.2rem;
+  margin-top: 0.2rem;
+}
+
+.media-management .security-notice strong {
+  color: #1565c0;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.media-management .security-notice p {
+  margin: 0;
+  color: #424242;
+  line-height: 1.4;
+}
+
+.media-management .config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.media-management .config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.media-management .config-field label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.media-management .config-field input,
+.media-management .config-field select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.media-management .config-field small {
+  color: #666;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.media-management .media-server-status {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.media-management .status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 6px;
+  border-left: 3px solid #28a745;
+}
+
+.media-management .status-item:last-child {
+  margin-bottom: 0;
+}
+
+.media-management .status-item i {
+  color: #28a745;
+  font-size: 1rem;
+  width: 16px;
+  text-align: center;
+}
+
+.media-management .status-item span {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.media-management .status-item strong {
+  color: #155724;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .media-management .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .media-management .security-notice {
+    flex-direction: column;
+    text-align: left;
+  }
+  
+  .media-management .security-notice i {
+    align-self: flex-start;
+  }
+}

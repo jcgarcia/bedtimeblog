@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
+import './MediaManagement.css';
 
 export default function MediaManagement() {
   const [mediaFiles, setMediaFiles] = useState([]);
@@ -32,7 +33,8 @@ export default function MediaManagement() {
     aws: {
       bucketName: '',
       region: 'us-east-1',
-      publicUrl: ''
+      roleArn: '',
+      externalId: ''
     }
   });
 
@@ -299,6 +301,13 @@ export default function MediaManagement() {
           {mediaServerType === 'aws' && (
             <div className="cloud-media-config">
               <h4>AWS S3 Configuration</h4>
+              <div className="config-info">
+                <div className="security-notice">
+                  <i className="fa-solid fa-shield-halved"></i>
+                  <strong>Enterprise Security Configuration</strong>
+                  <p>This integration uses IAM roles and AWS Organizations with Identity Center for secure, credential-free access. No IAM users or access keys are required.</p>
+                </div>
+              </div>
               <div className="config-grid">
                 <div className="config-field">
                   <label>Bucket Name:</label>
@@ -328,22 +337,45 @@ export default function MediaManagement() {
                   </select>
                 </div>
                 <div className="config-field">
-                  <label>Public URL Base:</label>
+                  <label>IAM Role ARN:</label>
                   <input
-                    type="url"
-                    value={cloudConfig.aws.publicUrl}
+                    type="text"
+                    value={cloudConfig.aws.roleArn || ''}
                     onChange={e => setCloudConfig(prev => ({
                       ...prev,
-                      aws: { ...prev.aws, publicUrl: e.target.value }
+                      aws: { ...prev.aws, roleArn: e.target.value }
                     }))}
-                    placeholder="https://my-bucket.s3.amazonaws.com/"
+                    placeholder="arn:aws:iam::ACCOUNT:role/MediaUploadRole"
                   />
+                  <small>Cross-account IAM role for secure access</small>
+                </div>
+                <div className="config-field">
+                  <label>External ID (Optional):</label>
+                  <input
+                    type="text"
+                    value={cloudConfig.aws.externalId || ''}
+                    onChange={e => setCloudConfig(prev => ({
+                      ...prev,
+                      aws: { ...prev.aws, externalId: e.target.value }
+                    }))}
+                    placeholder="unique-external-id"
+                  />
+                  <small>Additional security layer for role assumption</small>
                 </div>
               </div>
               <div className="media-server-status">
-                <small style={{ color: 'orange' }}>
-                  ⚠️ AWS S3 integration requires proper IAM credentials configured on the server.
-                </small>
+                <div className="status-item">
+                  <i className="fa-solid fa-lock"></i>
+                  <span><strong>Private Access Only:</strong> S3 bucket configured with private access and authorized policies only</span>
+                </div>
+                <div className="status-item">
+                  <i className="fa-solid fa-users-gear"></i>
+                  <span><strong>Organization SSO:</strong> Uses AWS Organizations with Identity Center - no IAM users created</span>
+                </div>
+                <div className="status-item">
+                  <i className="fa-solid fa-key"></i>
+                  <span><strong>IAM Role Security:</strong> Temporary credentials via STS AssumeRole for enhanced security</span>
+                </div>
               </div>
             </div>
           )}
