@@ -528,37 +528,3 @@ export const updateAwsConfig = async (req, res) => {
     });
   }
 };
-      const existing = await pool.query(
-        "SELECT id FROM settings WHERE key = $1",
-        [update.key]
-      );
-      
-      if (existing.rows.length > 0) {
-        await pool.query(
-          `UPDATE settings SET 
-             value = $1, 
-             updated_at = CURRENT_TIMESTAMP
-           WHERE key = $2`,
-          [update.value, update.key]
-        );
-      } else {
-        await pool.query(
-          `INSERT INTO settings (key, value, type, group_name, description, is_public, created_at, updated_at)
-           VALUES ($1, $2, 'string', 'aws', 'AWS S3 configuration', false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-          [update.key, update.value]
-        );
-      }
-    }
-    
-    res.status(200).json({
-      success: true,
-      message: "AWS configuration updated successfully"
-    });
-  } catch (error) {
-    console.error("Error updating AWS configuration:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Error updating AWS configuration" 
-    });
-  }
-};
