@@ -11,6 +11,13 @@ export default function Ops() {
   const { adminUser, adminLogout } = useAdmin();
   const navigate = useNavigate();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Ops component mounted');
+    console.log('useNavigate result:', typeof navigate);
+    console.log('Navigate function:', navigate);
+  }, []);
+
   const renderContent = () => {
     switch (activeTab) {
       case 'posts':
@@ -109,6 +116,12 @@ export default function Ops() {
 function PostManagement({ navigate }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('PostManagement mounted with navigate:', typeof navigate);
+    console.log('Navigate function exists:', !!navigate);
+  }, [navigate]);
 
   useEffect(() => {
     fetchPosts();
@@ -212,16 +225,30 @@ function PostManagement({ navigate }) {
                     <td>
                       <button 
                         className="btn-small"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           console.log('=== EDIT BUTTON CLICKED ===');
+                          console.log('Event object:', e);
                           console.log('Post ID:', post.id);
                           console.log('Navigate function:', typeof navigate);
+                          console.log('Navigate function exists:', !!navigate);
                           console.log('Target URL:', `/write?id=${post.id}`);
-                          try {
-                            navigate(`/write?id=${post.id}`);
-                            console.log('Navigation called successfully');
-                          } catch (error) {
-                            console.error('Navigation error:', error);
+                          
+                          // Test alert to ensure click works
+                          alert(`Editing post: ${post.title} (ID: ${post.id})`);
+                          
+                          if (navigate && typeof navigate === 'function') {
+                            try {
+                              navigate(`/write?id=${post.id}`);
+                              console.log('Navigation called successfully');
+                            } catch (error) {
+                              console.error('Navigation error:', error);
+                            }
+                          } else {
+                            console.error('Navigate function not available!');
+                            // Fallback to window.location
+                            window.location.href = `/write?id=${post.id}`;
                           }
                         }}
                       >
