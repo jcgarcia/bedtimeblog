@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../../contexts/AdminContext';
 import { staticPagesAPI } from '../../config/apiService';
 import { API_ENDPOINTS } from '../../config/api';
@@ -8,11 +9,12 @@ import CognitoAdminPanel from '../../components/cognito-admin/CognitoAdminPanel'
 export default function Ops() {
   const [activeTab, setActiveTab] = useState('posts');
   const { adminUser, adminLogout } = useAdmin();
+  const navigate = useNavigate();
 
   const renderContent = () => {
     switch (activeTab) {
       case 'posts':
-        return <PostManagement />;
+        return <PostManagement navigate={navigate} />;
       case 'pages':
         return <PageManagement />;
       case 'users':
@@ -28,7 +30,7 @@ export default function Ops() {
       case 'media':
         return <MediaManagement />;
       default:
-        return <PostManagement />;
+        return <PostManagement navigate={navigate} />;
     }
   };
 
@@ -104,7 +106,7 @@ export default function Ops() {
 }
 
 // Post Management Component
-function PostManagement() {
+function PostManagement({ navigate }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -212,7 +214,7 @@ function PostManagement() {
                         className="btn-small"
                         onClick={() => {
                           console.log('Navigating to edit post:', post.id);
-                          window.location.href = `/write?id=${post.id}`;
+                          navigate(`/write?id=${post.id}`);
                         }}
                       >
                         Edit
