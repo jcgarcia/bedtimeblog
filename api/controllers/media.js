@@ -29,7 +29,7 @@ async function getS3ClientFromRole(config) {
   });
 }
 
-// Configure multer for memory storage (files will be uploaded to S3)
+// Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -55,7 +55,7 @@ const upload = multer({
       cb(new Error('Invalid file type. Only images, PDFs, and videos are allowed.'), false);
     }
   },
-});
+}).single('file');
 
 // Generate S3 key for file
 const generateS3Key = (originalName, userId, folderPath = '/') => {
