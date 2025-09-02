@@ -36,13 +36,22 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
+    console.log('🔍 File filter - checking file:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      encoding: file.encoding,
+      fieldname: file.fieldname
+    });
+    
     // Allowed file types
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 
                          'application/pdf', 'video/mp4', 'video/quicktime'];
     
     if (allowedTypes.includes(file.mimetype)) {
+      console.log('✅ File type allowed:', file.mimetype);
       cb(null, true);
     } else {
+      console.log('❌ File type rejected:', file.mimetype, 'not in', allowedTypes);
       cb(new Error('Invalid file type. Only images, PDFs, and videos are allowed.'), false);
     }
   },
