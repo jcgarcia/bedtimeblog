@@ -590,20 +590,22 @@ export default function MediaManagement() {
                   <i className="fa-solid fa-cloud-arrow-up"></i> Save AWS S3 Configuration
                 </button>
               </div>
+            </div>
+          )}
+
+          {mediaServerType === 'aws' && (
+            <div className="media-server-status">
+              <div className="status-item">
+                <i className="fa-solid fa-lock"></i>
+                <span><strong>Private Access Only:</strong> S3 bucket configured with private access and authorized policies only</span>
               </div>
-              <div className="media-server-status">
-                <div className="status-item">
-                  <i className="fa-solid fa-lock"></i>
-                  <span><strong>Private Access Only:</strong> S3 bucket configured with private access and authorized policies only</span>
-                </div>
-                <div className="status-item">
-                  <i className="fa-solid fa-users-gear"></i>
-                  <span><strong>Organization SSO:</strong> Uses AWS Organizations with Identity Center - no IAM users created</span>
-                </div>
-                <div className="status-item">
-                  <i className="fa-solid fa-key"></i>
-                  <span><strong>IAM Role Security:</strong> Temporary credentials via STS AssumeRole for enhanced security</span>
-                </div>
+              <div className="status-item">
+                <i className="fa-solid fa-users-gear"></i>
+                <span><strong>Organization SSO:</strong> Uses AWS Organizations with Identity Center - no IAM users created</span>
+              </div>
+              <div className="status-item">
+                <i className="fa-solid fa-key"></i>
+                <span><strong>IAM Role Security:</strong> Temporary credentials via STS AssumeRole for enhanced security</span>
               </div>
             </div>
           )}
