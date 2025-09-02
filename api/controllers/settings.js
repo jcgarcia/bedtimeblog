@@ -442,6 +442,7 @@ export const saveAwsExternalId = async (req, res) => {
 // Get AWS Configuration (admin only)
 export const getAwsConfig = async (req, res) => {
   try {
+    const pool = getDbPool();
     const result = await pool.query(
       "SELECT value FROM settings WHERE key = 'aws_config'"
     );
@@ -472,6 +473,8 @@ export const getAwsConfig = async (req, res) => {
 // Update AWS Configuration (admin only)
 export const updateAwsConfig = async (req, res) => {
   try {
+    console.log('🔧 updateAwsConfig called with:', req.body);
+    
     const { bucketName, region, roleArn, externalId } = req.body;
     
     // Trim all string inputs to prevent whitespace issues
@@ -479,6 +482,8 @@ export const updateAwsConfig = async (req, res) => {
     const trimmedRegion = region?.trim();
     const trimmedRoleArn = roleArn?.trim();
     const trimmedExternalId = externalId?.trim();
+    
+    console.log('🔧 Trimmed values:', { trimmedBucketName, trimmedRegion, trimmedRoleArn, trimmedExternalId: trimmedExternalId ? 'SET' : 'MISSING' });
     
     // Validate required fields
     if (!trimmedBucketName || !trimmedRegion || !trimmedRoleArn || !trimmedExternalId) {
@@ -512,6 +517,8 @@ export const updateAwsConfig = async (req, res) => {
       ['media_storage_type', 'aws', 'string']
     );
 
+    console.log('🔧 Media storage type set to AWS');
+
     // Also save External ID separately for the External ID management
     const externalIdData = {
       externalId: trimmedExternalId,
@@ -523,7 +530,9 @@ export const updateAwsConfig = async (req, res) => {
     await pool.query(
       'INSERT INTO settings (key, value, type) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, type = EXCLUDED.type',
       ['aws_external_id', JSON.stringify(externalIdData), 'json']
-    );    console.log('AWS configuration saved successfully:', awsConfig);
+    );
+
+    console.log('🔧 AWS configuration saved successfully:', awsConfig);
     
     res.status(200).json({ 
       success: true, 
