@@ -590,7 +590,6 @@ export default function MediaManagement() {
                   </button>
                 </div>
               </div>
-              </div>
             </div>
           )}
 

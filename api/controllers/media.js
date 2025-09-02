@@ -123,6 +123,13 @@ export const uploadToS3 = async (req, res) => {
         }
       });
       
+      // DEBUG: Log storage configuration
+      console.log('🔍 Media Upload Debug - Storage Settings:');
+      console.log('  media_storage_type:', settings.media_storage_type);
+      console.log('  aws_config exists:', !!settings.aws_config);
+      console.log('  aws_config.roleArn:', settings.aws_config?.roleArn);
+      console.log('  aws_config.bucketName:', settings.aws_config?.bucketName);
+      
       const storageType = settings.media_storage_type || 'oci';
       let s3, BUCKET_NAME, CDN_URL;
       
