@@ -8,25 +8,34 @@ import jwt from 'jsonwebtoken';
 
 // Helper: Assume IAM Role and get temporary credentials
 async function getS3ClientFromRole(config) {
-  const stsClient = new STSClient({ region: config.region });
-  const assumeRoleCommand = new AssumeRoleCommand({
-    RoleArn: config.roleArn,
-    RoleSessionName: 'MediaLibrarySession',
-    DurationSeconds: 3600,
-    ...(config.externalId ? { ExternalId: config.externalId } : {})
-  });
-  
-  const data = await stsClient.send(assumeRoleCommand);
-  
-  return new S3Client({
-    region: config.region,
-    credentials: {
-      accessKeyId: data.Credentials.AccessKeyId,
-      secretAccessKey: data.Credentials.SecretAccessKey,
-      sessionToken: data.Credentials.SessionToken,
-    },
-    forcePathStyle: true
-  });
+  try {
+    // First, try using environment variables for STS if available
+    const stsClient = new STSClient({ 
+      region: config.region,
+      // Try to use any available credentials (env vars, instance profile, etc.)
+    });
+    const assumeRoleCommand = new AssumeRoleCommand({
+      RoleArn: config.roleArn,
+      RoleSessionName: 'MediaLibrarySession',
+      DurationSeconds: 3600,
+      ...(config.externalId ? { ExternalId: config.externalId } : {})
+    });
+    
+    const data = await stsClient.send(assumeRoleCommand);
+    
+    return new S3Client({
+      region: config.region,
+      credentials: {
+        accessKeyId: data.Credentials.AccessKeyId,
+        secretAccessKey: data.Credentials.SecretAccessKey,
+        sessionToken: data.Credentials.SessionToken,
+      },
+      forcePathStyle: true
+    });
+  } catch (error) {
+    console.error('Failed to assume IAM role:', error.message);
+    throw new Error('AWS credentials not configured for role assumption. Please configure AWS access keys or use static credentials.');
+  }
 }
 
 // Configure multer for file uploads
@@ -145,9 +154,30 @@ export const uploadToS3 = async (req, res) => {
       
       if (storageType === 'aws' && settings.aws_config && settings.aws_config.roleArn) {
         // Use IAM Role with STS for AWS
-        s3 = await getS3ClientFromRole(settings.aws_config);
-        BUCKET_NAME = settings.aws_config.bucketName;
-        CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
+        try {
+          s3 = await getS3ClientFromRole(settings.aws_config);
+          BUCKET_NAME = settings.aws_config.bucketName;
+          CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
+        } catch (roleError) {
+          console.error('Role assumption failed:', roleError.message);
+          // Check if we have static credentials as fallback
+          if (settings.aws_config.accessKey && settings.aws_config.secretKey) {
+            console.log('Falling back to static AWS credentials');
+            s3 = new S3Client({
+              credentials: {
+                accessKeyId: settings.aws_config.accessKey,
+                secretAccessKey: settings.aws_config.secretKey,
+              },
+              region: settings.aws_config.region,
+              endpoint: settings.aws_config.endpoint || undefined,
+              forcePathStyle: true
+            });
+            BUCKET_NAME = settings.aws_config.bucketName;
+            CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
+          } else {
+            throw new Error('AWS IAM role assumption failed and no static credentials available. Please configure AWS access keys in Operations Center.');
+          }
+        }
       } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
         // Fallback: Use static keys if role not set
         s3 = new S3Client({
