@@ -545,13 +545,31 @@ export default function MediaManagement() {
                 </div>
               </div>
               
-              {/* Debug Information and Save Button - Below Form */}
+              {/* Two-column layout: Form on left, Debug/Save on right */}
               <div style={{ 
+                display: 'grid',
+                gridTemplateColumns: '1fr 350px',
+                gap: '30px',
                 marginTop: '20px',
-                display: 'flex',
-                justifyContent: 'flex-end'
+                alignItems: 'start'
               }}>
-                <div style={{ width: '400px' }}>
+                {/* Left column - Additional form info or spacer */}
+                <div>
+                  <div className="aws-security-info" style={{
+                    background: '#e8f5e8',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    border: '1px solid #d4edda'
+                  }}>
+                    <h5 style={{ margin: '0 0 10px 0', color: '#155724' }}>✅ Configuration Complete</h5>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#155724' }}>
+                      All AWS S3 settings are configured. Click <strong>"Save AWS S3 Configuration"</strong> to activate secure cloud storage.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right column - Debug card and save button */}
+                <div>
                   <div className="debug-info" style={{ 
                     background: '#f8f9fa', 
                     padding: '15px', 
