@@ -173,6 +173,7 @@ export default function MediaManagement() {
       try {
         const response = await fetch(API_ENDPOINTS.MEDIA.UPLOAD, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
           },
