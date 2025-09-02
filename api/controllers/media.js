@@ -100,21 +100,8 @@ export const uploadToS3 = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Admin authentication required' });
     }
 
-    // Try different field names that might be used by the frontend
-    const uploadMiddleware = (req, res, next) => {
-      const singleFile = upload.single('file');
-      singleFile(req, res, (err) => {
-        if (err && err.code === 'LIMIT_UNEXPECTED_FILE') {
-          // If 'file' field not found, try 'files'
-          const singleFiles = upload.single('files');
-          singleFiles(req, res, next);
-        } else {
-          next(err);
-        }
-      });
-    };
-    
-    uploadMiddleware(req, res, async (err) => {
+    // Use the upload middleware directly
+    upload(req, res, async (err) => {
       if (err) {
         console.error('Upload error:', err);
         return res.status(400).json({ success: false, message: err.message });
