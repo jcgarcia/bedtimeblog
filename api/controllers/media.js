@@ -100,7 +100,7 @@ export const uploadToS3 = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Admin authentication required' });
     }
 
-    // Use the upload middleware for single file upload - Fixed multer config
+    // Use the upload middleware for single file upload - Fixed multer config v2
     const uploadSingle = upload.single('file');
     uploadSingle(req, res, async (err) => {
       if (err) {
