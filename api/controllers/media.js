@@ -175,7 +175,11 @@ export const uploadToS3 = async (req, res) => {
             BUCKET_NAME = settings.aws_config.bucketName;
             CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
           } else {
-            throw new Error('AWS IAM role assumption failed and no static credentials available. Please configure AWS access keys in Operations Center.');
+            console.error('AWS IAM role assumption failed and no static credentials available');
+            return res.status(500).json({ 
+              success: false, 
+              message: 'AWS credentials not configured. Please configure AWS access keys in Operations Center or contact administrator.' 
+            });
           }
         }
       } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
@@ -205,8 +209,12 @@ export const uploadToS3 = async (req, res) => {
         BUCKET_NAME = settings.oci_config.bucket;
         CDN_URL = settings.oci_config.endpoint || '';
       } else {
-        // Default to AWS with error handling
-        throw new Error('No valid storage configuration found. Please configure AWS S3 or OCI Object Storage in Operations Center.');
+        // No valid storage configuration
+        console.error('No valid storage configuration found');
+        return res.status(500).json({ 
+          success: false, 
+          message: 'No valid storage configuration found. Please configure AWS S3 or OCI Object Storage in Operations Center.' 
+        });
       }
 
       try {
