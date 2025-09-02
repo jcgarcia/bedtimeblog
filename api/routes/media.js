@@ -12,6 +12,11 @@ import {
 
 const router = express.Router();
 
+// Handle OPTIONS requests for CORS preflight
+router.options("*", (req, res) => {
+  res.status(200).end();
+});
+
 // Media file management routes
 router.post("/upload", requireAdminAuth, uploadToS3);              // POST /api/media/upload - Upload file to S3
 router.get("/files", requireAdminAuth, getMediaFiles);             // GET /api/media/files - Get all media files with pagination
