@@ -545,50 +545,51 @@ export default function MediaManagement() {
                 </div>
               </div>
               
-              {/* Debug Information and Save Button - Right Sidebar */}
+              {/* Debug Information and Save Button - Below Form */}
               <div style={{ 
-                position: 'absolute', 
-                right: '20px', 
-                top: '20px', 
-                width: '300px',
-                zIndex: 10
+                marginTop: '20px',
+                display: 'flex',
+                justifyContent: 'flex-end'
               }}>
-                <div className="debug-info" style={{ 
-                  background: '#f8f9fa', 
-                  padding: '15px', 
-                  border: '1px solid #dee2e6',
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                  borderRadius: '4px',
-                  marginBottom: '15px'
-                }}>
-                  <strong>🔧 Configuration Debug Status:</strong><br/>
-                  • Bucket Name: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
-                  • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
-                  • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? `${cloudConfig.aws.roleArn.substring(0, 40)}...` : 'MISSING'}</span><br/>
-                  • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                  • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                <div style={{ width: '400px' }}>
+                  <div className="debug-info" style={{ 
+                    background: '#f8f9fa', 
+                    padding: '15px', 
+                    border: '1px solid #dee2e6',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    borderRadius: '4px',
+                    marginBottom: '15px'
+                  }}>
+                    <strong>🔧 Configuration Debug Status:</strong><br/>
+                    • Bucket Name: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
+                    • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
+                    • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? `${cloudConfig.aws.roleArn.substring(0, 40)}...` : 'MISSING'}</span><br/>
+                    • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                    • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                  </div>
+                  
+                  <button 
+                    className="btn-warning"
+                    onClick={saveAwsConfiguration}
+                    disabled={!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId}
+                    style={{
+                      backgroundColor: '#ff9800',
+                      color: 'white',
+                      border: '2px solid #f57c00',
+                      fontSize: '16px',
+                      padding: '12px 20px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      width: '100%',
+                      opacity: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 0.5 : 1
+                    }}
+                  >
+                    <i className="fa-solid fa-cloud-arrow-up"></i> Save AWS S3 Configuration
+                  </button>
                 </div>
-                
-                <button 
-                  className="btn-warning"
-                  onClick={saveAwsConfiguration}
-                  disabled={!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId}
-                  style={{
-                    backgroundColor: '#ff9800',
-                    color: 'white',
-                    border: '2px solid #f57c00',
-                    fontSize: '16px',
-                    padding: '12px 20px',
-                    borderRadius: '8px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    width: '100%',
-                    opacity: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 0.5 : 1
-                  }}
-                >
-                  <i className="fa-solid fa-cloud-arrow-up"></i> Save AWS S3 Configuration
-                </button>
+              </div>
               </div>
             </div>
           )}
