@@ -375,7 +375,51 @@ export const deleteMediaFile = async (req, res) => {
 
     const mediaFile = getResult.rows[0];
 
-    // Delete from S3
+    // Get storage settings from DB to initialize S3 client
+    const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'oci_config', 'aws_config')");
+    const settings = {};
+    settingsRes.rows.forEach(row => {
+      if (row.type === 'json') {
+        try { settings[row.key] = JSON.parse(row.value); } catch (e) { settings[row.key] = {}; }
+      } else {
+        settings[row.key] = row.value;
+      }
+    });
+    
+    const storageType = settings.media_storage_type || 'oci';
+    let s3, BUCKET_NAME;
+    
+    if (storageType === 'aws' && settings.aws_config.roleArn) {
+      // Use IAM Role with STS for AWS
+      s3 = await getS3ClientFromRole(settings.aws_config);
+      BUCKET_NAME = settings.aws_config.bucketName;
+    } else if (storageType === 'aws') {
+      // Fallback: Use static keys if role not set
+      s3 = new S3Client({
+        credentials: {
+          accessKeyId: settings.aws_config.accessKey,
+          secretAccessKey: settings.aws_config.secretKey,
+        },
+        region: settings.aws_config.region,
+        endpoint: settings.aws_config.endpoint || undefined,
+        forcePathStyle: true
+      });
+      BUCKET_NAME = settings.aws_config.bucketName;
+    } else {
+      // OCI or other provider
+      s3 = new S3Client({
+        credentials: {
+          accessKeyId: settings.oci_config.accessKey,
+          secretAccessKey: settings.oci_config.secretKey,
+        },
+        region: settings.oci_config.region,
+        endpoint: settings.oci_config.endpoint || undefined,
+        forcePathStyle: true
+      });
+      BUCKET_NAME = settings.oci_config.bucket;
+    }
+
+    // Delete from S3/OCI
     try {
       const deleteCommand = new DeleteObjectCommand({
         Bucket: BUCKET_NAME,
@@ -383,7 +427,7 @@ export const deleteMediaFile = async (req, res) => {
       });
       await s3.send(deleteCommand);
     } catch (s3Error) {
-      console.error('S3 delete error:', s3Error);
+      console.error('S3/OCI delete error:', s3Error);
       // Continue with database deletion even if S3 delete fails
     }
 
