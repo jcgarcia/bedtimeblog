@@ -112,19 +112,26 @@ export const uploadToS3 = async (req, res) => {
       const settings = {};
       settingsRes.rows.forEach(row => {
         if (row.type === 'json') {
-          try { settings[row.key] = JSON.parse(row.value); } catch (e) { settings[row.key] = {}; }
+          try { 
+            settings[row.key] = JSON.parse(row.value); 
+          } catch (e) { 
+            console.error(`Error parsing JSON setting ${row.key}:`, e);
+            settings[row.key] = {}; 
+          }
         } else {
           settings[row.key] = row.value;
         }
       });
+      
       const storageType = settings.media_storage_type || 'oci';
       let s3, BUCKET_NAME, CDN_URL;
-      if (storageType === 'aws' && settings.aws_config.roleArn) {
+      
+      if (storageType === 'aws' && settings.aws_config && settings.aws_config.roleArn) {
         // Use IAM Role with STS for AWS
         s3 = await getS3ClientFromRole(settings.aws_config);
         BUCKET_NAME = settings.aws_config.bucketName;
-        CDN_URL = settings.aws_config.cdnUrl || '';
-      } else if (storageType === 'aws') {
+        CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
+      } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
         // Fallback: Use static keys if role not set
         s3 = new S3Client({
           credentials: {
@@ -136,8 +143,8 @@ export const uploadToS3 = async (req, res) => {
           forcePathStyle: true
         });
         BUCKET_NAME = settings.aws_config.bucketName;
-        CDN_URL = settings.aws_config.cdnUrl || '';
-      } else {
+        CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
+      } else if (settings.oci_config && settings.oci_config.bucket) {
         // OCI or other provider
         s3 = new S3Client({
           credentials: {
@@ -150,6 +157,9 @@ export const uploadToS3 = async (req, res) => {
         });
         BUCKET_NAME = settings.oci_config.bucket;
         CDN_URL = settings.oci_config.endpoint || '';
+      } else {
+        // Default to AWS with error handling
+        throw new Error('No valid storage configuration found. Please configure AWS S3 or OCI Object Storage in Operations Center.');
       }
 
       try {
@@ -380,7 +390,12 @@ export const deleteMediaFile = async (req, res) => {
     const settings = {};
     settingsRes.rows.forEach(row => {
       if (row.type === 'json') {
-        try { settings[row.key] = JSON.parse(row.value); } catch (e) { settings[row.key] = {}; }
+        try { 
+          settings[row.key] = JSON.parse(row.value); 
+        } catch (e) { 
+          console.error(`Error parsing JSON setting ${row.key}:`, e);
+          settings[row.key] = {}; 
+        }
       } else {
         settings[row.key] = row.value;
       }
@@ -389,11 +404,11 @@ export const deleteMediaFile = async (req, res) => {
     const storageType = settings.media_storage_type || 'oci';
     let s3, BUCKET_NAME;
     
-    if (storageType === 'aws' && settings.aws_config.roleArn) {
+    if (storageType === 'aws' && settings.aws_config && settings.aws_config.roleArn) {
       // Use IAM Role with STS for AWS
       s3 = await getS3ClientFromRole(settings.aws_config);
       BUCKET_NAME = settings.aws_config.bucketName;
-    } else if (storageType === 'aws') {
+    } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
       // Fallback: Use static keys if role not set
       s3 = new S3Client({
         credentials: {
@@ -405,7 +420,7 @@ export const deleteMediaFile = async (req, res) => {
         forcePathStyle: true
       });
       BUCKET_NAME = settings.aws_config.bucketName;
-    } else {
+    } else if (settings.oci_config && settings.oci_config.bucket) {
       // OCI or other provider
       s3 = new S3Client({
         credentials: {
@@ -417,18 +432,27 @@ export const deleteMediaFile = async (req, res) => {
         forcePathStyle: true
       });
       BUCKET_NAME = settings.oci_config.bucket;
+    } else {
+      console.error('No valid storage configuration found for file deletion');
+      // Don't fail deletion if cloud storage isn't configured
+      // Just delete from database
     }
 
     // Delete from S3/OCI
-    try {
-      const deleteCommand = new DeleteObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: mediaFile.s3_key
-      });
-      await s3.send(deleteCommand);
-    } catch (s3Error) {
-      console.error('S3/OCI delete error:', s3Error);
-      // Continue with database deletion even if S3 delete fails
+    if (s3 && BUCKET_NAME) {
+      try {
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: mediaFile.s3_key
+        });
+        await s3.send(deleteCommand);
+        console.log(`Successfully deleted file from cloud storage: ${mediaFile.s3_key}`);
+      } catch (s3Error) {
+        console.error('S3/OCI delete error:', s3Error);
+        // Continue with database deletion even if S3 delete fails
+      }
+    } else {
+      console.log('No cloud storage configured, skipping cloud file deletion');
     }
 
     // Delete from database
