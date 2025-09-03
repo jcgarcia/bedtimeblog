@@ -186,7 +186,6 @@ export const uploadToS3 = async (req, res) => {
           Key: s3Key,
           Body: file.buffer,
           ContentType: file.mimetype,
-          ACL: 'public-read',
           Metadata: {
             originalName: file.originalname,
             uploadedBy: userId.toString(),
