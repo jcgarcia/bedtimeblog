@@ -20,7 +20,6 @@ export default function MediaManagement() {
     total: 0,
     totalPages: 0
   });
-  const [showConfiguration, setShowConfiguration] = useState(false);
   // Media server configuration with OCI/AWS support
   const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal', 'oci', 'aws'
   const [externalMediaServerUrl, setExternalMediaServerUrl] = useState('');
@@ -65,7 +64,7 @@ export default function MediaManagement() {
       // Load existing AWS configuration including External ID
       loadAwsConfiguration();
       fetchMediaFiles(); // For AWS, we still load from database
-      fetchFolders(); // AWS also uses folder structure now
+      fetchFolders(); // AWS also uses folder structure
     } else {
       // TODO: Integrate with external media server API when available
       setMediaFiles([]);
@@ -511,224 +510,7 @@ export default function MediaManagement() {
     <div className="media-management">
       <div className="section-header">
         <h2>Media Library</h2>
-        <div className="media-actions">
-          <button 
-            className="btn-secondary"
-            onClick={() => setShowCreateFolder(true)}
-            disabled={mediaServerType === 'external'}
-          >
-            <i className="fa-solid fa-folder-plus"></i> New Folder
-          </button>
-          <button 
-            className="btn-primary"
-            onClick={() => setShowUploadModal(true)}
-            disabled={mediaServerType === 'external'}
-          >
-            <i className="fa-solid fa-upload"></i> Upload Media
-          </button>
-        </div>
-      </div>
-
-      {/* Media Controls */}
-      <div className="media-controls">
-        <div className="media-search">
-          <input
-            type="text"
-            placeholder="Search media files..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </div>
-        
-        <div className="media-filters">
-          <select 
-            value={filterType} 
-            onChange={(e) => setFilterType(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Files</option>
-            <option value="jpg">Images (JPG)</option>
-            <option value="png">Images (PNG)</option>
-            <option value="gif">Images (GIF)</option>
-            <option value="pdf">Documents (PDF)</option>
-            <option value="mp4">Videos (MP4)</option>
-          </select>
-        </div>
-
-        <div className="folder-breadcrumb">
-          <span>Location: {currentFolder}</span>
-        </div>
-      </div>
-
-      {/* Folder Navigation - Always show if we have folders OR if we're not at root */}
-      {(folders.length > 0 || currentFolder !== '/') && (
-        <div className="folder-navigation">
-          <h3>Folders</h3>
-          <div className="folders-grid">
-            {currentFolder !== '/' && (
-              <div 
-                className="folder-item back-button"
-                onClick={() => {
-                  setCurrentFolder('/');
-                  // Force refresh of folders and files
-                  setTimeout(() => {
-                    fetchFolders();
-                    fetchMediaFiles();
-                  }, 100);
-                }}
-              >
-                <i className="fa-solid fa-arrow-up"></i>
-                <span>.. (Back to root)</span>
-              </div>
-            )}
-            {folders.length > 0 && folders
-              .filter(folder => {
-                // Show folders that are direct children of current folder
-                if (currentFolder === '/') {
-                  return !folder.path.includes('/', 1); // Root level folders
-                }
-                return folder.path.startsWith(currentFolder) && 
-                       folder.path !== currentFolder &&
-                       folder.path.split('/').length === currentFolder.split('/').length + 1;
-              })
-              .map(folder => (
-                <div 
-                  key={folder.id}
-                  className="folder-item"
-                  onClick={() => setCurrentFolder(folder.path)}
-                >
-                  <i className="fa-solid fa-folder"></i>
-                  <span>{folder.name}</span>
-                  <small>({folder.file_count} files)</small>
-                </div>
-              ))}
-            {currentFolder !== '/' && (
-              <div className="folder-current-info">
-                <i className="fa-solid fa-info-circle"></i>
-                <small>Currently viewing: {currentFolder}</small>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Media Grid */}
-      {loading ? (
-        <div className="loading">Loading media files...</div>
-      ) : (
-        <div className="media-grid">
-          {mediaFiles.length === 0 ? (
-            <div className="media-empty">
-              <i className="fa-solid fa-image"></i>
-              <p>No media files found</p>
-              <button 
-                className="btn-primary"
-                onClick={() => setShowUploadModal(true)}
-              >
-                Upload your first file
-              </button>
-            </div>
-          ) : (
-            mediaFiles.map(file => (
-              <div key={file.id} className="media-item">
-                <div className="media-thumbnail">
-                  {isImage(file.mime_type) ? (
-                    <img 
-                      src={file.thumbnail_url || file.public_url || file.signed_url} 
-                      alt={file.alt_text || file.original_name}
-                      onError={(e) => {
-                        // If thumbnail fails, try the original image
-                        if (file.thumbnail_url && e.target.src === file.thumbnail_url) {
-                          e.target.src = file.public_url || file.signed_url;
-                        } else {
-                          // If all fails, show file icon
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }
-                      }}
-                      loading="lazy"
-                    />
-                  ) : null}
-                  <div 
-                    className="file-icon" 
-                    style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}
-                  >
-                    <i className={`fa-solid ${getFileIcon(file.file_type, file.mime_type)}`}></i>
-                  </div>
-                </div>
-                
-                <div className="media-info">
-                  <h4 title={file.original_name}>{file.original_name}</h4>
-                  <p className="file-size">{formatFileSize(file.file_size)}</p>
-                  <p className="file-type">{file.file_type.toUpperCase()}</p>
-                  <p className="upload-date">
-                    {new Date(file.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="media-actions">
-                  <button 
-                    className="btn-icon"
-                    onClick={() => window.open(file.public_url || file.signed_url, '_blank')}
-                    title="View file"
-                  >
-                    <i className="fa-solid fa-eye"></i>
-                  </button>
-                  <button 
-                    className="btn-icon"
-                    onClick={() => navigator.clipboard.writeText(file.public_url || file.signed_url)}
-                    title="Copy URL"
-                  >
-                    <i className="fa-solid fa-copy"></i>
-                  </button>
-                  <button 
-                    className="btn-icon delete"
-                    onClick={() => handleDeleteFile(file.id)}
-                    title="Delete file"
-                  >
-                    <i className="fa-solid fa-trash"></i>
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="pagination">
-          <button 
-            disabled={pagination.page === 1}
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-          >
-            Previous
-          </button>
-          <span>Page {pagination.page} of {pagination.totalPages}</span>
-          <button 
-            disabled={pagination.page === pagination.totalPages}
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-          >
-            Next
-          </button>
-        </div>
-      )}
-
-      {/* Configuration Section - Collapsible */}
-      <div className="configuration-section">
-        <div className="configuration-header" onClick={() => setShowConfiguration(!showConfiguration)}>
-          <h3>
-            <i className="fa-solid fa-gear"></i>
-            Storage Configuration
-          </h3>
-          <button className="collapse-toggle">
-            <i className={`fa-solid fa-chevron-${showConfiguration ? 'up' : 'down'}`}></i>
-          </button>
-        </div>
-        
-        {showConfiguration && (
-          <div className="media-server-config">
+        <div className="media-server-config">
           <label>Media Server:</label>
           <select value={mediaServerType} onChange={e => setMediaServerType(e.target.value)}>
             <option value="internal">Internal (Blog Server)</option>
@@ -1111,46 +893,8 @@ export default function MediaManagement() {
               </div>
             </div>
           )}
-
-          {mediaServerType === 'aws' && (
-            <div className="media-server-status">
-              <div className="status-item">
-                <i className="fa-solid fa-lock"></i>
-                <span><strong>Private Access Only:</strong> S3 bucket configured with private access and authorized policies only</span>
-              </div>
-              <div className="status-item">
-                <i className="fa-solid fa-users-gear"></i>
-                <span><strong>Organization SSO:</strong> Uses AWS Organizations with Identity Center - no IAM users created</span>
-              </div>
-              <div className="status-item">
-                <i className="fa-solid fa-key"></i>
-                <span><strong>IAM Role Security:</strong> Temporary credentials via STS AssumeRole for enhanced security</span>
-              </div>
-            </div>
-          )}
-
-          <div className="config-actions">
-            {(mediaServerType === 'oci' || mediaServerType === 'aws') && (
-              <button 
-                className="btn-warning"
-                onClick={mediaServerType === 'aws' ? saveAwsConfiguration : () => alert('OCI configuration will be implemented in future version.')}
-                disabled={mediaServerType === 'aws' && !isAwsAuthValid()}
-                title={
-                  mediaServerType === 'aws' 
-                    ? `Save AWS S3 configuration to database. Auth: ${cloudConfig.aws.roleArn ? 'Role' : cloudConfig.aws.accessKey ? 'Keys' : 'None'}` 
-                    : 'Configure OCI Object Storage'
-                }
-                style={{
-                  opacity: mediaServerType === 'aws' && !isAwsAuthValid() ? 0.5 : 1
-                }}
-              >
-                <i className="fa-solid fa-cloud"></i> {mediaServerType === 'aws' ? 'Save AWS Config' : 'Configure Cloud'}
-              </button>
-            )}
-          </div>
-          </div>
-        )}
-      </div>
+        </div>
+        <div className="media-actions">
           <button 
             className="btn-secondary"
             onClick={() => setShowCreateFolder(true)}
@@ -1217,8 +961,8 @@ export default function MediaManagement() {
         </div>
       </div>
 
-      {/* Folder Navigation - Always show if we have folders OR if we're not at root */}
-      {(folders.length > 0 || currentFolder !== '/') && (
+      {/* Folder Navigation */}
+      {folders.length > 0 && (
         <div className="folder-navigation">
           <h3>Folders</h3>
           <div className="folders-grid">
@@ -1238,16 +982,9 @@ export default function MediaManagement() {
                 <span>.. (Back to root)</span>
               </div>
             )}
-            {folders.length > 0 && folders
-              .filter(folder => {
-                // Show folders that are direct children of current folder
-                if (currentFolder === '/') {
-                  return !folder.path.includes('/', 1); // Root level folders
-                }
-                return folder.path.startsWith(currentFolder) && 
-                       folder.path !== currentFolder &&
-                       folder.path.split('/').length === currentFolder.split('/').length + 1;
-              })
+            {folders
+              .filter(folder => folder.path.startsWith(currentFolder) && 
+                               folder.path !== currentFolder)
               .map(folder => (
                 <div 
                   key={folder.id}
@@ -1259,12 +996,6 @@ export default function MediaManagement() {
                   <small>({folder.file_count} files)</small>
                 </div>
               ))}
-            {currentFolder !== '/' && (
-              <div className="folder-current-info">
-                <i className="fa-solid fa-info-circle"></i>
-                <small>Currently viewing: {currentFolder}</small>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1291,19 +1022,12 @@ export default function MediaManagement() {
                 <div className="media-thumbnail">
                   {isImage(file.mime_type) ? (
                     <img 
-                      src={file.thumbnail_url || file.public_url || file.signed_url} 
+                      src={file.public_url} 
                       alt={file.alt_text || file.original_name}
                       onError={(e) => {
-                        // If thumbnail fails, try the original image
-                        if (file.thumbnail_url && e.target.src === file.thumbnail_url) {
-                          e.target.src = file.public_url || file.signed_url;
-                        } else {
-                          // If all fails, show file icon
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
                       }}
-                      loading="lazy"
                     />
                   ) : null}
                   <div 
@@ -1326,14 +1050,14 @@ export default function MediaManagement() {
                 <div className="media-actions">
                   <button 
                     className="btn-icon"
-                    onClick={() => window.open(file.public_url || file.signed_url, '_blank')}
+                    onClick={() => window.open(file.public_url, '_blank')}
                     title="View file"
                   >
                     <i className="fa-solid fa-eye"></i>
                   </button>
                   <button 
                     className="btn-icon"
-                    onClick={() => navigator.clipboard.writeText(file.public_url || file.signed_url)}
+                    onClick={() => navigator.clipboard.writeText(file.public_url)}
                     title="Copy URL"
                   >
                     <i className="fa-solid fa-copy"></i>
