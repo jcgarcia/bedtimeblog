@@ -1238,5 +1238,3 @@ export default function MediaManagement() {
     </div>
   );
 }
-
-export default MediaManagement;
