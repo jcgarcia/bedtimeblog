@@ -457,7 +457,7 @@ export default function MediaManagement() {
                   <p>This integration uses IAM roles and AWS Organizations with Identity Center for secure, credential-free access. No IAM users or access keys are required.</p>
                 </div>
               </div>
-              <div className="config-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="config-grid">
                 <div className="config-field">
                   <label>Bucket Name:</label>
                   <input
@@ -488,7 +488,7 @@ export default function MediaManagement() {
                     <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
                   </select>
                 </div>
-                <div className="config-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="config-field">
                   <label>IAM Role ARN:</label>
                   <input
                     type="text"
@@ -515,42 +515,44 @@ export default function MediaManagement() {
                       className="external-id-input"
                       readOnly={!!cloudConfig.aws.externalId}
                     />
-                    <button
-                      type="button"
-                      className="btn-generate-external-id"
-                      onClick={generateExternalId}
-                      title="Generate secure External ID"
-                      disabled={!!cloudConfig.aws.externalId}
-                    >
-                      <i className="fa-solid fa-refresh"></i> Generate
-                    </button>
-                    {cloudConfig.aws.externalId && (
+                    <div className="external-id-buttons">
                       <button
                         type="button"
-                        className="btn-copy-external-id"
-                        onClick={copyExternalId}
-                        title="Copy External ID to clipboard"
+                        className="btn-generate-external-id"
+                        onClick={generateExternalId}
+                        title="Generate secure External ID"
+                        disabled={!!cloudConfig.aws.externalId}
                       >
-                        <i className="fa-solid fa-copy"></i> Copy
+                        <i className="fa-solid fa-refresh"></i> Generate
                       </button>
-                    )}
-                    {cloudConfig.aws.externalId && (
-                      <button
-                        type="button"
-                        className="btn-regenerate-external-id"
-                        onClick={() => {
-                          if (confirm('⚠️ WARNING: Regenerating the External ID will invalidate the current AWS IAM role configuration.\n\nYou will need to update your AWS IAM role trust policy with the new External ID.\n\nAre you sure you want to continue?')) {
-                            setCloudConfig(prev => ({
-                              ...prev,
-                              aws: { ...prev.aws, externalId: '' }
-                            }));
-                          }
-                        }}
-                        title="Regenerate External ID (requires AWS configuration update)"
-                      >
-                        <i className="fa-solid fa-rotate"></i> Regenerate
-                      </button>
-                    )}
+                      {cloudConfig.aws.externalId && (
+                        <button
+                          type="button"
+                          className="btn-copy-external-id"
+                          onClick={copyExternalId}
+                          title="Copy External ID to clipboard"
+                        >
+                          <i className="fa-solid fa-copy"></i> Copy
+                        </button>
+                      )}
+                      {cloudConfig.aws.externalId && (
+                        <button
+                          type="button"
+                          className="btn-regenerate-external-id"
+                          onClick={() => {
+                            if (confirm('⚠️ WARNING: Regenerating the External ID will invalidate the current AWS IAM role configuration.\n\nYou will need to update your AWS IAM role trust policy with the new External ID.\n\nAre you sure you want to continue?')) {
+                              setCloudConfig(prev => ({
+                                ...prev,
+                                aws: { ...prev.aws, externalId: '' }
+                              }));
+                            }
+                          }}
+                          title="Regenerate External ID (requires AWS configuration update)"
+                        >
+                          <i className="fa-solid fa-rotate"></i> Regenerate
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="external-id-info">
                     <small><strong>Critical Security:</strong> External ID prevents confused deputy attacks</small>
@@ -563,14 +565,14 @@ export default function MediaManagement() {
                 </div>
 
                 {/* Access Key Configuration - Required for Authentication */}
-                <div className="config-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="config-field">
                   <div className="auth-section-header">
                     <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
                     <small style={{ color: '#dc3545' }}>
                       ⚠️ Required for authentication - expires every 12 hours, manual update needed
                     </small>
                   </div>
-                  <div className="access-key-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                  <div className="access-key-grid">
                     <div className="config-field">
                       <label>Access Key ID (Required):</label>
                       <input
@@ -614,29 +616,15 @@ export default function MediaManagement() {
                       <small style={{ color: '#dc3545' }}>Required for temporary creds</small>
                     </div>
                   </div>
-                  <div className="auth-method-note" style={{ 
-                    marginTop: '10px', 
-                    padding: '8px 12px', 
-                    background: '#fff3cd', 
-                    border: '1px solid #ffc107',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}>
+                  <div className="auth-method-note">
                     <strong>🔑 Authentication Flow:</strong> App uses these credentials → Assumes role → Gets 1-hour S3 credentials → Refreshes automatically
                   </div>
                 </div>
 
-                {/* Debug Card and Save Button - Positioned to the right of External ID */}
-                <div className="config-field" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '15px' }}>
+                {/* Configuration Status and Save Button */}
+                <div className="config-field">
                   {/* Debug Status Card */}
-                  <div className="debug-info" style={{ 
-                    background: '#f8f9fa', 
-                    padding: '10px', 
-                    border: '1px solid #dee2e6',
-                    fontSize: '11px',
-                    fontFamily: 'monospace',
-                    borderRadius: '4px'
-                  }}>
+                  <div className="debug-info">
                     <strong>🔧 Configuration Status:</strong><br/>
                     • Bucket: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
                     • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
@@ -647,20 +635,14 @@ export default function MediaManagement() {
                   </div>
 
                   {/* Configuration Complete Notice */}
-                  <div className="aws-security-info" style={{
-                    background: '#e8f5e8',
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid #d4edda',
-                    fontSize: '12px'
-                  }}>
-                    <h5 style={{ margin: '0 0 6px 0', color: '#155724', fontSize: '13px' }}>✅ Configuration Complete</h5>
-                    <p style={{ margin: '0', fontSize: '11px', color: '#155724' }}>
+                  <div className="aws-security-info">
+                    <h5>✅ Configuration Complete</h5>
+                    <p>
                       All AWS S3 settings are configured. Click <strong>"Save"</strong> to activate secure cloud storage.
                     </p>
                   </div>
                   
-                  {/* Save Button - Positioned in the right column */}
+                  {/* Save Button */}
                   <button 
                     className="btn-warning"
                     onClick={saveAwsConfiguration}
