@@ -262,6 +262,97 @@ export const uploadToS3 = async (req, res) => {
   }
 };
 
+// Helper function to sync S3 bucket with database
+async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1) {
+  try {
+    console.log('🔄 Starting S3 database sync...');
+    
+    // Get all objects from S3 bucket
+    const listCommand = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: 'uploads/' // Only sync files in uploads folder
+    });
+    
+    const s3Response = await s3Client.send(listCommand);
+    const s3Objects = s3Response.Contents || [];
+    
+    console.log(`📂 Found ${s3Objects.length} objects in S3 bucket`);
+    
+    // Get existing database records
+    const dbResult = await pool.query('SELECT s3_key FROM media');
+    const existingS3Keys = new Set(dbResult.rows.map(row => row.s3_key));
+    
+    let syncedCount = 0;
+    
+    // Add missing S3 objects to database
+    for (const s3Object of s3Objects) {
+      if (!existingS3Keys.has(s3Object.Key)) {
+        try {
+          // Parse filename and metadata from S3 key
+          const filename = path.basename(s3Object.Key);
+          const fileExtension = path.extname(filename);
+          const fileType = fileExtension.toLowerCase().replace('.', '');
+          
+          // Determine mime type based on extension
+          const mimeTypes = {
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 
+            'gif': 'image/gif', 'webp': 'image/webp', 'pdf': 'application/pdf',
+            'mp4': 'video/mp4', 'mov': 'video/quicktime'
+          };
+          const mimeType = mimeTypes[fileType] || 'application/octet-stream';
+          
+          // Extract folder path from S3 key
+          const keyParts = s3Object.Key.split('/');
+          let folderPath = '/';
+          if (keyParts.length > 2) {
+            // uploads/folder/subfolder/file.ext -> /folder/subfolder
+            folderPath = '/' + keyParts.slice(1, -1).join('/');
+          }
+          
+          // Insert into database
+          const insertQuery = `
+            INSERT INTO media (
+              filename, original_name, file_type, file_size, s3_key, s3_bucket,
+              public_url, uploaded_by, folder_path, mime_type, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (s3_key) DO NOTHING
+            RETURNING id
+          `;
+          
+          const insertResult = await pool.query(insertQuery, [
+            filename,
+            filename, // Use filename as original name since we don't have metadata
+            fileType,
+            s3Object.Size,
+            s3Object.Key,
+            bucketName,
+            'PRIVATE_BUCKET', // Placeholder for private bucket
+            defaultUserId,
+            folderPath,
+            mimeType,
+            s3Object.LastModified
+          ]);
+          
+          if (insertResult.rows.length > 0) {
+            syncedCount++;
+            console.log(`✅ Synced: ${s3Object.Key}`);
+          }
+          
+        } catch (syncError) {
+          console.error(`❌ Failed to sync ${s3Object.Key}:`, syncError.message);
+        }
+      }
+    }
+    
+    console.log(`🎉 S3 sync completed: ${syncedCount} new files added to database`);
+    return syncedCount;
+    
+  } catch (error) {
+    console.error('❌ S3 sync failed:', error);
+    throw error;
+  }
+}
+
 // Get all media files
 export const getMediaFiles = async (req, res) => {
   try {
@@ -272,6 +363,34 @@ export const getMediaFiles = async (req, res) => {
     const folderPath = req.query.folder || '/';
     const fileType = req.query.type;
     const search = req.query.search;
+    const enableSync = req.query.sync === 'true'; // Optional sync parameter
+
+    // Check if S3 sync is enabled and get AWS config
+    let syncPerformed = false;
+    if (enableSync) {
+      try {
+        console.log('🔄 S3 sync requested, checking AWS configuration...');
+        
+        const settingsRes = await pool.query("SELECT key, value FROM settings WHERE key IN ('media_storage_type', 'aws_config')");
+        const settings = {};
+        settingsRes.rows.forEach(row => {
+          try {
+            settings[row.key] = row.key === 'aws_config' ? JSON.parse(row.value) : row.value;
+          } catch (e) {
+            console.error(`Error parsing setting ${row.key}:`, e);
+          }
+        });
+        
+        if (settings.media_storage_type === 'aws' && settings.aws_config) {
+          const s3Client = await getS3Client(settings.aws_config);
+          const syncedCount = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
+          syncPerformed = true;
+          console.log(`✅ S3 sync completed: ${syncedCount} files synced`);
+        }
+      } catch (syncError) {
+        console.error('⚠️ S3 sync failed, continuing with database query:', syncError.message);
+      }
+    }
 
     let query = `
       SELECT m.*, u.username, u.first_name, u.last_name
@@ -331,6 +450,7 @@ export const getMediaFiles = async (req, res) => {
     res.json({
       success: true,
       media: mediaWithSignedUrls,
+      syncPerformed,
       pagination: {
         page,
         limit,
@@ -648,6 +768,62 @@ export const refreshAWSCredentials = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: `Failed to refresh credentials: ${error.message}` 
+    });
+  }
+};
+
+// Manual S3 sync endpoint
+export const syncS3Files = async (req, res) => {
+  try {
+    console.log('🔄 Manual S3 sync requested');
+    
+    const pool = getDbPool();
+    
+    // Get AWS configuration
+    const settingsRes = await pool.query("SELECT key, value FROM settings WHERE key IN ('media_storage_type', 'aws_config')");
+    const settings = {};
+    settingsRes.rows.forEach(row => {
+      try {
+        settings[row.key] = row.key === 'aws_config' ? JSON.parse(row.value) : row.value;
+      } catch (e) {
+        console.error(`Error parsing setting ${row.key}:`, e);
+        return res.status(500).json({
+          success: false,
+          message: `Configuration error: ${e.message}`
+        });
+      }
+    });
+    
+    if (settings.media_storage_type !== 'aws' || !settings.aws_config) {
+      return res.status(400).json({
+        success: false,
+        message: 'AWS S3 is not configured as the storage provider'
+      });
+    }
+    
+    if (!settings.aws_config.bucketName) {
+      return res.status(400).json({
+        success: false,
+        message: 'AWS S3 bucket name is not configured'
+      });
+    }
+    
+    // Get S3 client and perform sync
+    const s3Client = await getS3Client(settings.aws_config);
+    const syncedCount = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
+    
+    res.json({
+      success: true,
+      message: `Successfully synced ${syncedCount} files from S3 bucket`,
+      syncedCount,
+      bucketName: settings.aws_config.bucketName
+    });
+    
+  } catch (error) {
+    console.error('❌ Manual S3 sync failed:', error);
+    res.status(500).json({
+      success: false,
+      message: `S3 sync failed: ${error.message}`
     });
   }
 };
