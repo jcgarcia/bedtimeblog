@@ -602,6 +602,16 @@ export const testAwsConnection = async (req, res) => {
     
     const { bucketName, region, roleArn, externalId, accessKey, secretKey, sessionToken } = req.body;
     
+    console.log('🔍 Connection test parameters:', { 
+      bucketName, 
+      region, 
+      hasRoleArn: !!roleArn, 
+      hasExternalId: !!externalId,
+      hasAccessKey: !!accessKey,
+      hasSecretKey: !!secretKey,
+      hasSessionToken: !!sessionToken
+    });
+    
     // Validate required fields
     if (!bucketName || !region) {
       return res.status(400).json({
@@ -621,26 +631,67 @@ export const testAwsConnection = async (req, res) => {
       });
     }
     
-    // Create S3 client configuration
-    let s3Config = {
-      region: region,
-      forcePathStyle: false
-    };
+    let finalCredentials;
+    let authMethod;
     
     // Configure credentials based on authentication method
-    if (hasAccessKeys) {
-      s3Config.credentials = {
+    if (hasAccessKeys && hasRoleAuth) {
+      // We have both - use Identity Center credentials to assume the role
+      console.log('🔑 Using Identity Center credentials to assume IAM role');
+      try {
+        const { STSClient, AssumeRoleCommand } = await import('@aws-sdk/client-sts');
+        
+        const stsClient = new STSClient({
+          region: region,
+          credentials: {
+            accessKeyId: accessKey,
+            secretAccessKey: secretKey,
+            sessionToken: sessionToken
+          }
+        });
+        
+        console.log('🎭 Assuming role:', roleArn);
+        
+        const assumeRoleCommand = new AssumeRoleCommand({
+          RoleArn: roleArn,
+          RoleSessionName: 'MediaLibraryConnectionTest',
+          DurationSeconds: 3600,
+          ExternalId: externalId
+        });
+        
+        const assumeRoleResponse = await stsClient.send(assumeRoleCommand);
+        
+        finalCredentials = {
+          accessKeyId: assumeRoleResponse.Credentials.AccessKeyId,
+          secretAccessKey: assumeRoleResponse.Credentials.SecretAccessKey,
+          sessionToken: assumeRoleResponse.Credentials.SessionToken
+        };
+        
+        authMethod = 'IAM Role (via Identity Center)';
+        console.log('✅ Successfully assumed role');
+        
+      } catch (roleError) {
+        console.error('❌ Failed to assume role:', roleError);
+        return res.status(403).json({
+          success: false,
+          message: `Failed to assume IAM role: ${roleError.message}. Check role ARN, external ID, and trust policy.`,
+          error: roleError.name
+        });
+      }
+    } else if (hasAccessKeys) {
+      // Use temporary credentials directly
+      finalCredentials = {
         accessKeyId: accessKey,
         secretAccessKey: secretKey,
         sessionToken: sessionToken
       };
-      console.log('🔑 Using temporary access keys for test');
+      authMethod = 'Temporary Access Keys (Direct)';
+      console.log('🔑 Using temporary access keys directly');
     } else if (hasRoleAuth) {
-      // For role-based auth, we'd typically use STS to assume role
-      // For now, let's check if we have cached credentials
+      // Try to use cached credentials from credential manager
       try {
-        const credentials = await credentialManager.getCredentials();
-        s3Config.credentials = credentials;
+        finalCredentials = await credentialManager.getCredentials();
+        authMethod = 'IAM Role (Cached)';
         console.log('🔑 Using cached role credentials for test');
       } catch (error) {
         return res.status(400).json({
@@ -652,18 +703,36 @@ export const testAwsConnection = async (req, res) => {
     
     // Create S3 client
     const { S3Client, HeadBucketCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
-    const s3Client = new S3Client(s3Config);
+    const s3Client = new S3Client({
+      region: region,
+      credentials: finalCredentials,
+      forcePathStyle: false
+    });
+    
+    console.log(`🪣 Testing bucket access: ${bucketName} in region: ${region}`);
     
     // Test 1: Check if bucket exists and is accessible
-    console.log(`🪣 Testing bucket access: ${bucketName}`);
-    await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }));
+    try {
+      await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }));
+      console.log('✅ Bucket head operation successful');
+    } catch (headError) {
+      console.error('❌ Bucket head operation failed:', headError);
+      throw headError;
+    }
     
     // Test 2: Try to list objects (limited to 1 for efficiency)
     console.log(`📂 Testing list permissions on bucket: ${bucketName}`);
-    const listResult = await s3Client.send(new ListObjectsV2Command({ 
-      Bucket: bucketName, 
-      MaxKeys: 1 
-    }));
+    let listResult;
+    try {
+      listResult = await s3Client.send(new ListObjectsV2Command({ 
+        Bucket: bucketName, 
+        MaxKeys: 1 
+      }));
+      console.log('✅ List objects operation successful');
+    } catch (listError) {
+      console.error('❌ List objects operation failed:', listError);
+      throw listError;
+    }
     
     console.log('✅ AWS S3 connection test successful');
     
@@ -673,7 +742,7 @@ export const testAwsConnection = async (req, res) => {
       details: {
         bucketName,
         region,
-        authMethod: hasAccessKeys ? 'Temporary Access Keys' : 'IAM Role',
+        authMethod,
         bucketAccessible: true,
         listPermissions: true,
         objectCount: listResult.KeyCount || 0
@@ -686,12 +755,12 @@ export const testAwsConnection = async (req, res) => {
     let errorMessage = 'Unknown error occurred';
     let statusCode = 500;
     
-    // Parse specific AWS errors
+    // Parse specific AWS errors with more detail
     if (error.name === 'NoSuchBucket') {
       errorMessage = `Bucket '${req.body.bucketName}' does not exist or is not accessible`;
       statusCode = 404;
     } else if (error.name === 'AccessDenied' || error.name === 'Forbidden') {
-      errorMessage = 'Access denied. Check your credentials and IAM permissions';
+      errorMessage = 'Access denied. Check your IAM role permissions and trust policy';
       statusCode = 403;
     } else if (error.name === 'InvalidAccessKeyId') {
       errorMessage = 'Invalid access key ID';
@@ -708,14 +777,25 @@ export const testAwsConnection = async (req, res) => {
     } else if (error.code === 'ENOTFOUND') {
       errorMessage = 'Network error: Unable to reach AWS S3 service';
       statusCode = 503;
+    } else if (error.$metadata?.httpStatusCode === 403) {
+      errorMessage = 'Access denied (403). Verify IAM role permissions, trust policy, and external ID match exactly';
+      statusCode = 403;
     } else {
       errorMessage = error.message || 'Connection test failed';
+      if (error.$metadata?.httpStatusCode) {
+        statusCode = error.$metadata.httpStatusCode;
+      }
     }
     
     res.status(statusCode).json({
       success: false,
       message: errorMessage,
-      error: error.name || 'ConnectionError'
+      error: error.name || 'ConnectionError',
+      details: {
+        httpStatusCode: error.$metadata?.httpStatusCode,
+        requestId: error.$metadata?.requestId,
+        errorCode: error.Code || error.code
+      }
     });
   }
 };
