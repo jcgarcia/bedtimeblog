@@ -417,6 +417,9 @@
   font-size: 0.9rem;
   background: #f8f9fa;
   border: 2px solid #e0e0e0;
+  width: 100% !important;
+  min-width: 400px;
+  box-sizing: border-box;
 }
 
 .media-management .external-id-input:focus {
@@ -689,6 +692,44 @@
   margin: 0;
   color: #155724;
   line-height: 1.4;
+}
+
+/* Action Buttons */
+.media-management .action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.media-management .btn-test-connection,
+.media-management .btn-save-config {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.media-management .btn-test-connection:hover:not(:disabled) {
+  background-color: #0056b3 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.media-management .btn-save-config:hover:not(:disabled) {
+  background-color: #1e7e34 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.media-management .btn-test-connection:disabled,
+.media-management .btn-save-config:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Pagination */

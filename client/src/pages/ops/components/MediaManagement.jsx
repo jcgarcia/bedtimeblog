@@ -147,6 +147,62 @@ export default function MediaManagement() {
     }
   };
 
+  // Test AWS connection
+  const testAwsConnection = async () => {
+    if (!isAwsAuthValid()) {
+      alert('❌ Please configure all required AWS settings before testing connection.');
+      return;
+    }
+
+    try {
+      // Show loading state
+      const testButton = document.querySelector('.btn-test-connection');
+      const originalText = testButton.innerHTML;
+      testButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+      testButton.disabled = true;
+
+      const response = await fetch(API_ENDPOINTS.MEDIA.TEST_AWS_CONNECTION, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          bucketName: cloudConfig.aws.bucketName,
+          region: cloudConfig.aws.region,
+          roleArn: cloudConfig.aws.roleArn,
+          externalId: cloudConfig.aws.externalId,
+          accessKey: cloudConfig.aws.accessKey,
+          secretKey: cloudConfig.aws.secretKey,
+          sessionToken: cloudConfig.aws.sessionToken
+        }),
+      });
+
+      // Restore button state
+      testButton.innerHTML = originalText;
+      testButton.disabled = !isAwsAuthValid();
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`✅ AWS S3 Connection Successful!\n\n🔐 Connection Details:\n• Bucket: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role: ${cloudConfig.aws.roleArn}\n• Status: ${result.status || 'Connected'}\n• Timestamp: ${new Date().toLocaleString()}\n\n✨ Ready to save configuration and start uploading media!`);
+      } else {
+        const errorData = await response.json();
+        alert(`❌ AWS S3 Connection Failed\n\n🔍 Error Details:\n${errorData.error || 'Unknown error'}\n\n💡 Common Issues:\n• Check IAM role trust policy includes External ID\n• Verify credentials are not expired\n• Ensure bucket exists and is accessible\n• Confirm region matches bucket location`);
+      }
+    } catch (error) {
+      console.error('Error testing AWS connection:', error);
+      
+      // Restore button state
+      const testButton = document.querySelector('.btn-test-connection');
+      if (testButton) {
+        testButton.innerHTML = '<i class="fa-solid fa-plug"></i> Test Connection';
+        testButton.disabled = !isAwsAuthValid();
+      }
+      
+      alert(`❌ Connection Test Failed\n\n🔍 Error: ${error.message}\n\n💡 Please check:\n• Network connectivity\n• AWS credentials validity\n• Server configuration`);
+    }
+  };
+
   // Load existing AWS configuration from database
   const loadAwsConfiguration = async () => {
     try {
@@ -571,8 +627,8 @@ export default function MediaManagement() {
                     <div className="config-field">
                       <div className="auth-section-header">
                         <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
-                        <small style={{ color: '#dc3545' }}>
-                          ⚠️ Required for authentication - expires every 12 hours, manual update needed
+                        <small style={{ color: '#1976d2', fontWeight: '600' }}>
+                          ℹ️ App automatically refreshes credentials before expiration - no manual intervention needed
                         </small>
                       </div>
                       <div className="access-key-grid">
@@ -588,7 +644,7 @@ export default function MediaManagement() {
                             placeholder="ASIA... (from Identity Center)"
                             required
                           />
-                          <small style={{ color: '#dc3545' }}>From Identity Center portal</small>
+                          <small style={{ color: '#28a745' }}>From Identity Center portal</small>
                         </div>
                         <div className="config-field">
                           <label>Secret Access Key (Required):</label>
@@ -602,7 +658,7 @@ export default function MediaManagement() {
                             placeholder="Secret key..."
                             required
                           />
-                          <small style={{ color: '#dc3545' }}>12-hour expiration</small>
+                          <small style={{ color: '#28a745' }}>Auto-managed by app</small>
                         </div>
                         <div className="config-field">
                           <label>Session Token (Required):</label>
@@ -616,11 +672,11 @@ export default function MediaManagement() {
                             placeholder="Session token..."
                             required
                           />
-                          <small style={{ color: '#dc3545' }}>Required for temporary creds</small>
+                          <small style={{ color: '#28a745' }}>12-hour expiration, auto-renewed</small>
                         </div>
                       </div>
                       <div className="auth-method-note">
-                        <strong>🔑 Authentication Flow:</strong> App uses these credentials → Assumes role → Gets 1-hour S3 credentials → Refreshes automatically
+                        <strong>🔑 Automated Authentication:</strong> App uses these credentials → Assumes role → Gets fresh S3 credentials → Refreshes automatically every 11 hours
                       </div>
                     </div>
                   </div>
@@ -636,16 +692,61 @@ export default function MediaManagement() {
                       • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
                       • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
                       • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                      • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'orange'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'OPTIONAL'}</span><br/>
-                      • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                      • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'red'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
+                      • Secret Key: <span style={{color: cloudConfig.aws.secretKey ? 'green' : 'red'}}>{cloudConfig.aws.secretKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
+                      • Session Token: <span style={{color: cloudConfig.aws.sessionToken ? 'green' : 'red'}}>{cloudConfig.aws.sessionToken ? 'SET ✅' : 'REQUIRED ❌'}</span>
                     </div>
 
                     {/* Configuration Complete Notice */}
                     <div className="aws-security-info">
                       <h5>✅ Configuration Complete</h5>
                       <p>
-                        All AWS S3 settings are configured. Click <strong>"Save"</strong> to activate secure cloud storage.
+                        All AWS S3 settings are configured. Test connection first, then save to activate secure cloud storage.
                       </p>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="action-buttons">
+                      <button 
+                        className="btn-test-connection"
+                        onClick={testAwsConnection}
+                        disabled={!isAwsAuthValid()}
+                        style={{
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          border: '2px solid #0056b3',
+                          fontSize: '14px',
+                          padding: '10px 20px',
+                          borderRadius: '6px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          width: '100%',
+                          marginBottom: '10px',
+                          opacity: !isAwsAuthValid() ? 0.5 : 1
+                        }}
+                      >
+                        <i className="fa-solid fa-plug"></i> Test Connection
+                      </button>
+                      
+                      <button 
+                        className="btn-save-config"
+                        onClick={saveAwsConfiguration}
+                        disabled={!isAwsAuthValid()}
+                        style={{
+                          backgroundColor: '#28a745',
+                          color: 'white',
+                          border: '2px solid #1e7e34',
+                          fontSize: '14px',
+                          padding: '10px 20px',
+                          borderRadius: '6px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          width: '100%',
+                          opacity: !isAwsAuthValid() ? 0.5 : 1
+                        }}
+                      >
+                        <i className="fa-solid fa-save"></i> Save Configuration
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -71,6 +71,7 @@ export const API_ENDPOINTS = {
     FOLDERS: `${API_URL}/api/media/folders`,
     UPLOAD: `${API_URL}/api/media/upload`,
     DELETE: (id) => `${API_URL}/api/media/files/${id}`,
+    TEST_AWS_CONNECTION: `${API_URL}/api/media/test-aws-connection`,
   },
 };
 
