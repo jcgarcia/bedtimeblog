@@ -433,21 +433,25 @@
 }
 
 .media-management .external-id-input {
-  flex: 1;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.9rem;
   background: #f8f9fa;
   border: 2px solid #e0e0e0;
   width: 100% !important;
   max-width: 100% !important;
-  min-width: 0 !important; /* Allow shrinking below content size */
-  min-height: 44px; /* Ensure proper height */
-  padding: 0.75rem !important;
+  min-width: 0 !important;
+  padding: 0.75rem !important; /* Same as other input fields */
   box-sizing: border-box;
   line-height: 1.4;
+  border-radius: 8px; /* Match other fields */
+  font-size: 1rem; /* Match other fields */
+  transition: border-color 0.2s ease; /* Match other fields */
 }
 
 .media-management .external-id-input:focus {
+  outline: none;
+  border-color: #eb0bba;
+  box-shadow: 0 0 0 3px rgba(235, 11, 186, 0.1);
   background: white;
 }
 
@@ -732,6 +736,14 @@
   line-height: 1.4;
 }
 
+/* Status Cards Container - Single column by default, 2-column on desktop */
+.media-management .aws-status-cards-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 /* Action Buttons */
 .media-management .action-buttons {
   display: flex;
@@ -928,12 +940,13 @@
   }
   
   .media-management .external-id-input-group {
-    flex-direction: row;
-    align-items: flex-start;
+    flex-direction: column; /* Always keep buttons below field */
+    align-items: stretch;
   }
   
   .media-management .external-id-buttons {
     flex-wrap: nowrap;
+    justify-content: flex-start;
   }
   
   /* Better spacing for desktop */
@@ -953,6 +966,23 @@
   .media-management .config-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 2.5rem;
+  }
+  
+  /* Identity Center Credentials: 2-column layout for desktop */
+  .media-management .access-key-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* Session Token spans both columns */
+  .media-management .session-token-field {
+    grid-column: 1 / -1;
+  }
+  
+  /* Status Cards: 2-column layout on desktop */
+  .media-management .aws-status-cards-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
   }
   
   /* DO NOT split AWS config into columns yet - causes overflow */
@@ -984,8 +1014,13 @@
   }
   
   .media-management .access-key-grid {
-    grid-template-columns: 1fr; /* Single column in sidebar */
+    grid-template-columns: repeat(2, 1fr); /* 2 columns in sidebar */
     gap: 1rem;
+  }
+  
+  /* Session Token spans both columns */
+  .media-management .session-token-field {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1002,6 +1037,11 @@
   }
   
   .media-management .access-key-grid {
-    grid-template-columns: 1fr; /* Keep single column in sidebar */
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for wide screens */
+  }
+  
+  /* Session Token spans both columns */
+  .media-management .session-token-field {
+    grid-column: 1 / -1;
   }
 }

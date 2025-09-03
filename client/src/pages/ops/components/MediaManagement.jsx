@@ -660,7 +660,7 @@ export default function MediaManagement() {
                           />
                           <small style={{ color: '#28a745' }}>From Identity Center portal</small>
                         </div>
-                        <div className="config-field">
+                        <div className="config-field session-token-field">
                           <label>Session Token (Required):</label>
                           <input
                             type="password"
@@ -685,24 +685,27 @@ export default function MediaManagement() {
                 <div className="aws-config-sidebar">
                   {/* Configuration Status and Save Button */}
                   <div className="config-field">
-                    {/* Debug Status Card */}
-                    <div className="debug-info">
-                      <strong>🔧 Configuration Status:</strong><br/>
-                      • Bucket: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
-                      • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
-                      • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                      • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                      • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'red'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
-                      • Secret Key: <span style={{color: cloudConfig.aws.secretKey ? 'green' : 'red'}}>{cloudConfig.aws.secretKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
-                      • Session Token: <span style={{color: cloudConfig.aws.sessionToken ? 'green' : 'red'}}>{cloudConfig.aws.sessionToken ? 'SET ✅' : 'REQUIRED ❌'}</span>
-                    </div>
+                    {/* Status Cards Container */}
+                    <div className="aws-status-cards-container">
+                      {/* Debug Status Card */}
+                      <div className="debug-info">
+                        <strong>🔧 Configuration Status:</strong><br/>
+                        • Bucket: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
+                        • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
+                        • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                        • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                        • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'red'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
+                        • Secret Key: <span style={{color: cloudConfig.aws.secretKey ? 'green' : 'red'}}>{cloudConfig.aws.secretKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
+                        • Session Token: <span style={{color: cloudConfig.aws.sessionToken ? 'green' : 'red'}}>{cloudConfig.aws.sessionToken ? 'SET ✅' : 'REQUIRED ❌'}</span>
+                      </div>
 
-                    {/* Configuration Complete Notice */}
-                    <div className="aws-security-info">
-                      <h5>✅ Configuration Complete</h5>
-                      <p>
-                        All AWS S3 settings are configured. Test connection first, then save to activate secure cloud storage.
-                      </p>
+                      {/* Configuration Complete Notice */}
+                      <div className="aws-security-info">
+                        <h5>✅ Configuration Complete</h5>
+                        <p>
+                          All AWS S3 settings are configured. Test connection first, then save to activate secure cloud storage.
+                        </p>
+                      </div>
                     </div>
                     
                     {/* Action Buttons */}
