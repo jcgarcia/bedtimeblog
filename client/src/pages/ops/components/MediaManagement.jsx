@@ -962,36 +962,40 @@ export default function MediaManagement() {
       </div>
 
       {/* Folder Navigation */}
-      {folders.length > 0 && (
-        <div className="folder-navigation">
-          <h3>Folders</h3>
-          <div className="folders-grid">
-            {currentFolder !== '/' && (
+      <div className="folder-navigation">
+        <h3>Folders</h3>
+        <div className="folders-grid">
+          {currentFolder !== '/' && (
+            <div 
+              className="folder-item back-button"
+              onClick={() => setCurrentFolder('/')}
+            >
+              <i className="fa-solid fa-arrow-up"></i>
+              <span>.. (Back to root)</span>
+            </div>
+          )}
+          {folders.length > 0 && folders
+            .filter(folder => folder.path.startsWith(currentFolder) && 
+                             folder.path !== currentFolder)
+            .map(folder => (
               <div 
+                key={folder.id}
                 className="folder-item"
-                onClick={() => setCurrentFolder('/')}
+                onClick={() => setCurrentFolder(folder.path)}
               >
-                <i className="fa-solid fa-arrow-up"></i>
-                <span>.. (Back to root)</span>
+                <i className="fa-solid fa-folder"></i>
+                <span>{folder.name}</span>
+                <small>({folder.file_count} files)</small>
               </div>
-            )}
-            {folders
-              .filter(folder => folder.path.startsWith(currentFolder) && 
-                               folder.path !== currentFolder)
-              .map(folder => (
-                <div 
-                  key={folder.id}
-                  className="folder-item"
-                  onClick={() => setCurrentFolder(folder.path)}
-                >
-                  <i className="fa-solid fa-folder"></i>
-                  <span>{folder.name}</span>
-                  <small>({folder.file_count} files)</small>
-                </div>
-              ))}
-          </div>
+            ))}
+          {currentFolder !== '/' && (
+            <div className="folder-current-info">
+              <i className="fa-solid fa-info-circle"></i>
+              <small>Currently viewing: {currentFolder}</small>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Media Grid */}
       {loading ? (
@@ -1015,12 +1019,19 @@ export default function MediaManagement() {
                 <div className="media-thumbnail">
                   {isImage(file.mime_type) ? (
                     <img 
-                      src={file.public_url} 
+                      src={file.thumbnail_url || file.public_url || file.signed_url} 
                       alt={file.alt_text || file.original_name}
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
+                        // If thumbnail fails, try the original image
+                        if (file.thumbnail_url && e.target.src === file.thumbnail_url) {
+                          e.target.src = file.public_url || file.signed_url;
+                        } else {
+                          // If all fails, show file icon
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }
                       }}
+                      loading="lazy"
                     />
                   ) : null}
                   <div 
@@ -1043,14 +1054,14 @@ export default function MediaManagement() {
                 <div className="media-actions">
                   <button 
                     className="btn-icon"
-                    onClick={() => window.open(file.public_url, '_blank')}
+                    onClick={() => window.open(file.public_url || file.signed_url, '_blank')}
                     title="View file"
                   >
                     <i className="fa-solid fa-eye"></i>
                   </button>
                   <button 
                     className="btn-icon"
-                    onClick={() => navigator.clipboard.writeText(file.public_url)}
+                    onClick={() => navigator.clipboard.writeText(file.public_url || file.signed_url)}
                     title="Copy URL"
                   >
                     <i className="fa-solid fa-copy"></i>

@@ -22,6 +22,136 @@
   color: #333;
 }
 
+/* Folder Navigation Improvements */
+.folder-navigation {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e9ecef;
+}
+
+.folder-navigation h3 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.2rem;
+}
+
+.folders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.folder-item:hover {
+  border-color: #007bff;
+  background: #f8f9ff;
+  transform: translateY(-1px);
+}
+
+.folder-item.back-button {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  font-weight: 600;
+}
+
+.folder-item.back-button:hover {
+  background: #bbdefb;
+}
+
+.folder-item i {
+  font-size: 1.1rem;
+  color: #6c757d;
+  min-width: 16px;
+}
+
+.folder-item.back-button i {
+  color: #2196f3;
+}
+
+.folder-current-info {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #856404;
+  margin-top: 0.5rem;
+}
+
+.folder-current-info i {
+  color: #856404;
+}
+
+/* Media Thumbnail Improvements */
+.media-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px 8px 0 0;
+}
+
+.media-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  border-radius: 8px 8px 0 0;
+}
+
+.media-item:hover .media-thumbnail img {
+  transform: scale(1.05);
+}
+
+.media-thumbnail .file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #f8f9fa;
+  color: #6c757d;
+  font-size: 2.5rem;
+}
+
+/* Media Item Enhancements */
+.media-item {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.media-item:hover {
+  border-color: #007bff;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,123,255,0.15);
+}
+
 /* Media Server Configuration */
 .media-management .media-server-config {
   background: #fff;

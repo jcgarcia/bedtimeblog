@@ -535,7 +535,23 @@ export const getMediaFiles = async (req, res) => {
         try {
           if (media.s3_key && media.s3_bucket) {
             const signedUrl = await generateSignedUrl(media.s3_key, media.s3_bucket);
-            return { ...media, signed_url: signedUrl };
+            
+            // Generate thumbnail URL if thumbnail exists
+            let thumbnailUrl = null;
+            if (media.thumbnail_key) {
+              try {
+                thumbnailUrl = await generateSignedUrl(media.thumbnail_key, media.s3_bucket);
+              } catch (thumbError) {
+                console.warn(`Could not generate thumbnail URL for ${media.thumbnail_key}:`, thumbError.message);
+              }
+            }
+            
+            return { 
+              ...media, 
+              public_url: signedUrl, // Use signed URL as public_url for compatibility
+              signed_url: signedUrl,
+              thumbnail_url: thumbnailUrl
+            };
           }
           return media;
         } catch (error) {
