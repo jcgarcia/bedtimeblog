@@ -5,48 +5,24 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { getDbPool } from '../db.js';
 import jwt from 'jsonwebtoken';
+import credentialManager from '../services/awsCredentialManager.js';
 
-// Helper: Assume IAM Role and get temporary credentials
-async function getS3ClientFromRole(config) {
+// Helper: Get S3 Client with automatic credential management
+async function getS3Client(config) {
   try {
-    // Create STS client with existing credentials (from config or environment)
-    let stsClientConfig = { region: config.region };
+    console.log('🔑 Getting S3 client with automatic credential management');
     
-    // If we have access keys in config, use them for STS authentication
-    if (config.accessKey && config.secretKey) {
-      stsClientConfig.credentials = {
-        accessKeyId: config.accessKey,
-        secretAccessKey: config.secretKey,
-        ...(config.sessionToken && { sessionToken: config.sessionToken })
-      };
-      console.log('🔑 Using configured access keys for role assumption');
-    } else {
-      console.log('🔑 Attempting role assumption with environment credentials');
-    }
-    
-    const stsClient = new STSClient(stsClientConfig);
-    const assumeRoleCommand = new AssumeRoleCommand({
-      RoleArn: config.roleArn,
-      RoleSessionName: 'MediaLibrarySession',
-      DurationSeconds: 3600,
-      ...(config.externalId ? { ExternalId: config.externalId } : {})
-    });
-    
-    const data = await stsClient.send(assumeRoleCommand);
-    console.log('✅ Successfully assumed role:', config.roleArn);
+    // Get fresh credentials from the credential manager
+    const credentials = await credentialManager.getCredentials();
     
     return new S3Client({
       region: config.region,
-      credentials: {
-        accessKeyId: data.Credentials.AccessKeyId,
-        secretAccessKey: data.Credentials.SecretAccessKey,
-        sessionToken: data.Credentials.SessionToken,
-      },
+      credentials: credentials,
       forcePathStyle: true
     });
   } catch (error) {
-    console.error('❌ Failed to assume IAM role:', error.message);
-    throw new Error(`Role assumption failed: ${error.message}. Please ensure access keys are configured in Operations Panel.`);
+    console.error('❌ Failed to get S3 client:', error.message);
+    throw new Error(`S3 client configuration failed: ${error.message}`);
   }
 }
 
@@ -164,49 +140,19 @@ export const uploadToS3 = async (req, res) => {
       const storageType = settings.media_storage_type || 'oci';
       let s3, BUCKET_NAME, CDN_URL;
       
-      if (storageType === 'aws' && settings.aws_config && settings.aws_config.roleArn) {
-        // Use IAM Role with STS for AWS
+      if (storageType === 'aws' && settings.aws_config) {
+        // Use automated credential management for AWS
         try {
-          s3 = await getS3ClientFromRole(settings.aws_config);
+          s3 = await getS3Client(settings.aws_config);
           BUCKET_NAME = settings.aws_config.bucketName;
           CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
-        } catch (roleError) {
-          console.error('Role assumption failed:', roleError.message);
-          // Check if we have static credentials as fallback
-          if (settings.aws_config.accessKey && settings.aws_config.secretKey) {
-            console.log('Falling back to static AWS credentials');
-            s3 = new S3Client({
-              credentials: {
-                accessKeyId: settings.aws_config.accessKey,
-                secretAccessKey: settings.aws_config.secretKey,
-              },
-              region: settings.aws_config.region,
-              endpoint: settings.aws_config.endpoint || undefined,
-              forcePathStyle: true
-            });
-            BUCKET_NAME = settings.aws_config.bucketName;
-            CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
-          } else {
-            console.error('AWS IAM role assumption failed and no static credentials available');
-            return res.status(500).json({ 
-              success: false, 
-              message: 'AWS credentials not configured. Please configure AWS access keys in Operations Center or contact administrator.' 
-            });
-          }
+        } catch (awsError) {
+          console.error('AWS S3 configuration failed:', awsError.message);
+          return res.status(500).json({ 
+            success: false, 
+            message: `AWS credentials error: ${awsError.message}. Please check Operations Panel configuration.` 
+          });
         }
-      } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
-        // Fallback: Use static keys if role not set
-        s3 = new S3Client({
-          credentials: {
-            accessKeyId: settings.aws_config.accessKey,
-            secretAccessKey: settings.aws_config.secretKey,
-          },
-          region: settings.aws_config.region,
-          endpoint: settings.aws_config.endpoint || undefined,
-          forcePathStyle: true
-        });
-        BUCKET_NAME = settings.aws_config.bucketName;
-        CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
       } else if (settings.oci_config && settings.oci_config.bucket) {
         // OCI or other provider
         s3 = new S3Client({
@@ -610,5 +556,166 @@ export const createMediaFolder = async (req, res) => {
         message: 'Failed to create folder'
       });
     }
+  }
+};
+
+// AWS Credential Management endpoints
+export const getAWSCredentialStatus = async (req, res) => {
+  try {
+    const status = credentialManager.getStatus();
+    res.json({
+      success: true,
+      status: {
+        ...status,
+        timeUntilExpiryHuman: status.timeUntilExpiry 
+          ? `${Math.floor(status.timeUntilExpiry / 60000)} minutes`
+          : 'N/A'
+      }
+    });
+  } catch (error) {
+    console.error('Error getting credential status:', error);
+    res.status(500).json({ success: false, message: 'Failed to get credential status' });
+  }
+};
+
+export const refreshAWSCredentials = async (req, res) => {
+  try {
+    console.log('🔄 Manual credential refresh requested');
+    await credentialManager.forceRefresh();
+    res.json({ 
+      success: true, 
+      message: 'AWS credentials refreshed successfully' 
+    });
+  } catch (error) {
+    console.error('Error refreshing credentials:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `Failed to refresh credentials: ${error.message}` 
+    });
+  }
+};
+
+// Test AWS connection
+export const testAwsConnection = async (req, res) => {
+  try {
+    console.log('🧪 Testing AWS S3 connection...');
+    
+    const { bucketName, region, roleArn, externalId, accessKey, secretKey, sessionToken } = req.body;
+    
+    // Validate required fields
+    if (!bucketName || !region) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bucket name and region are required'
+      });
+    }
+    
+    // Check authentication method
+    const hasRoleAuth = roleArn && externalId;
+    const hasAccessKeys = accessKey && secretKey && sessionToken;
+    
+    if (!hasRoleAuth && !hasAccessKeys) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either IAM role (roleArn + externalId) or access keys (accessKey + secretKey + sessionToken) are required'
+      });
+    }
+    
+    // Create S3 client configuration
+    let s3Config = {
+      region: region,
+      forcePathStyle: false
+    };
+    
+    // Configure credentials based on authentication method
+    if (hasAccessKeys) {
+      s3Config.credentials = {
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
+        sessionToken: sessionToken
+      };
+      console.log('🔑 Using temporary access keys for test');
+    } else if (hasRoleAuth) {
+      // For role-based auth, we'd typically use STS to assume role
+      // For now, let's check if we have cached credentials
+      try {
+        const credentials = await credentialManager.getCredentials();
+        s3Config.credentials = credentials;
+        console.log('🔑 Using cached role credentials for test');
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Role-based authentication requires valid cached credentials. Please ensure IAM role is properly configured.'
+        });
+      }
+    }
+    
+    // Create S3 client
+    const { S3Client, HeadBucketCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+    const s3Client = new S3Client(s3Config);
+    
+    // Test 1: Check if bucket exists and is accessible
+    console.log(`🪣 Testing bucket access: ${bucketName}`);
+    await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }));
+    
+    // Test 2: Try to list objects (limited to 1 for efficiency)
+    console.log(`📂 Testing list permissions on bucket: ${bucketName}`);
+    const listResult = await s3Client.send(new ListObjectsV2Command({ 
+      Bucket: bucketName, 
+      MaxKeys: 1 
+    }));
+    
+    console.log('✅ AWS S3 connection test successful');
+    
+    res.json({
+      success: true,
+      message: 'AWS S3 connection successful',
+      details: {
+        bucketName,
+        region,
+        authMethod: hasAccessKeys ? 'Temporary Access Keys' : 'IAM Role',
+        bucketAccessible: true,
+        listPermissions: true,
+        objectCount: listResult.KeyCount || 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ AWS S3 connection test failed:', error);
+    
+    let errorMessage = 'Unknown error occurred';
+    let statusCode = 500;
+    
+    // Parse specific AWS errors
+    if (error.name === 'NoSuchBucket') {
+      errorMessage = `Bucket '${req.body.bucketName}' does not exist or is not accessible`;
+      statusCode = 404;
+    } else if (error.name === 'AccessDenied' || error.name === 'Forbidden') {
+      errorMessage = 'Access denied. Check your credentials and IAM permissions';
+      statusCode = 403;
+    } else if (error.name === 'InvalidAccessKeyId') {
+      errorMessage = 'Invalid access key ID';
+      statusCode = 401;
+    } else if (error.name === 'SignatureDoesNotMatch') {
+      errorMessage = 'Invalid secret access key';
+      statusCode = 401;
+    } else if (error.name === 'TokenRefreshRequired') {
+      errorMessage = 'Session token has expired. Please refresh credentials';
+      statusCode = 401;
+    } else if (error.name === 'CredentialsError') {
+      errorMessage = 'Invalid or expired credentials';
+      statusCode = 401;
+    } else if (error.code === 'ENOTFOUND') {
+      errorMessage = 'Network error: Unable to reach AWS S3 service';
+      statusCode = 503;
+    } else {
+      errorMessage = error.message || 'Connection test failed';
+    }
+    
+    res.status(statusCode).json({
+      success: false,
+      message: errorMessage,
+      error: error.name || 'ConnectionError'
+    });
   }
 };

@@ -7,7 +7,8 @@ import {
   updateMediaFile,
   deleteMediaFile,
   getMediaFolders,
-  createMediaFolder
+  createMediaFolder,
+  testAwsConnection
 } from "../controllers/media.js";
 
 const router = express.Router();
@@ -27,5 +28,8 @@ router.delete("/files/:id", requireAdminAuth, deleteMediaFile);    // DELETE /ap
 // Folder management routes
 router.get("/folders", requireAdminAuth, getMediaFolders);         // GET /api/media/folders - Get all folders
 router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/media/folders - Create new folder
+
+// AWS connection testing
+router.post("/test-aws-connection", requireAdminAuth, testAwsConnection); // POST /api/media/test-aws-connection - Test AWS S3 connection
 
 export default router;
