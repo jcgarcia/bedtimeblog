@@ -475,21 +475,49 @@ export const updateAwsConfig = async (req, res) => {
   try {
     console.log('🔧 updateAwsConfig called with:', req.body);
     
-    const { bucketName, region, roleArn, externalId } = req.body;
+    const { bucketName, region, roleArn, externalId, accessKey, secretKey, sessionToken } = req.body;
     
     // Trim all string inputs to prevent whitespace issues
     const trimmedBucketName = bucketName?.trim();
     const trimmedRegion = region?.trim();
     const trimmedRoleArn = roleArn?.trim();
     const trimmedExternalId = externalId?.trim();
+    const trimmedAccessKey = accessKey?.trim();
+    const trimmedSecretKey = secretKey?.trim();
+    const trimmedSessionToken = sessionToken?.trim();
     
-    console.log('🔧 Trimmed values:', { trimmedBucketName, trimmedRegion, trimmedRoleArn, trimmedExternalId: trimmedExternalId ? 'SET' : 'MISSING' });
+    console.log('🔧 Trimmed values:', { 
+      trimmedBucketName, 
+      trimmedRegion, 
+      trimmedRoleArn, 
+      trimmedExternalId: trimmedExternalId ? 'SET' : 'MISSING',
+      trimmedAccessKey: trimmedAccessKey ? 'SET' : 'MISSING',
+      trimmedSecretKey: trimmedSecretKey ? 'SET' : 'MISSING',
+      trimmedSessionToken: trimmedSessionToken ? 'SET' : 'MISSING'
+    });
     
-    // Validate required fields
-    if (!trimmedBucketName || !trimmedRegion || !trimmedRoleArn || !trimmedExternalId) {
+    // Validate required fields - ALL are required for working authentication
+    const hasRoleAuth = trimmedRoleArn && trimmedExternalId;
+    const hasKeyAuth = trimmedAccessKey && trimmedSecretKey;
+    
+    if (!trimmedBucketName || !trimmedRegion) {
       return res.status(400).json({ 
         success: false, 
-        message: 'All AWS configuration fields are required' 
+        message: 'Bucket name and region are required' 
+      });
+    }
+    
+    if (!hasRoleAuth) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Role ARN and External ID are required for role assumption' 
+      });
+    }
+    
+    if (!hasKeyAuth) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Access keys are required for initial authentication to assume roles. Get temporary credentials from AWS Identity Center.' 
       });
     }
     
@@ -497,11 +525,28 @@ export const updateAwsConfig = async (req, res) => {
     const awsConfig = {
       bucketName: trimmedBucketName,
       region: trimmedRegion,
-      roleArn: trimmedRoleArn,
-      externalId: trimmedExternalId,
       updatedAt: new Date().toISOString(),
       updatedBy: req.adminUser.id
     };
+    
+    // Add role-based auth if provided
+    if (hasRoleAuth) {
+      awsConfig.roleArn = trimmedRoleArn;
+      awsConfig.externalId = trimmedExternalId;
+      awsConfig.authMethod = 'role';
+    }
+    
+    // Add key-based auth if provided  
+    if (hasKeyAuth) {
+      awsConfig.accessKey = trimmedAccessKey;
+      awsConfig.secretKey = trimmedSecretKey;
+      awsConfig.authMethod = hasRoleAuth ? 'hybrid' : 'keys';
+      
+      // Add session token if provided (for temporary credentials)
+      if (trimmedSessionToken) {
+        awsConfig.sessionToken = trimmedSessionToken;
+      }
+    }
     
     const pool = getDbPool();
     

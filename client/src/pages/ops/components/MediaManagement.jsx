@@ -34,9 +34,22 @@ export default function MediaManagement() {
       bucketName: '',
       region: 'eu-west-2',
       roleArn: '',
-      externalId: ''
+      externalId: '',
+      accessKey: '',
+      secretKey: '',
+      sessionToken: ''
     }
   });
+
+  // Helper function to check if AWS authentication is configured
+  const isAwsAuthValid = () => {
+    const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region;
+    const hasRoleAuth = cloudConfig.aws.roleArn && cloudConfig.aws.externalId;
+    const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
+    
+    // Both role and keys are required - keys for initial auth, role for assumption
+    return hasBasicConfig && hasRoleAuth && hasKeyAuth;
+  };
 
   useEffect(() => {
     if (mediaServerType === 'internal') {
@@ -113,12 +126,17 @@ export default function MediaManagement() {
           bucketName: cloudConfig.aws.bucketName,
           region: cloudConfig.aws.region,
           roleArn: cloudConfig.aws.roleArn,
-          externalId: cloudConfig.aws.externalId
+          externalId: cloudConfig.aws.externalId,
+          accessKey: cloudConfig.aws.accessKey,
+          secretKey: cloudConfig.aws.secretKey,
+          sessionToken: cloudConfig.aws.sessionToken
         }),
       });
 
       if (response.ok) {
-        alert('✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• IAM Role ARN configured\n• External ID secured in database\n• Region settings applied\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Ensure AWS IAM role trust policy includes your External ID\n• Test upload functionality\n• Monitor CloudTrail for access logs');
+        const hasAccessKeys = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
+        const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
+        alert(`✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality${hasAccessKeys ? '\n⚠️ Note: Access keys expire every 8 hours' : ''}`);
       } else {
         const error = await response.text();
         alert(`❌ Failed to save AWS configuration: ${error}`);
@@ -544,6 +562,70 @@ export default function MediaManagement() {
                   </div>
                 </div>
 
+                {/* Access Key Configuration - Required for Authentication */}
+                <div className="config-field" style={{ gridColumn: '1 / -1' }}>
+                  <div className="auth-section-header">
+                    <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
+                    <small style={{ color: '#dc3545' }}>
+                      ⚠️ Required for authentication - expires every 12 hours, manual update needed
+                    </small>
+                  </div>
+                  <div className="access-key-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                    <div className="config-field">
+                      <label>Access Key ID (Required):</label>
+                      <input
+                        type="text"
+                        value={cloudConfig.aws.accessKey || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, accessKey: e.target.value.trim() }
+                        }))}
+                        placeholder="ASIA... (from Identity Center)"
+                        required
+                      />
+                      <small style={{ color: '#dc3545' }}>From Identity Center portal</small>
+                    </div>
+                    <div className="config-field">
+                      <label>Secret Access Key (Required):</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.secretKey || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, secretKey: e.target.value.trim() }
+                        }))}
+                        placeholder="Secret key..."
+                        required
+                      />
+                      <small style={{ color: '#dc3545' }}>12-hour expiration</small>
+                    </div>
+                    <div className="config-field">
+                      <label>Session Token (Required):</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.sessionToken || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, sessionToken: e.target.value.trim() }
+                        }))}
+                        placeholder="Session token..."
+                        required
+                      />
+                      <small style={{ color: '#dc3545' }}>Required for temporary creds</small>
+                    </div>
+                  </div>
+                  <div className="auth-method-note" style={{ 
+                    marginTop: '10px', 
+                    padding: '8px 12px', 
+                    background: '#fff3cd', 
+                    border: '1px solid #ffc107',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}>
+                    <strong>🔑 Authentication Flow:</strong> App uses these credentials → Assumes role → Gets 1-hour S3 credentials → Refreshes automatically
+                  </div>
+                </div>
+
                 {/* Debug Card and Save Button - Positioned to the right of External ID */}
                 <div className="config-field" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '15px' }}>
                   {/* Debug Status Card */}
@@ -560,7 +642,8 @@ export default function MediaManagement() {
                     • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
                     • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
                     • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                    • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                    • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'orange'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'OPTIONAL'}</span><br/>
+                    • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
                   </div>
 
                   {/* Configuration Complete Notice */}
@@ -581,7 +664,7 @@ export default function MediaManagement() {
                   <button 
                     className="btn-warning"
                     onClick={saveAwsConfiguration}
-                    disabled={!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId}
+                    disabled={!isAwsAuthValid()}
                     style={{
                       backgroundColor: '#ff9800',
                       color: 'white',
@@ -592,7 +675,7 @@ export default function MediaManagement() {
                       fontWeight: 'bold',
                       cursor: 'pointer',
                       width: '100%',
-                      opacity: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 0.5 : 1
+                      opacity: !isAwsAuthValid() ? 0.5 : 1
                     }}
                   >
                     <i className="fa-solid fa-cloud-arrow-up"></i> Save AWS S3 Configuration
@@ -655,14 +738,14 @@ export default function MediaManagement() {
             <button 
               className="btn-warning"
               onClick={mediaServerType === 'aws' ? saveAwsConfiguration : () => alert('OCI configuration will be implemented in future version.')}
-              disabled={mediaServerType === 'aws' && (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId)}
+              disabled={mediaServerType === 'aws' && !isAwsAuthValid()}
               title={
                 mediaServerType === 'aws' 
-                  ? `Save AWS S3 configuration to database. Debug: bucket=${cloudConfig.aws.bucketName}, region=${cloudConfig.aws.region}, role=${cloudConfig.aws.roleArn}, externalId=${cloudConfig.aws.externalId ? 'SET' : 'MISSING'}` 
+                  ? `Save AWS S3 configuration to database. Auth: ${cloudConfig.aws.roleArn ? 'Role' : cloudConfig.aws.accessKey ? 'Keys' : 'None'}` 
                   : 'Configure OCI Object Storage'
               }
               style={{
-                opacity: mediaServerType === 'aws' && (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || !cloudConfig.aws.roleArn || !cloudConfig.aws.externalId) ? 0.5 : 1
+                opacity: mediaServerType === 'aws' && !isAwsAuthValid() ? 0.5 : 1
               }}
             >
               <i className="fa-solid fa-cloud"></i> {mediaServerType === 'aws' ? 'Save AWS Config' : 'Configure Cloud'}

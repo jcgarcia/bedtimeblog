@@ -9,11 +9,22 @@ import jwt from 'jsonwebtoken';
 // Helper: Assume IAM Role and get temporary credentials
 async function getS3ClientFromRole(config) {
   try {
-    // First, try using environment variables for STS if available
-    const stsClient = new STSClient({ 
-      region: config.region,
-      // Try to use any available credentials (env vars, instance profile, etc.)
-    });
+    // Create STS client with existing credentials (from config or environment)
+    let stsClientConfig = { region: config.region };
+    
+    // If we have access keys in config, use them for STS authentication
+    if (config.accessKey && config.secretKey) {
+      stsClientConfig.credentials = {
+        accessKeyId: config.accessKey,
+        secretAccessKey: config.secretKey,
+        ...(config.sessionToken && { sessionToken: config.sessionToken })
+      };
+      console.log('🔑 Using configured access keys for role assumption');
+    } else {
+      console.log('🔑 Attempting role assumption with environment credentials');
+    }
+    
+    const stsClient = new STSClient(stsClientConfig);
     const assumeRoleCommand = new AssumeRoleCommand({
       RoleArn: config.roleArn,
       RoleSessionName: 'MediaLibrarySession',
@@ -22,6 +33,7 @@ async function getS3ClientFromRole(config) {
     });
     
     const data = await stsClient.send(assumeRoleCommand);
+    console.log('✅ Successfully assumed role:', config.roleArn);
     
     return new S3Client({
       region: config.region,
@@ -33,8 +45,8 @@ async function getS3ClientFromRole(config) {
       forcePathStyle: true
     });
   } catch (error) {
-    console.error('Failed to assume IAM role:', error.message);
-    throw new Error('AWS credentials not configured for role assumption. Please configure AWS access keys or use static credentials.');
+    console.error('❌ Failed to assume IAM role:', error.message);
+    throw new Error(`Role assumption failed: ${error.message}. Please ensure access keys are configured in Operations Panel.`);
   }
 }
 

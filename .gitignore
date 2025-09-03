@@ -17,6 +17,14 @@ api/build
 *.log
 .DS_Store
 
+# 🔐 SECURITY: AWS and cloud provider credentials
+*AWS*SETUP*.md
+*IDENTITY*CENTER*.md
+*aws*credentials*
+*cloud*config*
+AWS_*.md
+*_CREDENTIALS_*.md
+
 # 🔐 SECURITY: Environment files with secrets
 .env
 .env.local
