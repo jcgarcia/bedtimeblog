@@ -628,7 +628,7 @@ export default function MediaManagement() {
                       <div className="auth-section-header">
                         <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
                         <small style={{ color: '#1976d2', fontWeight: '600' }}>
-                          ℹ️ App automatically refreshes credentials before expiration - no manual intervention needed
+                          ℹ️ Obtain these credentials from AWS Identity Center portal - refresh manually when expired
                         </small>
                       </div>
                       <div className="access-key-grid">
@@ -658,7 +658,7 @@ export default function MediaManagement() {
                             placeholder="Secret key..."
                             required
                           />
-                          <small style={{ color: '#28a745' }}>Auto-managed by app</small>
+                          <small style={{ color: '#28a745' }}>From Identity Center portal</small>
                         </div>
                         <div className="config-field">
                           <label>Session Token (Required):</label>
@@ -672,11 +672,11 @@ export default function MediaManagement() {
                             placeholder="Session token..."
                             required
                           />
-                          <small style={{ color: '#28a745' }}>12-hour expiration, auto-renewed</small>
+                          <small style={{ color: '#28a745' }}>From Identity Center portal (12-hour expiration)</small>
                         </div>
                       </div>
                       <div className="auth-method-note">
-                        <strong>🔑 Automated Authentication:</strong> App uses these credentials → Assumes role → Gets fresh S3 credentials → Refreshes automatically every 11 hours
+                        <strong>🔑 Identity Center Authentication:</strong> All credentials obtained from AWS Identity Center portal → App assumes role → Gets fresh S3 access → User refreshes credentials from portal when expired
                       </div>
                     </div>
                   </div>
