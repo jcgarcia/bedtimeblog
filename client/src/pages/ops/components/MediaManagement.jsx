@@ -448,7 +448,7 @@ export default function MediaManagement() {
           )}
           
           {mediaServerType === 'aws' && (
-            <div className="cloud-media-config" style={{ position: 'relative' }}>
+            <div className="cloud-media-config">
               <h4>AWS S3 Configuration</h4>
               <div className="config-info">
                 <div className="security-notice">
@@ -457,50 +457,53 @@ export default function MediaManagement() {
                   <p>This integration uses IAM roles and AWS Organizations with Identity Center for secure, credential-free access. No IAM users or access keys are required.</p>
                 </div>
               </div>
-              <div className="config-grid">
-                <div className="config-field">
-                  <label>Bucket Name:</label>
-                  <input
-                    type="text"
-                    value={cloudConfig.aws.bucketName}
-                    onChange={e => setCloudConfig(prev => ({
-                      ...prev,
-                      aws: { ...prev.aws, bucketName: e.target.value.trim() }
-                    }))}
-                    placeholder="my-media-bucket"
-                  />
-                </div>
-                <div className="config-field">
-                  <label>Region:</label>
-                  <select
-                    value={cloudConfig.aws.region}
-                    onChange={e => setCloudConfig(prev => ({
-                      ...prev,
-                      aws: { ...prev.aws, region: e.target.value }
-                    }))}
-                  >
-                    <option value="us-east-1">US East (N. Virginia)</option>
-                    <option value="us-west-2">US West (Oregon)</option>
-                    <option value="eu-west-1">Europe (Ireland)</option>
-                    <option value="eu-west-2">Europe (London)</option>
-                    <option value="eu-central-1">Europe (Frankfurt)</option>
-                    <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
-                    <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
-                  </select>
-                </div>
-                <div className="config-field">
-                  <label>IAM Role ARN:</label>
-                  <input
-                    type="text"
-                    value={cloudConfig.aws.roleArn || ''}
-                    onChange={e => setCloudConfig(prev => ({
-                      ...prev,
-                      aws: { ...prev.aws, roleArn: e.target.value.trim() }
-                    }))}
-                    placeholder="arn:aws:iam::ACCOUNT:role/MediaUploadRole"
-                  />
-                  <small>Cross-account IAM role for secure access</small>
-                </div>
+              
+              <div className="aws-config-main">
+                <div className="aws-config-fields">
+                  <div className="config-grid">
+                    <div className="config-field">
+                      <label>Bucket Name:</label>
+                      <input
+                        type="text"
+                        value={cloudConfig.aws.bucketName}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, bucketName: e.target.value.trim() }
+                        }))}
+                        placeholder="my-media-bucket"
+                      />
+                    </div>
+                    <div className="config-field">
+                      <label>Region:</label>
+                      <select
+                        value={cloudConfig.aws.region}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, region: e.target.value }
+                        }))}
+                      >
+                        <option value="us-east-1">US East (N. Virginia)</option>
+                        <option value="us-west-2">US West (Oregon)</option>
+                        <option value="eu-west-1">Europe (Ireland)</option>
+                        <option value="eu-west-2">Europe (London)</option>
+                        <option value="eu-central-1">Europe (Frankfurt)</option>
+                        <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                        <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+                      </select>
+                    </div>
+                    <div className="config-field">
+                      <label>IAM Role ARN:</label>
+                      <input
+                        type="text"
+                        value={cloudConfig.aws.roleArn || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, roleArn: e.target.value.trim() }
+                        }))}
+                        placeholder="arn:aws:iam::ACCOUNT:role/MediaUploadRole"
+                      />
+                      <small>Cross-account IAM role for secure access</small>
+                    </div>
                 <div className="config-field">
                   <label>External ID (Required):</label>
                   <div className="external-id-input-group">
@@ -564,104 +567,87 @@ export default function MediaManagement() {
                   </div>
                 </div>
 
-                {/* Access Key Configuration - Required for Authentication */}
-                <div className="config-field">
-                  <div className="auth-section-header">
-                    <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
-                    <small style={{ color: '#dc3545' }}>
-                      ⚠️ Required for authentication - expires every 12 hours, manual update needed
-                    </small>
-                  </div>
-                  <div className="access-key-grid">
+                    {/* Access Key Configuration - Required for Authentication */}
                     <div className="config-field">
-                      <label>Access Key ID (Required):</label>
-                      <input
-                        type="text"
-                        value={cloudConfig.aws.accessKey || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, accessKey: e.target.value.trim() }
-                        }))}
-                        placeholder="ASIA... (from Identity Center)"
-                        required
-                      />
-                      <small style={{ color: '#dc3545' }}>From Identity Center portal</small>
+                      <div className="auth-section-header">
+                        <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
+                        <small style={{ color: '#dc3545' }}>
+                          ⚠️ Required for authentication - expires every 12 hours, manual update needed
+                        </small>
+                      </div>
+                      <div className="access-key-grid">
+                        <div className="config-field">
+                          <label>Access Key ID (Required):</label>
+                          <input
+                            type="text"
+                            value={cloudConfig.aws.accessKey || ''}
+                            onChange={e => setCloudConfig(prev => ({
+                              ...prev,
+                              aws: { ...prev.aws, accessKey: e.target.value.trim() }
+                            }))}
+                            placeholder="ASIA... (from Identity Center)"
+                            required
+                          />
+                          <small style={{ color: '#dc3545' }}>From Identity Center portal</small>
+                        </div>
+                        <div className="config-field">
+                          <label>Secret Access Key (Required):</label>
+                          <input
+                            type="password"
+                            value={cloudConfig.aws.secretKey || ''}
+                            onChange={e => setCloudConfig(prev => ({
+                              ...prev,
+                              aws: { ...prev.aws, secretKey: e.target.value.trim() }
+                            }))}
+                            placeholder="Secret key..."
+                            required
+                          />
+                          <small style={{ color: '#dc3545' }}>12-hour expiration</small>
+                        </div>
+                        <div className="config-field">
+                          <label>Session Token (Required):</label>
+                          <input
+                            type="password"
+                            value={cloudConfig.aws.sessionToken || ''}
+                            onChange={e => setCloudConfig(prev => ({
+                              ...prev,
+                              aws: { ...prev.aws, sessionToken: e.target.value.trim() }
+                            }))}
+                            placeholder="Session token..."
+                            required
+                          />
+                          <small style={{ color: '#dc3545' }}>Required for temporary creds</small>
+                        </div>
+                      </div>
+                      <div className="auth-method-note">
+                        <strong>🔑 Authentication Flow:</strong> App uses these credentials → Assumes role → Gets 1-hour S3 credentials → Refreshes automatically
+                      </div>
                     </div>
-                    <div className="config-field">
-                      <label>Secret Access Key (Required):</label>
-                      <input
-                        type="password"
-                        value={cloudConfig.aws.secretKey || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, secretKey: e.target.value.trim() }
-                        }))}
-                        placeholder="Secret key..."
-                        required
-                      />
-                      <small style={{ color: '#dc3545' }}>12-hour expiration</small>
-                    </div>
-                    <div className="config-field">
-                      <label>Session Token (Required):</label>
-                      <input
-                        type="password"
-                        value={cloudConfig.aws.sessionToken || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, sessionToken: e.target.value.trim() }
-                        }))}
-                        placeholder="Session token..."
-                        required
-                      />
-                      <small style={{ color: '#dc3545' }}>Required for temporary creds</small>
-                    </div>
-                  </div>
-                  <div className="auth-method-note">
-                    <strong>🔑 Authentication Flow:</strong> App uses these credentials → Assumes role → Gets 1-hour S3 credentials → Refreshes automatically
                   </div>
                 </div>
+                
+                <div className="aws-config-sidebar">
+                  {/* Configuration Status and Save Button */}
+                  <div className="config-field">
+                    {/* Debug Status Card */}
+                    <div className="debug-info">
+                      <strong>🔧 Configuration Status:</strong><br/>
+                      • Bucket: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
+                      • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
+                      • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                      • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                      • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'orange'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'OPTIONAL'}</span><br/>
+                      • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                    </div>
 
-                {/* Configuration Status and Save Button */}
-                <div className="config-field">
-                  {/* Debug Status Card */}
-                  <div className="debug-info">
-                    <strong>🔧 Configuration Status:</strong><br/>
-                    • Bucket: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
-                    • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
-                    • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                    • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                    • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'orange'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'OPTIONAL'}</span><br/>
-                    • Save Button: <span style={{color: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'red' : 'green'}}>{(!cloudConfig.aws.bucketName || !cloudConfig.aws.region) ? 'DISABLED ❌' : 'ENABLED ✅'}</span>
+                    {/* Configuration Complete Notice */}
+                    <div className="aws-security-info">
+                      <h5>✅ Configuration Complete</h5>
+                      <p>
+                        All AWS S3 settings are configured. Click <strong>"Save"</strong> to activate secure cloud storage.
+                      </p>
+                    </div>
                   </div>
-
-                  {/* Configuration Complete Notice */}
-                  <div className="aws-security-info">
-                    <h5>✅ Configuration Complete</h5>
-                    <p>
-                      All AWS S3 settings are configured. Click <strong>"Save"</strong> to activate secure cloud storage.
-                    </p>
-                  </div>
-                  
-                  {/* Save Button */}
-                  <button 
-                    className="btn-warning"
-                    onClick={saveAwsConfiguration}
-                    disabled={!isAwsAuthValid()}
-                    style={{
-                      backgroundColor: '#ff9800',
-                      color: 'white',
-                      border: '2px solid #f57c00',
-                      fontSize: '14px',
-                      padding: '10px 20px',
-                      borderRadius: '6px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      width: '100%',
-                      opacity: !isAwsAuthValid() ? 0.5 : 1
-                    }}
-                  >
-                    <i className="fa-solid fa-cloud-arrow-up"></i> Save AWS S3 Configuration
-                  </button>
                 </div>
               </div>
             </div>

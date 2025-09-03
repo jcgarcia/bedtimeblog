@@ -606,6 +606,22 @@
   margin-right: 0.5rem;
 }
 
+/* AWS Configuration Layout */
+.media-management .aws-config-main {
+  display: block;
+}
+
+.media-management .aws-config-fields {
+  margin-bottom: 2rem;
+}
+
+.media-management .aws-config-sidebar {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
 /* Access Key Configuration */
 .media-management .auth-section-header {
   margin-bottom: 1rem;
@@ -789,17 +805,28 @@
 
 /* Responsive Design */
 @media (min-width: 768px) {
+  /* Section Header - Horizontal layout on desktop */
+  .media-management .section-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
   .media-management .config-grid {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
   }
   
   .media-management .access-key-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
   }
   
   .media-management .media-controls {
     grid-template-columns: 2fr 1fr auto;
     align-items: center;
+    gap: 1.5rem;
   }
   
   .media-management .folder-breadcrumb {
@@ -817,6 +844,7 @@
     text-align: left;
     margin-bottom: 0;
     margin-top: 0.25rem;
+    font-size: 1.25rem;
   }
   
   .media-management .security-notice strong,
@@ -832,15 +860,69 @@
   .media-management .external-id-buttons {
     flex-wrap: nowrap;
   }
+  
+  /* Better spacing for desktop */
+  .media-management .cloud-media-config {
+    padding: 2.5rem;
+  }
+  
+  .media-management .media-actions {
+    gap: 1.5rem;
+    padding: 2rem;
+    justify-content: flex-start;
+  }
+}
+
+/* Medium screens - optimize layout */
+@media (min-width: 1024px) {
+  .media-management .config-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem;
+  }
+  
+  /* AWS Configuration gets 2-column layout */
+  .media-management .aws-config-main {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  
+  .media-management .access-key-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 /* Large screens - optimize layout */
 @media (min-width: 1200px) {
   .media-management .config-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
   }
   
   .media-management .media-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+  }
+  
+  /* AWS Configuration optimal desktop layout */
+  .media-management .aws-config-main {
+    grid-template-columns: 1.5fr 1fr;
+  }
+  
+  .media-management .access-key-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1440px) {
+  .media-management .config-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .media-management .access-key-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
