@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 import credentialManager from '../services/awsCredentialManager.js';
 
 // Helper: Get S3 Client with automatic credential management
-async function getS3Client(config) {
+export async function getS3Client(config) {
   try {
     console.log('🔑 Getting S3 client with automatic credential management');
     

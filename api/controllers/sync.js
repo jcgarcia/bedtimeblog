@@ -116,7 +116,7 @@ export const syncS3ToDatabase = async (req, res) => {
           '/',                                        // folder_path
           [],                                         // tags
           '',                                         // alt_text
-          req.user.id,                                // uploaded_by
+          req.adminUser?.id || 1,                     // uploaded_by (fallback to admin user)
           mimeType,                                   // mime_type
           obj.LastModified || new Date(),             // created_at
           obj.LastModified || new Date()              // updated_at
