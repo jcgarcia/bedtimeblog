@@ -223,7 +223,7 @@ export const uploadToS3 = async (req, res) => {
         
         const s3Result = await s3.send(uploadCommand);
         // For private buckets, we don't store a public URL - we'll generate signed URLs on demand
-        const privateUrl = null; // No public URL for private bucket
+        const privateUrl = 'PRIVATE_BUCKET'; // Placeholder for private bucket - use signed URLs instead
         // Save to database
         const dbQuery = `
           INSERT INTO media (
