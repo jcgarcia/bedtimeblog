@@ -623,62 +623,63 @@ export default function MediaManagement() {
                   </div>
                 </div>
 
-                    {/* Access Key Configuration - Required for Authentication */}
+                  </div>
+                </div>
+                
+                {/* Identity Center Credentials - Full Width Section */}
+                <div className="identity-center-credentials-section">
+                  <div className="auth-section-header">
+                    <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
+                    <small style={{ color: '#1976d2', fontWeight: '600' }}>
+                      ℹ️ Obtain these credentials from AWS Identity Center portal - refresh manually when expired
+                    </small>
+                  </div>
+                  <div className="access-key-grid">
                     <div className="config-field">
-                      <div className="auth-section-header">
-                        <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
-                        <small style={{ color: '#1976d2', fontWeight: '600' }}>
-                          ℹ️ Obtain these credentials from AWS Identity Center portal - refresh manually when expired
-                        </small>
-                      </div>
-                      <div className="access-key-grid">
-                        <div className="config-field">
-                          <label>Access Key ID (Required):</label>
-                          <input
-                            type="text"
-                            value={cloudConfig.aws.accessKey || ''}
-                            onChange={e => setCloudConfig(prev => ({
-                              ...prev,
-                              aws: { ...prev.aws, accessKey: e.target.value.trim() }
-                            }))}
-                            placeholder="ASIA... (from Identity Center)"
-                            required
-                          />
-                          <small style={{ color: '#28a745' }}>From Identity Center portal</small>
-                        </div>
-                        <div className="config-field">
-                          <label>Secret Access Key (Required):</label>
-                          <input
-                            type="password"
-                            value={cloudConfig.aws.secretKey || ''}
-                            onChange={e => setCloudConfig(prev => ({
-                              ...prev,
-                              aws: { ...prev.aws, secretKey: e.target.value.trim() }
-                            }))}
-                            placeholder="Secret key..."
-                            required
-                          />
-                          <small style={{ color: '#28a745' }}>From Identity Center portal</small>
-                        </div>
-                        <div className="config-field session-token-field">
-                          <label>Session Token (Required):</label>
-                          <input
-                            type="password"
-                            value={cloudConfig.aws.sessionToken || ''}
-                            onChange={e => setCloudConfig(prev => ({
-                              ...prev,
-                              aws: { ...prev.aws, sessionToken: e.target.value.trim() }
-                            }))}
-                            placeholder="Session token..."
-                            required
-                          />
-                          <small style={{ color: '#28a745' }}>From Identity Center portal (12-hour expiration)</small>
-                        </div>
-                      </div>
-                      <div className="auth-method-note">
-                        <strong>🔑 Identity Center Authentication:</strong> All credentials obtained from AWS Identity Center portal → App assumes role → Gets fresh S3 access → User refreshes credentials from portal when expired
-                      </div>
+                      <label>Access Key ID (Required):</label>
+                      <input
+                        type="text"
+                        value={cloudConfig.aws.accessKey || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, accessKey: e.target.value.trim() }
+                        }))}
+                        placeholder="ASIA... (from Identity Center)"
+                        required
+                      />
+                      <small style={{ color: '#28a745' }}>From Identity Center portal</small>
                     </div>
+                    <div className="config-field">
+                      <label>Secret Access Key (Required):</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.secretKey || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, secretKey: e.target.value.trim() }
+                        }))}
+                        placeholder="Secret key..."
+                        required
+                      />
+                      <small style={{ color: '#28a745' }}>From Identity Center portal</small>
+                    </div>
+                    <div className="config-field session-token-field">
+                      <label>Session Token (Required):</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.sessionToken || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, sessionToken: e.target.value.trim() }
+                        }))}
+                        placeholder="Session token..."
+                        required
+                      />
+                      <small style={{ color: '#28a745' }}>From Identity Center portal (12-hour expiration)</small>
+                    </div>
+                  </div>
+                  <div className="auth-method-note">
+                    <strong>🔑 Identity Center Authentication:</strong> All credentials obtained from AWS Identity Center portal → App assumes role → Gets fresh S3 access → User refreshes credentials from portal when expired
                   </div>
                 </div>
                 

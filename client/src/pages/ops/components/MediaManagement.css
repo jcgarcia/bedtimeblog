@@ -744,6 +744,29 @@
   margin-bottom: 1rem;
 }
 
+/* Identity Center Credentials - Full Width Section */
+.media-management .identity-center-credentials-section {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  margin: 2rem 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.media-management .identity-center-credentials-section .auth-section-header {
+  margin-bottom: 1.5rem;
+}
+
+.media-management .identity-center-credentials-section .access-key-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
 /* Action Buttons */
 .media-management .action-buttons {
   display: flex;
@@ -968,7 +991,18 @@
     gap: 2.5rem;
   }
   
-  /* Identity Center Credentials: 2-column layout for desktop */
+  /* Identity Center Credentials: Full-width 2-column layout */
+  .media-management .identity-center-credentials-section .access-key-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  
+  /* Session Token spans both columns in full-width section */
+  .media-management .identity-center-credentials-section .session-token-field {
+    grid-column: 1 / -1;
+  }
+  
+  /* Old access-key-grid (if any remain) */
   .media-management .access-key-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
@@ -1013,6 +1047,16 @@
     max-width: 100%;
   }
   
+  /* Identity Center Credentials: Maintain full-width 2-column layout */
+  .media-management .identity-center-credentials-section .access-key-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  
+  .media-management .identity-center-credentials-section .session-token-field {
+    grid-column: 1 / -1;
+  }
+  
   .media-management .access-key-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns in sidebar */
     gap: 1rem;
@@ -1034,6 +1078,16 @@
   /* AWS Configuration: Optimal layout for very wide screens */
   .media-management .aws-config-main {
     grid-template-columns: 2fr 1fr; /* More space for main config */
+  }
+  
+  /* Identity Center Credentials: Maintain full-width 2-column layout */
+  .media-management .identity-center-credentials-section .access-key-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+  
+  .media-management .identity-center-credentials-section .session-token-field {
+    grid-column: 1 / -1;
   }
   
   .media-management .access-key-grid {
