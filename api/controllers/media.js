@@ -267,10 +267,11 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
   try {
     console.log('🔄 Starting S3 database sync...');
     
-    // Get all objects from S3 bucket
+    // Get all objects from S3 bucket (only current versions, no versioned objects)
     const listCommand = new ListObjectsV2Command({
       Bucket: bucketName,
-      Prefix: 'uploads/' // Only sync files in uploads folder
+      Prefix: 'uploads/', // Only sync files in uploads folder
+      MaxKeys: 1000 // Ensure we get all files
     });
     
     const s3Response = await s3Client.send(listCommand);
@@ -279,10 +280,39 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
     console.log(`📂 Found ${s3Objects.length} objects in S3 bucket`);
     
     // Get existing database records
-    const dbResult = await pool.query('SELECT s3_key FROM media');
+    const dbResult = await pool.query('SELECT s3_key, mime_type, id FROM media');
     const existingS3Keys = new Set(dbResult.rows.map(row => row.s3_key));
     
     let syncedCount = 0;
+    let updatedCount = 0;
+    
+    // First, update existing records to organize them properly
+    for (const existingRecord of dbResult.rows) {
+      if (existingRecord.mime_type) {
+        let correctFolderPath = '/';
+        if (existingRecord.mime_type.startsWith('image/')) {
+          correctFolderPath = '/Images';
+        } else if (existingRecord.mime_type.startsWith('video/')) {
+          correctFolderPath = '/Videos';
+        } else if (existingRecord.mime_type === 'application/pdf') {
+          correctFolderPath = '/Documents';
+        } else {
+          correctFolderPath = '/Documents';
+        }
+        
+        // Update folder path if needed
+        const updateQuery = `
+          UPDATE media 
+          SET folder_path = $1 
+          WHERE id = $2 AND folder_path != $1
+        `;
+        const updateResult = await pool.query(updateQuery, [correctFolderPath, existingRecord.id]);
+        if (updateResult.rowCount > 0) {
+          updatedCount++;
+          console.log(`📁 Updated folder for existing file: ${existingRecord.s3_key} -> ${correctFolderPath}`);
+        }
+      }
+    }
     
     // Add missing S3 objects to database
     for (const s3Object of s3Objects) {
@@ -301,12 +331,16 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
           };
           const mimeType = mimeTypes[fileType] || 'application/octet-stream';
           
-          // Extract folder path from S3 key
-          const keyParts = s3Object.Key.split('/');
+          // Determine file category and folder path based on mime type
           let folderPath = '/';
-          if (keyParts.length > 2) {
-            // uploads/folder/subfolder/file.ext -> /folder/subfolder
-            folderPath = '/' + keyParts.slice(1, -1).join('/');
+          if (mimeType.startsWith('image/')) {
+            folderPath = '/Images';
+          } else if (mimeType.startsWith('video/')) {
+            folderPath = '/Videos';
+          } else if (mimeType === 'application/pdf') {
+            folderPath = '/Documents';
+          } else {
+            folderPath = '/Documents'; // Default for other file types
           }
           
           // Insert into database
@@ -344,8 +378,8 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
       }
     }
     
-    console.log(`🎉 S3 sync completed: ${syncedCount} new files added to database`);
-    return syncedCount;
+    console.log(`🎉 S3 sync completed: ${syncedCount} new files added, ${updatedCount} existing files reorganized`);
+    return { syncedCount, updatedCount, totalProcessed: syncedCount + updatedCount };
     
   } catch (error) {
     console.error('❌ S3 sync failed:', error);
@@ -383,9 +417,9 @@ export const getMediaFiles = async (req, res) => {
         
         if (settings.media_storage_type === 'aws' && settings.aws_config) {
           const s3Client = await getS3Client(settings.aws_config);
-          const syncedCount = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
+          const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
           syncPerformed = true;
-          console.log(`✅ S3 sync completed: ${syncedCount} files synced`);
+          console.log(`✅ S3 sync completed: ${syncResult.syncedCount} new files, ${syncResult.updatedCount} reorganized`);
         }
       } catch (syncError) {
         console.error('⚠️ S3 sync failed, continuing with database query:', syncError.message);
@@ -810,12 +844,14 @@ export const syncS3Files = async (req, res) => {
     
     // Get S3 client and perform sync
     const s3Client = await getS3Client(settings.aws_config);
-    const syncedCount = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
+    const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
     
     res.json({
       success: true,
-      message: `Successfully synced ${syncedCount} files from S3 bucket`,
-      syncedCount,
+      message: `Successfully synced ${syncResult.syncedCount} new files and reorganized ${syncResult.updatedCount} existing files`,
+      syncedCount: syncResult.syncedCount,
+      updatedCount: syncResult.updatedCount,
+      totalProcessed: syncResult.totalProcessed,
       bucketName: settings.aws_config.bucketName
     });
     
