@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,6 +24,33 @@ async function getS3Client(config) {
   } catch (error) {
     console.error('❌ Failed to get S3 client:', error.message);
     throw new Error(`S3 client configuration failed: ${error.message}`);
+  }
+}
+
+// Helper: Generate signed URL for private S3 objects
+async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
+  try {
+    // Get AWS config from database
+    const pool = getDbPool();
+    const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+    
+    if (settingsRes.rows.length === 0) {
+      throw new Error('AWS configuration not found');
+    }
+    
+    const awsConfig = JSON.parse(settingsRes.rows[0].value);
+    const s3Client = await getS3Client(awsConfig);
+    
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: s3Key,
+    });
+    
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+    return signedUrl;
+  } catch (error) {
+    console.error('Error generating signed URL:', error);
+    throw error;
   }
 }
 
@@ -194,7 +222,8 @@ export const uploadToS3 = async (req, res) => {
         });
         
         const s3Result = await s3.send(uploadCommand);
-        const publicUrl = `${CDN_URL}/${s3Key}`;
+        // For private buckets, we don't store a public URL - we'll generate signed URLs on demand
+        const privateUrl = null; // No public URL for private bucket
         // Save to database
         const dbQuery = `
           INSERT INTO media (
@@ -210,7 +239,7 @@ export const uploadToS3 = async (req, res) => {
           file.size,
           s3Key,
           BUCKET_NAME,
-          publicUrl,
+          privateUrl,
           userId,
           folderPath,
           tags,
@@ -272,6 +301,22 @@ export const getMediaFiles = async (req, res) => {
 
     const result = await pool.query(query, queryParams);
 
+    // Generate signed URLs for private bucket access
+    const mediaWithSignedUrls = await Promise.all(
+      result.rows.map(async (media) => {
+        try {
+          if (media.s3_key && media.s3_bucket) {
+            const signedUrl = await generateSignedUrl(media.s3_key, media.s3_bucket);
+            return { ...media, signed_url: signedUrl };
+          }
+          return media;
+        } catch (error) {
+          console.error(`Error generating signed URL for ${media.s3_key}:`, error);
+          return media; // Return without signed URL if generation fails
+        }
+      })
+    );
+
     // Get total count
     let countQuery = `SELECT COUNT(*) FROM media WHERE folder_path = $1`;
     let countParams = [folderPath];
@@ -285,7 +330,7 @@ export const getMediaFiles = async (req, res) => {
 
     res.json({
       success: true,
-      media: result.rows,
+      media: mediaWithSignedUrls,
       pagination: {
         page,
         limit,
@@ -325,9 +370,22 @@ export const getMediaFile = async (req, res) => {
       });
     }
 
+    const media = result.rows[0];
+    
+    // Generate signed URL for private bucket access
+    try {
+      if (media.s3_key && media.s3_bucket) {
+        const signedUrl = await generateSignedUrl(media.s3_key, media.s3_bucket);
+        media.signed_url = signedUrl;
+      }
+    } catch (error) {
+      console.error(`Error generating signed URL for ${media.s3_key}:`, error);
+      // Continue without signed URL
+    }
+
     res.json({
       success: true,
-      media: result.rows[0]
+      media: media
     });
 
   } catch (error) {
