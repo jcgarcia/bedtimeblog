@@ -52,20 +52,66 @@ export default function MediaManagement() {
   };
 
   useEffect(() => {
+    // Load initial configuration
+    loadMediaStorageConfig();
+  }, []);
+
+  useEffect(() => {
     if (mediaServerType === 'internal') {
       fetchMediaFiles();
       fetchFolders();
     } else if (mediaServerType === 'aws') {
       // Load existing AWS configuration including External ID
       loadAwsConfiguration();
-      setMediaFiles([]);
-      setFolders([]);
+      fetchMediaFiles(); // For AWS, we still load from database
+      setFolders([]); // AWS doesn't use folders currently
     } else {
       // TODO: Integrate with external media server API when available
       setMediaFiles([]);
       setFolders([]);
     }
   }, [currentFolder, pagination.page, filterType, searchTerm, mediaServerType]);
+
+  const loadMediaStorageConfig = async () => {
+    try {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.MEDIA_STORAGE, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.config) {
+          // Set the correct storage type from database
+          setMediaServerType(data.config.storageType || 'internal');
+          
+          // Load cloud configurations if available
+          if (data.config.awsConfig) {
+            setCloudConfig(prev => ({
+              ...prev,
+              aws: {
+                ...prev.aws,
+                ...data.config.awsConfig
+              }
+            }));
+          }
+          
+          if (data.config.ociConfig) {
+            setCloudConfig(prev => ({
+              ...prev,
+              oci: {
+                ...prev.oci,
+                ...data.config.ociConfig
+              }
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading media storage configuration:', error);
+    }
+  };
 
   const fetchMediaFiles = async () => {
     try {
@@ -226,6 +272,40 @@ export default function MediaManagement() {
       }
     } catch (error) {
       console.error('Error loading AWS configuration:', error);
+    }
+  };
+
+  // Sync S3 bucket with database
+  const syncS3WithDatabase = async () => {
+    if (mediaServerType !== 'aws') {
+      alert('S3 sync is only available for AWS storage');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.MEDIA.SYNC_S3, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Sync completed! ${result.synced} files added to database.`);
+        // Refresh media files after sync
+        fetchMediaFiles();
+      } else {
+        const error = await response.json();
+        alert(`Sync failed: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error syncing S3:', error);
+      alert('Error syncing S3 bucket with database');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -750,6 +830,28 @@ export default function MediaManagement() {
                         }}
                       >
                         <i className="fa-solid fa-save"></i> Save Configuration
+                      </button>
+                      
+                      <button 
+                        className="btn-sync-s3"
+                        onClick={syncS3WithDatabase}
+                        disabled={mediaServerType !== 'aws'}
+                        style={{
+                          backgroundColor: '#17a2b8',
+                          color: 'white',
+                          border: '2px solid #138496',
+                          fontSize: '14px',
+                          padding: '10px 20px',
+                          borderRadius: '6px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          width: '100%',
+                          opacity: mediaServerType !== 'aws' ? 0.5 : 1,
+                          marginTop: '10px'
+                        }}
+                        title="Sync S3 bucket files with database records"
+                      >
+                        <i className="fa-solid fa-sync"></i> Sync S3 to Database
                       </button>
                     </div>
                   </div>

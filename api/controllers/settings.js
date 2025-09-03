@@ -592,3 +592,50 @@ export const updateAwsConfig = async (req, res) => {
     });
   }
 };
+
+// Get Media Storage Configuration
+export const getMediaStorageConfig = async (req, res) => {
+  try {
+    const pool = getDbPool();
+    const result = await pool.query(
+      "SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'aws_config', 'oci_config')"
+    );
+    
+    const config = {
+      storageType: 'internal', // default
+      awsConfig: {},
+      ociConfig: {}
+    };
+    
+    result.rows.forEach(row => {
+      if (row.key === 'media_storage_type') {
+        config.storageType = row.value || 'internal';
+      } else if (row.key === 'aws_config') {
+        try {
+          config.awsConfig = JSON.parse(row.value || '{}');
+        } catch (e) {
+          console.error('Error parsing aws_config JSON:', e);
+          config.awsConfig = {};
+        }
+      } else if (row.key === 'oci_config') {
+        try {
+          config.ociConfig = JSON.parse(row.value || '{}');
+        } catch (e) {
+          console.error('Error parsing oci_config JSON:', e);
+          config.ociConfig = {};
+        }
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      config
+    });
+  } catch (error) {
+    console.error("Error fetching media storage configuration:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching media storage configuration" 
+    });
+  }
+};

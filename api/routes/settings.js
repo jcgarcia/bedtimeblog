@@ -9,7 +9,8 @@ import {
   getAwsExternalId,
   saveAwsExternalId,
   getAwsConfig,
-  updateAwsConfig
+  updateAwsConfig,
+  getMediaStorageConfig
 } from "../controllers/settings.js";
 import { requireAdminAuth } from "../controllers/admin.js";
 
@@ -40,5 +41,8 @@ router.post("/aws-external-id", requireAdminAuth, saveAwsExternalId);
 // AWS Configuration management (admin only)
 router.get("/aws-config", requireAdminAuth, getAwsConfig);
 router.put("/aws-config", requireAdminAuth, updateAwsConfig);
+
+// Media Storage Configuration (admin only)
+router.get("/media-storage", requireAdminAuth, getMediaStorageConfig);
 
 export default router;
