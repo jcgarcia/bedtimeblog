@@ -10,6 +10,7 @@ import {
   createMediaFolder,
   testAwsConnection
 } from "../controllers/media.js";
+import { syncS3ToDatabase } from "../controllers/sync.js";
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/
 
 // AWS connection testing
 router.post("/test-aws-connection", requireAdminAuth, testAwsConnection); // POST /api/media/test-aws-connection - Test AWS S3 connection
+router.post("/sync-s3", requireAdminAuth, syncS3ToDatabase);              // POST /api/media/sync-s3 - Sync S3 bucket with database
 router.get("/debug-version", (req, res) => res.json({ version: "2.0", timestamp: new Date().toISOString() })); // Debug endpoint
 
 export default router;
