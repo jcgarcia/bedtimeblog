@@ -31,5 +31,6 @@ router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/
 
 // AWS connection testing
 router.post("/test-aws-connection", requireAdminAuth, testAwsConnection); // POST /api/media/test-aws-connection - Test AWS S3 connection
+router.get("/debug-version", (req, res) => res.json({ version: "2.0", timestamp: new Date().toISOString() })); // Debug endpoint
 
 export default router;
