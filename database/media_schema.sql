@@ -29,6 +29,7 @@ CREATE TABLE media (
   mime_type VARCHAR(100),
   width INTEGER,
   height INTEGER,
+  thumbnail_key VARCHAR(500), -- S3 key for thumbnail image
   
   -- Timestamps
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -7,6 +7,7 @@ import path from 'path';
 import { getDbPool } from '../db.js';
 import jwt from 'jsonwebtoken';
 import credentialManager from '../services/awsCredentialManager.js';
+import sharp from 'sharp';
 
 // Helper: Get S3 Client with automatic credential management
 export async function getS3Client(config) {
@@ -100,6 +101,28 @@ const generateS3Key = (originalName, userId, folderPath = '/') => {
   }
 };
 
+// Generate thumbnail for images
+const generateThumbnail = async (buffer, mimetype) => {
+  if (!mimetype.startsWith('image/')) {
+    return null;
+  }
+  
+  try {
+    const thumbnail = await sharp(buffer)
+      .resize(300, 300, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    
+    return thumbnail;
+  } catch (error) {
+    console.error('Error generating thumbnail:', error);
+    return null;
+  }
+};
+
 // Get file dimensions for images
 const getImageDimensions = async (buffer, mimetype) => {
   if (!mimetype.startsWith('image/')) {
@@ -107,9 +130,11 @@ const getImageDimensions = async (buffer, mimetype) => {
   }
   
   try {
-    // You can use sharp library for better image processing
-    // For now, we'll return null and handle dimensions on the frontend
-    return { width: null, height: null };
+    const metadata = await sharp(buffer).metadata();
+    return { 
+      width: metadata.width || null, 
+      height: metadata.height || null 
+    };
   } catch (error) {
     console.error('Error getting image dimensions:', error);
     return { width: null, height: null };
@@ -137,9 +162,23 @@ export const uploadToS3 = async (req, res) => {
       }
 
       const file = req.file;
-      const folderPath = req.body.folderPath || '/';
       const altText = req.body.altText || '';
       const tags = req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [];
+
+      // Auto-categorize folder path based on file type
+      let folderPath = req.body.folderPath || '/';
+      if (!req.body.folderPath) {
+        // Auto-categorize if no folder specified  
+        if (file.mimetype.startsWith('image/')) {
+          folderPath = '/images';
+        } else if (file.mimetype.startsWith('video/')) {
+          folderPath = '/videos';
+        } else if (file.mimetype === 'application/pdf') {
+          folderPath = '/documents';
+        } else {
+          folderPath = '/documents'; // Default for other file types
+        }
+      }
 
       // --- NEW: Read storage settings from DB ---
       const pool = getDbPool();
@@ -206,9 +245,37 @@ export const uploadToS3 = async (req, res) => {
       try {
         // Generate S3 key
         const s3Key = generateS3Key(file.originalname, userId, folderPath);
+        
         // Get image dimensions if it's an image
         const { width, height } = await getImageDimensions(file.buffer, file.mimetype);
-        // Upload to S3/OCI
+        
+        // Generate thumbnail for images
+        let thumbnailS3Key = null;
+        if (file.mimetype.startsWith('image/')) {
+          const thumbnail = await generateThumbnail(file.buffer, file.mimetype);
+          if (thumbnail) {
+            thumbnailS3Key = s3Key.replace(/(\.[^.]+)$/, '_thumb.jpg');
+            
+            // Upload thumbnail to S3
+            const thumbnailUploadCommand = new PutObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: thumbnailS3Key,
+              Body: thumbnail,
+              ContentType: 'image/jpeg',
+              Metadata: {
+                originalName: file.originalname + '_thumbnail',
+                uploadedBy: userId.toString(),
+                uploadedAt: new Date().toISOString(),
+                thumbnailFor: s3Key
+              }
+            });
+            
+            await s3.send(thumbnailUploadCommand);
+            console.log(`✅ Thumbnail uploaded: ${thumbnailS3Key}`);
+          }
+        }
+        
+        // Upload main file to S3/OCI
         const uploadCommand = new PutObjectCommand({
           Bucket: BUCKET_NAME,
           Key: s3Key,
@@ -217,7 +284,8 @@ export const uploadToS3 = async (req, res) => {
           Metadata: {
             originalName: file.originalname,
             uploadedBy: userId.toString(),
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            ...(thumbnailS3Key ? { thumbnailKey: thumbnailS3Key } : {})
           }
         });
         
@@ -228,8 +296,8 @@ export const uploadToS3 = async (req, res) => {
         const dbQuery = `
           INSERT INTO media (
             filename, original_name, file_type, file_size, s3_key, s3_bucket, 
-            public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, thumbnail_key
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
           RETURNING *
         `;
         const values = [
@@ -246,7 +314,8 @@ export const uploadToS3 = async (req, res) => {
           altText,
           file.mimetype,
           width,
-          height
+          height,
+          thumbnailS3Key
         ];
         const result = await pool.query(dbQuery, values);
         const mediaRecord = result.rows[0];
@@ -297,13 +366,13 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
       if (existingRecord.mime_type) {
         let correctFolderPath = '/';
         if (existingRecord.mime_type.startsWith('image/')) {
-          correctFolderPath = '/Images';
+          correctFolderPath = '/images';
         } else if (existingRecord.mime_type.startsWith('video/')) {
-          correctFolderPath = '/Videos';
+          correctFolderPath = '/videos';
         } else if (existingRecord.mime_type === 'application/pdf') {
-          correctFolderPath = '/Documents';
+          correctFolderPath = '/documents';
         } else {
-          correctFolderPath = '/Documents';
+          correctFolderPath = '/documents';
         }
         
         // Update folder path if needed
@@ -340,13 +409,13 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
           // Determine file category and folder path based on mime type
           let folderPath = '/';
           if (mimeType.startsWith('image/')) {
-            folderPath = '/Images';
+            folderPath = '/images';
           } else if (mimeType.startsWith('video/')) {
-            folderPath = '/Videos';
+            folderPath = '/videos';
           } else if (mimeType === 'application/pdf') {
-            folderPath = '/Documents';
+            folderPath = '/documents';
           } else {
-            folderPath = '/Documents'; // Default for other file types
+            folderPath = '/documents'; // Default for other file types
           }
           
           // Insert into database
