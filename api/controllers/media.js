@@ -262,7 +262,7 @@ export const uploadToS3 = async (req, res) => {
   }
 };
 
-// Helper function to sync S3 bucket with database
+// Helper function to sync S3 bucket with database  
 async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1) {
   try {
     console.log('🔄 Starting S3 database sync...');
@@ -278,6 +278,12 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
     const s3Objects = s3Response.Contents || [];
     
     console.log(`📂 Found ${s3Objects.length} objects in S3 bucket`);
+    
+    // If S3 bucket is empty, return early
+    if (s3Objects.length === 0) {
+      console.log('📂 S3 bucket is empty, nothing to sync');
+      return { syncedCount: 0, updatedCount: 0, totalProcessed: 0 };
+    }
     
     // Get existing database records
     const dbResult = await pool.query('SELECT s3_key, mime_type, id FROM media');
@@ -860,6 +866,37 @@ export const syncS3Files = async (req, res) => {
     res.status(500).json({
       success: false,
       message: `S3 sync failed: ${error.message}`
+    });
+  }
+};
+
+// Clear media database endpoint (for fresh start)
+export const clearMediaDatabase = async (req, res) => {
+  try {
+    console.log('🗑️ Clear media database requested');
+    
+    const pool = getDbPool();
+    
+    // Get count before clearing
+    const countResult = await pool.query('SELECT COUNT(*) FROM media');
+    const totalRecords = parseInt(countResult.rows[0].count);
+    
+    // Clear all media records
+    await pool.query('DELETE FROM media');
+    
+    console.log(`🗑️ Cleared ${totalRecords} media records from database`);
+    
+    res.json({
+      success: true,
+      message: `Successfully cleared ${totalRecords} media records from database`,
+      clearedRecords: totalRecords
+    });
+    
+  } catch (error) {
+    console.error('❌ Clear media database failed:', error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to clear media database: ${error.message}`
     });
   }
 };
