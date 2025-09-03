@@ -476,7 +476,7 @@ export const deleteMediaFile = async (req, res) => {
     
     if (storageType === 'aws' && settings.aws_config && settings.aws_config.roleArn) {
       // Use IAM Role with STS for AWS
-      s3 = await getS3ClientFromRole(settings.aws_config);
+      s3 = await getS3Client(settings.aws_config);
       BUCKET_NAME = settings.aws_config.bucketName;
     } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
       // Fallback: Use static keys if role not set
