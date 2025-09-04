@@ -88,3 +88,4 @@ activity/**/*
 AWS_IDENTITY_CENTER_*.md
 AWS_PRODUCTION_*.md
 *_CREDENTIALS.md
+activity/
