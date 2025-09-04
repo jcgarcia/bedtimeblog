@@ -32,7 +32,7 @@ export default function CognitoAdminPanel() {
         return;
       }
       
-      const response = await fetch('/api/settings/oauth', {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.OAUTH, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -84,7 +84,7 @@ export default function CognitoAdminPanel() {
         return;
       }
       
-      const response = await fetch('/api/settings/oauth', {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.OAUTH, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export default function CognitoAdminPanel() {
         return;
       }
       
-      const response = await fetch('/api/auth/cognito/test', {
+      const response = await fetch(API_ENDPOINTS.AUTH.COGNITO_TEST, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
