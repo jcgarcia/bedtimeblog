@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     TWITTER: `${API_URL}/api/auth/twitter`,
     LOGOUT: `${API_URL}/api/auth/logout`,
     VERIFY: `${API_URL}/api/auth/verify`,
+    COGNITO_TEST: `${API_URL}/api/auth/cognito/test`,
   },
   
   // Admin

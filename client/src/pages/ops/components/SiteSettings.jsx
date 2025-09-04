@@ -163,14 +163,7 @@ export default function SiteSettings() {
         </div>
       </div>
 
-      <div className="settings-section">
-        <h3>AWS Cognito Integration</h3>
-        <div className="setting-item">
-          <p>Cognito configuration will be available in a future update.</p>
-        </div>
-      </div>
-
-      {/* OAuth Settings can be added here if needed */}
+      {/* OAuth Settings have been moved to the dedicated Auth tab */}
     </div>
   );
 }

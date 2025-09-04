@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '../../config/api';
 import './cognito-admin.css';
 
 const defaultConfig = {
@@ -25,7 +26,7 @@ export default function CognitoAdminPanel() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/settings/oauth', {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.OAUTH, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -68,7 +69,7 @@ export default function CognitoAdminPanel() {
     
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/settings/oauth', {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.OAUTH, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export default function CognitoAdminPanel() {
     
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/auth/cognito/test', {
+      const response = await fetch(API_ENDPOINTS.AUTH.COGNITO_TEST, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
