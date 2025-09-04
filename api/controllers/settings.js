@@ -223,6 +223,14 @@ export const getOAuthSettings = async (req, res) => {
         consumerKey: '',
         consumerSecret: '',
         callbackUrl: ''
+      },
+      cognito: {
+        enabled: false,
+        userPoolId: '',
+        clientId: '',
+        clientSecret: '',
+        region: '',
+        domain: ''
       }
     };
     
@@ -250,6 +258,22 @@ export const getOAuthSettings = async (req, res) => {
         case 'oauth_twitter_consumer_secret':
           oauthConfig.twitter.consumerSecret = row.value || '';
           break;
+        case 'oauth_cognito_user_pool_id':
+          oauthConfig.cognito.userPoolId = row.value || '';
+          oauthConfig.cognito.enabled = !!(row.value && row.value.trim());
+          break;
+        case 'oauth_cognito_client_id':
+          oauthConfig.cognito.clientId = row.value || '';
+          break;
+        case 'oauth_cognito_client_secret':
+          oauthConfig.cognito.clientSecret = row.value || '';
+          break;
+        case 'oauth_cognito_region':
+          oauthConfig.cognito.region = row.value || '';
+          break;
+        case 'oauth_cognito_domain':
+          oauthConfig.cognito.domain = row.value || '';
+          break;
         case 'oauth_frontend_url':
           // Set redirect URIs based on frontend URL
           const baseUrl = row.value || 'https://blog.ingasti.com';
@@ -276,9 +300,9 @@ export const getOAuthSettings = async (req, res) => {
 // Update OAuth configuration (admin only)
 export const updateOAuthSettings = async (req, res) => {
   try {
-    const { google, facebook, twitter } = req.body;
+    const { google, facebook, twitter, cognito } = req.body;
     
-    if (!google && !facebook && !twitter) {
+    if (!google && !facebook && !twitter && !cognito) {
       return res.status(400).json({
         success: false,
         message: 'No OAuth configuration provided'
@@ -311,13 +335,26 @@ export const updateOAuthSettings = async (req, res) => {
       );
     }
     
+    // Process Cognito config
+    if (cognito) {
+      updates.push(
+        { key: 'oauth_cognito_user_pool_id', value: cognito.userPoolId || '' },
+        { key: 'oauth_cognito_client_id', value: cognito.clientId || '' },
+        { key: 'oauth_cognito_client_secret', value: cognito.clientSecret || '' },
+        { key: 'oauth_cognito_region', value: cognito.region || '' },
+        { key: 'oauth_cognito_domain', value: cognito.domain || '' }
+      );
+    }
+    
     // Update database
     for (const update of updates) {
       await pool.query(
-        `UPDATE settings SET 
+        `INSERT INTO settings (key, value, group_name, updated_at)
+         VALUES ($2, $1, 'oauth', CURRENT_TIMESTAMP)
+         ON CONFLICT (key) 
+         DO UPDATE SET 
            value = $1, 
-           updated_at = CURRENT_TIMESTAMP
-         WHERE key = $2`,
+           updated_at = CURRENT_TIMESTAMP`,
         [update.value, update.key]
       );
     }
