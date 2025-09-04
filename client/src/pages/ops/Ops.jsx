@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useAdmin } from '../../contexts/AdminContext';
 import './ops.css';
 import CognitoAdminPanel from '../../components/cognito-admin/CognitoAdminPanel';
-import PostManagement from './components/PostManagement';
+import ContentManagement from './components/ContentManagement';
 import UserManagement from './components/UserManagement';
-import CategoryManagement from './components/CategoryManagement';
 import SocialMediaManagement from './components/SocialMediaManagement';
 import SiteSettings from './components/SiteSettings';
 import Analytics from './components/Analytics';
@@ -12,19 +11,17 @@ import MediaManagement from './components/MediaManagement';
 import PageManagement from './components/PageManagement';
 
 export default function Ops() {
-  const [activeTab, setActiveTab] = useState('posts');
+  const [activeTab, setActiveTab] = useState('content');
   const { adminUser, adminLogout } = useAdmin();
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'posts':
-        return <PostManagement />;
+      case 'content':
+        return <ContentManagement />;
       case 'pages':
         return <PageManagement />;
       case 'users':
         return <UserManagement />;
-      case 'categories':
-        return <CategoryManagement />;
       case 'social':
         return <SocialMediaManagement />;
       case 'settings':
@@ -36,7 +33,7 @@ export default function Ops() {
       case 'auth':
         return <CognitoAdminPanel />;
       default:
-        return <PostManagement />;
+        return <ContentManagement />;
     }
   };
 
@@ -55,10 +52,10 @@ export default function Ops() {
 
       <div className="ops-navigation">
         <button 
-          className={activeTab === 'posts' ? 'active' : ''} 
-          onClick={() => setActiveTab('posts')}
+          className={activeTab === 'content' ? 'active' : ''} 
+          onClick={() => setActiveTab('content')}
         >
-          <i className="fa-solid fa-file-lines"></i> Posts
+          <i className="fa-solid fa-file-lines"></i> Content
         </button>
         <button 
           className={activeTab === 'pages' ? 'active' : ''} 
@@ -71,12 +68,6 @@ export default function Ops() {
           onClick={() => setActiveTab('users')}
         >
           <i className="fa-solid fa-users"></i> Users
-        </button>
-        <button 
-          className={activeTab === 'categories' ? 'active' : ''} 
-          onClick={() => setActiveTab('categories')}
-        >
-          <i className="fa-solid fa-tags"></i> Categories
         </button>
         <button 
           className={activeTab === 'social' ? 'active' : ''} 
