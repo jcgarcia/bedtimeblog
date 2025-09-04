@@ -121,18 +121,18 @@ export default function TopBar() {
               </div>
               {loginMenuOpen && (
                 <div className="loginDropdown">
+                  <Link className="loginOption" to="/login" onClick={() => setLoginMenuOpen(false)}>
+                    <i className="fa-solid fa-comments"></i>
+                    <div>
+                      <strong>Reader Login</strong>
+                      <span>AWS Cognito secure authentication</span>
+                    </div>
+                  </Link>
                   <Link className="loginOption" to="/userlogin" onClick={() => setLoginMenuOpen(false)}>
                     <i className="fa-solid fa-pen"></i>
                     <div>
                       <strong>Writer Login</strong>
                       <span>Create & edit posts</span>
-                    </div>
-                  </Link>
-                  <Link className="loginOption" to="/login" onClick={() => setLoginMenuOpen(false)}>
-                    <i className="fa-solid fa-comments"></i>
-                    <div>
-                      <strong>Reader Login</strong>
-                      <span>Comment via social media</span>
                     </div>
                   </Link>
                   <Link className="loginOption admin" to="/adminlogin" onClick={() => setLoginMenuOpen(false)}>

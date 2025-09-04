@@ -1,15 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/UserContext";
-import { API_ENDPOINTS } from "../../config/api.js";
 import "./login.css";
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [cognitoConfig, setCognitoConfig] = useState(null);
   const { userLogin } = useUser();
   const navigate = useNavigate();
+
+  // Load Cognito configuration
+  useEffect(() => {
+    const loadCognitoConfig = async () => {
+      try {
+        // You can load this from your settings API or use the saved config
+        setCognitoConfig({
+          domain: 'blog-auth-1756980364.auth.eu-west-2.amazoncognito.com',
+          clientId: '50bvr2ect5ja74rc3qtdb3jn1a',
+          redirectUri: window.location.origin + '/auth/callback'
+        });
+      } catch (error) {
+        console.error('Failed to load Cognito config:', error);
+      }
+    };
+    
+    loadCognitoConfig();
+  }, []);
+
+  const handleCognitoLogin = () => {
+    if (!cognitoConfig) {
+      setError('Authentication system not configured');
+      return;
+    }
+
+    const cognitoUrl = `https://${cognitoConfig.domain}/login?` +
+      `client_id=${cognitoConfig.clientId}&` +
+      `response_type=code&` +
+      `scope=email+openid+profile&` +
+      `redirect_uri=${encodeURIComponent(cognitoConfig.redirectUri)}`;
+    
+    window.location.href = cognitoUrl;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,30 +85,34 @@ export default function Login() {
           <p>Sign in to your account</p>
         </div>
 
-        {/* OAuth Login Options */}
+        {/* Cognito Login (Recommended) */}
         <div className="oauth-section">
-          <h3>Quick Sign In</h3>
+          <h3>🔐 Secure Sign In</h3>
+          <p className="cognito-description">
+            Powered by AWS Cognito - Enterprise-grade security with social media options
+          </p>
           <div className="oauth-buttons">
-            <a href={API_ENDPOINTS.AUTH.GOOGLE} className="oauth-button google">
-              <i className="fa-brands fa-google"></i>
-              Continue with Google
-            </a>
-            <a href={API_ENDPOINTS.AUTH.FACEBOOK} className="oauth-button facebook">
-              <i className="fa-brands fa-facebook-f"></i>
-              Continue with Facebook
-            </a>
-            <a href={API_ENDPOINTS.AUTH.TWITTER} className="oauth-button twitter">
-              <i className="fa-brands fa-twitter"></i>
-              Continue with Twitter
-            </a>
+            <button 
+              onClick={handleCognitoLogin} 
+              className="oauth-button cognito"
+              disabled={!cognitoConfig}
+            >
+              <i className="fa-solid fa-shield-halved"></i>
+              {!cognitoConfig ? 'Loading...' : 'Sign In with AWS Cognito'}
+            </button>
           </div>
+          <p className="cognito-features">
+            ✓ Google, Facebook, Apple sign-in options<br/>
+            ✓ Secure password management<br/>
+            ✓ Multi-factor authentication ready
+          </p>
         </div>
 
         <div className="divider">
-          <span>or</span>
+          <span>or use legacy login</span>
         </div>
 
-        {/* Email/Password Login */}
+        {/* Email/Password Login (Legacy) */}
         <form className="loginForm" onSubmit={handleSubmit}>
           {error && (
             <div className="login-error">
@@ -121,7 +158,7 @@ export default function Login() {
                 Signing In...
               </>
             ) : (
-              'Sign In'
+              'Sign In (Legacy)'
             )}
           </button>
         </form>

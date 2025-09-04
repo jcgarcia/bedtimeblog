@@ -82,6 +82,43 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const loginWithCognito = async (authorizationCode) => {
+    setIsLoading(true);
+    try {
+      console.log('UserContext: Attempting Cognito login with code:', authorizationCode);
+      
+      const response = await fetch(API_ENDPOINTS.AUTH.COGNITO_LOGIN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          code: authorizationCode,
+          redirectUri: window.location.origin + '/auth/callback'
+        })
+      });
+
+      console.log('UserContext: Cognito response status:', response.status);
+
+      const data = await response.json();
+      console.log('UserContext: Cognito response data:', data);
+
+      if (response.ok && data.success) {
+        localStorage.setItem('userToken', data.token);
+        setUser(data.user);
+        setIsLoading(false);
+        return { success: true, message: data.message };
+      } else {
+        setIsLoading(false);
+        return { success: false, message: data.message || 'Cognito login failed' };
+      }
+    } catch (error) {
+      console.error('UserContext: Cognito login failed:', error);
+      setIsLoading(false);
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  };
+
   const userLogout = () => {
     localStorage.removeItem('userToken');
     setUser(null);
@@ -91,6 +128,7 @@ export const UserProvider = ({ children }) => {
     user,
     isLoading,
     userLogin,
+    loginWithCognito,
     userLogout,
     checkUserAuth
   };

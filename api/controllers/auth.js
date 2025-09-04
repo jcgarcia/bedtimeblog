@@ -1,6 +1,7 @@
 import { getDbPool } from "../db.js";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import fetch from "node-fetch";
 
 export const register = async (req, res) => {
   const pool = getDbPool();
@@ -214,6 +215,163 @@ export const verify = async (req, res) => {
     res.status(401).json({
       success: false,
       message: 'Invalid token'
+    });
+  }
+};
+
+// Cognito OAuth login
+export const cognitoLogin = async (req, res) => {
+  const pool = getDbPool();
+  
+  try {
+    const { code, redirectUri } = req.body;
+
+    if (!code || !redirectUri) {
+      return res.status(400).json({
+        success: false,
+        message: 'Authorization code and redirect URI are required'
+      });
+    }
+
+    // Get Cognito configuration from settings
+    const settingsQuery = `
+      SELECT value FROM settings 
+      WHERE key = 'cognito' AND group_name = 'oauth'
+    `;
+    const settingsResult = await pool.query(settingsQuery);
+    
+    if (settingsResult.rows.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Cognito configuration not found'
+      });
+    }
+
+    const cognitoConfig = JSON.parse(settingsResult.rows[0].value);
+    const { domain, clientId, clientSecret, userPoolId, region } = cognitoConfig;
+
+    // Exchange authorization code for tokens
+    const tokenUrl = `https://${domain}/oauth2/token`;
+    const tokenParams = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: clientId,
+      client_secret: clientSecret,
+      code: code,
+      redirect_uri: redirectUri
+    });
+
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: tokenParams
+    });
+
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.text();
+      console.error('Token exchange failed:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to exchange authorization code for tokens'
+      });
+    }
+
+    const tokenData = await tokenResponse.json();
+    const { access_token, id_token } = tokenData;
+
+    // Get user info from Cognito
+    const userInfoResponse = await fetch(`https://${domain}/oauth2/userInfo`, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`
+      }
+    });
+
+    if (!userInfoResponse.ok) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to get user information from Cognito'
+      });
+    }
+
+    const userInfo = await userInfoResponse.json();
+    const { sub: cognitoUserId, email, name, given_name, family_name } = userInfo;
+
+    // Check if user exists in our database
+    let user;
+    const existingUserQuery = `
+      SELECT * FROM users 
+      WHERE cognito_user_id = $1 OR email = $2
+    `;
+    const existingUserResult = await pool.query(existingUserQuery, [cognitoUserId, email]);
+
+    if (existingUserResult.rows.length > 0) {
+      // Update existing user
+      user = existingUserResult.rows[0];
+      await pool.query(
+        `UPDATE users 
+         SET cognito_user_id = $1, last_login_at = CURRENT_TIMESTAMP, email_verified = true
+         WHERE id = $2`,
+        [cognitoUserId, user.id]
+      );
+    } else {
+      // Create new user
+      const createUserQuery = `
+        INSERT INTO users (
+          username, email, first_name, last_name, cognito_user_id,
+          role, is_active, email_verified, created_at, last_login_at
+        ) VALUES ($1, $2, $3, $4, $5, 'user', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING *
+      `;
+      
+      const username = email.split('@')[0]; // Use email prefix as username
+      const firstName = given_name || name || 'User';
+      const lastName = family_name || '';
+      
+      const newUserResult = await pool.query(createUserQuery, [
+        username, email, firstName, lastName, cognitoUserId
+      ]);
+      user = newUserResult.rows[0];
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username,
+        role: user.role,
+        cognitoUserId: cognitoUserId
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    // Return response
+    res.status(200).json({
+      success: true,
+      message: 'Cognito login successful',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        isActive: user.is_active,
+        emailVerified: user.email_verified,
+        lastLoginAt: user.last_login_at,
+        createdAt: user.created_at,
+        cognitoUserId: user.cognito_user_id
+      }
+    });
+
+  } catch (error) {
+    console.error('Cognito login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process Cognito login',
+      details: error.message
     });
   }
 };

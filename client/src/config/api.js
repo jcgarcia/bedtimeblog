@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     LOGOUT: `${API_URL}/api/auth/logout`,
     VERIFY: `${API_URL}/api/auth/verify`,
     COGNITO_TEST: `${API_URL}/api/auth/cognito/test`,
+    COGNITO_LOGIN: `${API_URL}/api/auth/cognito/login`,
   },
   
   // Admin

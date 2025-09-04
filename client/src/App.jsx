@@ -15,6 +15,7 @@ import Home from "./pages/home/Home";
 import About from "./pages/about/About";
 import Contact from "./pages/contact/Contact";
 import DynamicPage from "./components/DynamicPage/DynamicPage";
+import CognitoCallback from "./pages/auth/CognitoCallback";
 // import Privacy from "./pages/privacy/Privacy";
 import Terms from "./pages/terms/Terms";
 import AdminLogin from "./pages/adminlogin/AdminLogin";
@@ -78,6 +79,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/userlogin" element={<UserLogin />} />
+              <Route path="/auth/callback" element={<CognitoCallback />} />
               <Route path="/write" element={<Write />} />
               <Route path="/edit-page" element={
                 <ProtectedRoute requireAdmin={true}>
