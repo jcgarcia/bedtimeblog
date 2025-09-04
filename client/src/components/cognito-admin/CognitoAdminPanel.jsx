@@ -26,7 +26,13 @@ export default function CognitoAdminPanel() {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(API_ENDPOINTS.SETTINGS.OAUTH, {
+      
+      if (!token) {
+        setMessage('❌ Admin authentication required. Please log in.');
+        return;
+      }
+      
+      const response = await fetch('/api/settings/oauth', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -44,6 +50,9 @@ export default function CognitoAdminPanel() {
             enabled: data.config.cognito.enabled || false
           });
         }
+      } else {
+        const errorData = await response.json();
+        setMessage(`❌ Error loading settings: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error loading Cognito settings:', error);
@@ -69,7 +78,13 @@ export default function CognitoAdminPanel() {
     
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(API_ENDPOINTS.SETTINGS.OAUTH, {
+      
+      if (!token) {
+        setMessage('❌ Admin authentication required. Please log in.');
+        return;
+      }
+      
+      const response = await fetch('/api/settings/oauth', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +100,8 @@ export default function CognitoAdminPanel() {
       if (response.ok) {
         setMessage('✅ Cognito configuration saved successfully!');
       } else {
-        setMessage(`❌ Error: ${data.message || 'Failed to save configuration'}`);
+        const errorData = await response.json();
+        setMessage(`❌ Error: ${errorData.message || 'Failed to save configuration'}`);
       }
     } catch (error) {
       console.error('Error saving Cognito settings:', error);
@@ -106,7 +122,13 @@ export default function CognitoAdminPanel() {
     
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(API_ENDPOINTS.AUTH.COGNITO_TEST, {
+      
+      if (!token) {
+        setMessage('❌ Admin authentication required. Please log in.');
+        return;
+      }
+      
+      const response = await fetch('/api/auth/cognito/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
