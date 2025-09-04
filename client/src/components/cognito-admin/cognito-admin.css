@@ -49,3 +49,47 @@
 .cognito-admin-panel button:hover {
   background: #2b6cb0;
 }
+
+/* Cognito Tabs Styles */
+.cognito-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  background: #e9ecef;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.cognito-tabs button {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cognito-tabs button.active {
+  background: #fff;
+  color: #007bff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.cognito-tabs button:hover:not(.active) {
+  color: #333;
+  background: transparent;
+}
+
+.config-section,
+.demo-section {
+  min-height: 400px;
+}
+
+.cognito-admin-panel {
+  max-width: none;
+}

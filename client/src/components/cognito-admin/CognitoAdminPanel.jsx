@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../config/api';
+import CognitoLogin from '../cognito-login/CognitoLogin';
 import './cognito-admin.css';
 
 const defaultConfig = {
@@ -16,6 +17,7 @@ export default function CognitoAdminPanel() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [testResult, setTestResult] = useState(null);
+  const [activeTab, setActiveTab] = useState('config');
 
   // Load current settings
   useEffect(() => {
@@ -171,11 +173,29 @@ export default function CognitoAdminPanel() {
     <div className="cognito-admin-panel">
       <h2>AWS Cognito Configuration</h2>
       
-      {message && (
-        <div className={`message ${message.includes('✅') ? 'success' : 'error'}`}>
-          {message}
-        </div>
-      )}
+      {/* Tab Navigation */}
+      <div className="cognito-tabs">
+        <button 
+          className={activeTab === 'config' ? 'active' : ''}
+          onClick={() => setActiveTab('config')}
+        >
+          <i className="fa-solid fa-gear"></i> Configuration
+        </button>
+        <button 
+          className={activeTab === 'demo' ? 'active' : ''}
+          onClick={() => setActiveTab('demo')}
+        >
+          <i className="fa-solid fa-rocket"></i> Live Demo
+        </button>
+      </div>
+
+      {activeTab === 'config' ? (
+        <div className="config-section">
+          {message && (
+            <div className={`message ${message.includes('✅') ? 'success' : 'error'}`}>
+              {message}
+            </div>
+          )}
       
       <div style={{background: '#f8f9fa', border: '1px solid #ddd', borderRadius: '8px', padding: '16px', marginBottom: '24px'}}>
         <h4 style={{marginTop: 0}}>How to find required values:</h4>
@@ -312,6 +332,12 @@ export default function CognitoAdminPanel() {
         <p><strong>Login URL:</strong> <code>/login</code> (Cognito option will appear when enabled)</p>
         <p><strong>User Pool Management:</strong> <a href="https://console.aws.amazon.com/cognito/" target="_blank" rel="noopener noreferrer">AWS Cognito Console</a></p>
       </div>
+        </div>
+      ) : (
+        <div className="demo-section">
+          <CognitoLogin />
+        </div>
+      )}
     </div>
   );
 }
