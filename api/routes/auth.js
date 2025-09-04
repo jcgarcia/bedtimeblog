@@ -1,6 +1,7 @@
 import express from "express";
-import { register, login, logout, verify } from "../controllers/auth.js";
+import { register, login, logout, verify, testCognitoConnection } from "../controllers/auth.js";
 import passport from "passport";
+import { requireAdminAuth } from "../controllers/admin.js";
 
 const router = express.Router();
 
@@ -29,5 +30,8 @@ router.get("/google/callback", passport.authenticate("google", {
   // Send user data to the client (e.g., via a cookie or token)
   res.redirect(`/welcome?user=${encodeURIComponent(JSON.stringify(user))}`);
 });
+
+// Test Cognito connection (admin only)
+router.post("/cognito/test", requireAdminAuth, testCognitoConnection);
 
 export default router;

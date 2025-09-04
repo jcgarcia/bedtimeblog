@@ -33,6 +33,8 @@ export default function Ops() {
         return <Analytics />;
       case 'media':
         return <MediaManagement />;
+      case 'auth':
+        return <CognitoAdminPanel />;
       default:
         return <PostManagement />;
     }
@@ -99,6 +101,12 @@ export default function Ops() {
           onClick={() => setActiveTab('media')}
         >
           <i className="fa-solid fa-images"></i> Media
+        </button>
+        <button 
+          className={activeTab === 'auth' ? 'active' : ''} 
+          onClick={() => setActiveTab('auth')}
+        >
+          <i className="fa-solid fa-shield-halved"></i> Auth
         </button>
       </div>
 
