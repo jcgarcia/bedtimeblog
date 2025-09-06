@@ -153,7 +153,7 @@ pnpm dev
 
 ## Features
 
-- User registration & login (including Google OAuth)
+- User registration & login (AWS Cognito or legacy DB login)
 - Create, edit, and delete blog posts
 - Categories and tags
 - Responsive design
