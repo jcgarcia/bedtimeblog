@@ -36,7 +36,10 @@ A full-stack blog platform featuring user authentication, post creation, categor
 This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted PostgreSQL database (with CA certificate support for secure connections).
 **Package manager:** [pnpm](https://pnpm.io/)
 **Frontend build tool:** [Vite](https://vitejs.dev/)
-**Backend:** Express, Passport.js (Google OAuth), Multer, JWT
+**Backend:** Express, AWS Cognito authentication (with optional legacy DB login), Multer, JWT
+
+- **Authentication:** Modern AWS Cognito login (with social login support) or legacy user/password login (users stored in the DB).
+- **Media Library:** Built-in media library with support for AWS S3 buckets or an external media server ([mediaserver project](https://github.com/jcgarcia/mediaserver)).
 
 ## Monorepo Structure
 
