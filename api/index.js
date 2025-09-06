@@ -1,3 +1,9 @@
+// Load environment variables FIRST, before any other imports
+import dotenv from "dotenv";
+dotenv.config({ path: './api/.env.local' });
+dotenv.config({ path: './.env.local' });
+dotenv.config();
+
 import express from "express";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
@@ -15,14 +21,9 @@ import multer from "multer";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import fs from "fs";
-import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
 import { closeDbPool } from "./db.js";
 import { createHealthCheckEndpoint, createConnectionInfoEndpoint } from "./utils/dbHealthCheck.js";
-
-// Load environment variables for database connection only
-dotenv.config({ path: '.env.local' });
-dotenv.config();
 
 // Validate required PostgreSQL environment variables
 const requiredEnvVars = ['PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGDATABASE'];
