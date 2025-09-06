@@ -7,7 +7,7 @@ This repository is a monorepo. All application code (frontend and backend) is lo
 
 - This repository is public. All code, documentation, and configuration here must be safe for public view.
 - All secrets (API keys, DB credentials, etc.) and any files containing secrets (such as `.env` files) **must be included in `.gitignore` and never pushed**.
-- The `code/` directory may be a symlink in some setups, but all code in this repository is public and must not contain sensitive data.
+- All code in this repository is public and must not contain sensitive data.
 
 ## Branches & Environments
 
@@ -32,16 +32,16 @@ The `main` branch is not used for builds or deployments, but is kept up to date 
 
 # Bedtime Blog
 
-A full-stack blog platform featuring user authentication, post creation, categories, media support, and a modern responsive UI.  
-This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted PostgreSQL database (with CA certificate support for secure connections).  
-**Package manager:** [pnpm](https://pnpm.io/)  
-**Frontend build tool:** [Vite](https://vitejs.dev/)  
+A full-stack blog platform featuring user authentication, post creation, categories, media support, and a modern responsive UI.
+This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted PostgreSQL database (with CA certificate support for secure connections).
+**Package manager:** [pnpm](https://pnpm.io/)
+**Frontend build tool:** [Vite](https://vitejs.dev/)
 **Backend:** Express, Passport.js (Google OAuth), Multer, JWT
 
 ## Monorepo Structure
 
 ```
-code/
+.
 ├── api/            # Backend (Node.js/Express)
 │   ├── controllers/
 │   ├── routes/
@@ -63,23 +63,19 @@ code/
 └── README.md
 ```
 
----
-
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18+ recommended)
 - [pnpm](https://pnpm.io/) (install with `npm i -g pnpm`)
-- Cloud MySQL database (credentials required)
+- Cloud PostgreSQL database (credentials and CA certificate required)
 - Google OAuth credentials (for social login)
-
----
 
 ## Installation
 
 1. **Clone the repository:**
    ```sh
-   git clone <your-repo-url>
-   cd blog
+   git clone https://github.com/jcgarcia/bedtimeblog.git
+   cd bedtimeblog
    ```
 
 2. **Install dependencies for all workspaces:**
