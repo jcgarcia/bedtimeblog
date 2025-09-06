@@ -125,8 +125,19 @@ pnpm dev
   - The backend API (with hot reload via nodemon)
   - The frontend React app (via Vite)
 
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend: [http://localhost:8800](http://localhost:8800)
+- Frontend: [http://localhost:5173](http://localhost:5173) *(local development only)*
+- Backend: [http://localhost:8800](http://localhost:8800) *(local development only)*
+
+---
+
+## Production Deployment
+
+In production, both the backend and frontend run in a Kubernetes (k8s) cluster. Public access is managed via a reverse proxy (e.g., Caddy or NGINX), which forwards requests to the appropriate service:
+
+- **Frontend:** https://blog.ingasti.com
+- **Backend API:** https://bapi.ingasti.com
+
+The reverse proxy handles routing, SSL, and logging. File uploads and API requests are forwarded to the correct backend service with appropriate timeouts and security settings.
 
 ---
 
@@ -164,9 +175,9 @@ pnpm dev
 
 ## Troubleshooting
 
-- **Ports in use:** Make sure ports 5173 (frontend) and 8800 (backend) are available.
+- **Ports in use:** Make sure ports 5173 (frontend) and 8800 (backend) are available in dev.
 - **Database errors:** Check your `.env` and cloud DB access.
-- **OAuth issues:** Verify Google credentials and callback URLs.
+
 
 ---
 
