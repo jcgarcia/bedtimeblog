@@ -1,17 +1,47 @@
 # Bedtime Blog
 
+**IMPORTANT:**
+This repository is a monorepo. All application code (frontend and backend) is located here. No secrets or sensitive configuration should ever be committed to this repository.
+
+## Repository Structure & Security Policy
+
+- This repository is public. All code, documentation, and configuration here must be safe for public view.
+- All secrets (API keys, DB credentials, etc.) and any files containing secrets (such as `.env` files) **must be included in `.gitignore` and never pushed**.
+- The `code/` directory may be a symlink in some setups, but all code in this repository is public and must not contain sensitive data.
+
+## Branches & Environments
+
+| Branch | Purpose | Build/Deploy Target |
+|--------|---------|--------------------|
+| `dev`  | Local development, feature integration | Local machine |
+| `uat`  | User Acceptance Testing (QA) | Vercel (test environment) |
+| `k8s`  | Production | Cloud (OCI, via Jenkins/Kubernetes) |
+| `main` | Safety, documentation, default branch | Not used for builds |
+
+**Builds and deployments are always run from the appropriate environment branch (`dev`, `uat`, or `k8s`).**
+The `main` branch is not used for builds or deployments, but is kept up to date for documentation and as a safe reference for repository visitors.
+
+## CI/CD & Secrets Management
+
+- **Jenkins CI/CD** automates all production builds and deployments from the `k8s` branch.
+- All secrets (API keys, DB credentials, etc.) are managed as Jenkins credentials and never stored in the repository.
+- UAT builds are deployed to Vercel from the `uat` branch.
+- Local development uses the `dev` branch and local environment variables.
+
+---
+
+# Bedtime Blog
+
 A full-stack blog platform featuring user authentication, post creation, categories, media support, and a modern responsive UI.  
-This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted MySQL database.  
+This project uses a React frontend, a Node.js/Express backend, and a cloud-hosted PostgreSQL database (with CA certificate support for secure connections).  
 **Package manager:** [pnpm](https://pnpm.io/)  
 **Frontend build tool:** [Vite](https://vitejs.dev/)  
 **Backend:** Express, Passport.js (Google OAuth), Multer, JWT
 
----
-
-## Project Structure
+## Monorepo Structure
 
 ```
-blog/
+code/
 ├── api/            # Backend (Node.js/Express)
 │   ├── controllers/
 │   ├── routes/
