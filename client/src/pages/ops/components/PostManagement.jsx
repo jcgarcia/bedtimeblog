@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../../../config/api';
 
 export default function PostManagement() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [drafts, setDrafts] = useState([]);
+  const [publishedPosts, setPublishedPosts] = useState([]);
+  const [scheduledPosts, setScheduledPosts] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPosts();
@@ -15,12 +20,51 @@ export default function PostManagement() {
       if (response.ok) {
         const data = await response.json();
         setPosts(data);
+        
+        // Separate posts by status
+        setDrafts(data.filter(post => post.status === 'draft'));
+        setPublishedPosts(data.filter(post => post.status === 'published'));
+        setScheduledPosts(data.filter(post => post.status === 'scheduled'));
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Navigation handlers
+  const handleCreateNewPost = () => {
+    navigate('/write');
+  };
+
+  const handleViewDrafts = () => {
+    // For now, we'll show an alert with draft count, but this could navigate to a drafts page
+    if (drafts.length === 0) {
+      alert('No draft posts found. Create a new post to start writing!');
+    } else {
+      alert(`You have ${drafts.length} draft post(s). Check the Recent Posts table below to edit them.`);
+    }
+  };
+
+  const handleManagePublished = () => {
+    if (publishedPosts.length === 0) {
+      alert('No published posts found. Create and publish a post first!');
+    } else {
+      alert(`You have ${publishedPosts.length} published post(s). Check the Recent Posts table below to manage them.`);
+    }
+  };
+
+  const handleSchedulePosts = () => {
+    if (scheduledPosts.length === 0) {
+      alert('No scheduled posts found. Create a post and set its status to "Scheduled"!');
+    } else {
+      alert(`You have ${scheduledPosts.length} scheduled post(s). Check the Recent Posts table below to manage them.`);
+    }
+  };
+
+  const handleEditPost = (postId) => {
+    navigate(`/write?edit=${postId}`);
   };
 
   const handleDeletePost = async (postId) => {
@@ -43,7 +87,7 @@ export default function PostManagement() {
     <div className="post-management">
       <div className="section-header">
         <h2>Post Management</h2>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={handleCreateNewPost}>
           <i className="fa-solid fa-plus"></i> New Post
         </button>
       </div>
@@ -52,25 +96,25 @@ export default function PostManagement() {
         <div className="post-card">
           <h3>Create New Post</h3>
           <p>Start writing a new blog post</p>
-          <button className="btn-secondary">Create</button>
+          <button className="btn-secondary" onClick={handleCreateNewPost}>Create</button>
         </div>
 
         <div className="post-card">
           <h3>Draft Posts</h3>
-          <p>Continue working on saved drafts</p>
-          <button className="btn-secondary">View Drafts</button>
+          <p>Continue working on saved drafts ({drafts.length})</p>
+          <button className="btn-secondary" onClick={handleViewDrafts}>View Drafts</button>
         </div>
 
         <div className="post-card">
           <h3>Published Posts</h3>
-          <p>Edit or manage published content</p>
-          <button className="btn-secondary">Manage</button>
+          <p>Edit or manage published content ({publishedPosts.length})</p>
+          <button className="btn-secondary" onClick={handleManagePublished}>Manage</button>
         </div>
 
         <div className="post-card">
           <h3>Scheduled Posts</h3>
-          <p>Posts scheduled for future publication</p>
-          <button className="btn-secondary">Schedule</button>
+          <p>Posts scheduled for future publication ({scheduledPosts.length})</p>
+          <button className="btn-secondary" onClick={handleSchedulePosts}>Schedule</button>
         </div>
       </div>
 
@@ -105,7 +149,12 @@ export default function PostManagement() {
                     </td>
                     <td>{new Date(post.created_at).toLocaleDateString()}</td>
                     <td>
-                      <button className="btn-small">Edit</button>
+                      <button 
+                        className="btn-small"
+                        onClick={() => handleEditPost(post.id)}
+                      >
+                        Edit
+                      </button>
                       <button 
                         className="btn-small btn-danger"
                         onClick={() => handleDeletePost(post.id)}
