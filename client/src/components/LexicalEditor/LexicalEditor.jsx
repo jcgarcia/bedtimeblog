@@ -8,162 +8,25 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { TablePlugin } from '@lexical/react/LexicalTablePlugin';
 import { 
   FORMAT_TEXT_COMMAND, 
   FORMAT_ELEMENT_COMMAND,
   INDENT_CONTENT_COMMAND,
   OUTDENT_CONTENT_COMMAND,
   UNDO_COMMAND,
-  REDO_COMMAND,
-  $insertNodes,
-  $isRootOrShadowRoot,
-  $getNodeByKey
+  REDO_COMMAND
 } from 'lexical';
 import { INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from '@lexical/list';
-import { $wrapNodeInElement } from '@lexical/utils';
 
 // Nodes
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { CodeNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
 
-// Simple Image Node
-import { DecoratorNode } from 'lexical';
-
-export class ImageNode extends DecoratorNode {
-  static getType() {
-    return 'image';
-  }
-
-  static clone(node) {
-    return new ImageNode(node.__src, node.__altText, node.__width, node.__height, node.__key);
-  }
-
-  constructor(src, altText, width, height, key) {
-    super(key);
-    this.__src = src;
-    this.__altText = altText;
-    this.__width = width;
-    this.__height = height;
-  }
-
-  createDOM() {
-    const span = document.createElement('span');
-    return span;
-  }
-
-  updateDOM() {
-    return false;
-  }
-
-  getSrc() {
-    return this.__src;
-  }
-
-  getAltText() {
-    return this.__altText;
-  }
-
-  setWidthAndHeight(width, height) {
-    const writable = this.getWritable();
-    writable.__width = width;
-    writable.__height = height;
-  }
-
-  decorate() {
-    return (
-      <img
-        src={this.__src}
-        alt={this.__altText}
-        style={{
-          width: this.__width || 'auto',
-          height: this.__height || 'auto',
-          maxWidth: '100%',
-          height: 'auto',
-          display: 'block',
-          margin: '10px auto'
-        }}
-      />
-    );
-  }
-
-  static importJSON(serializedNode) {
-    const { src, altText, width, height } = serializedNode;
-    const node = $createImageNode(src, altText, width, height);
-    return node;
-  }
-
-  exportJSON() {
-    return {
-      altText: this.getAltText(),
-      height: this.__height,
-      src: this.getSrc(),
-      type: 'image',
-      version: 1,
-      width: this.__width,
-    };
-  }
-}
-
-export function $createImageNode(src, altText, width, height) {
-  return new ImageNode(src, altText, width, height);
-}
-
-export function $isImageNode(node) {
-  return node instanceof ImageNode;
-}
-
 // Toolbar Component
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
-  const fileInputRef = useRef(null);
-
-  const insertImage = (src, altText = '') => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if (selection) {
-        const imageNode = $createImageNode(src, altText);
-        $insertNodes([imageNode]);
-      }
-    });
-  };
-
-  const handleImageUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Create FormData to upload the file
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      // Use the same upload API as the featured image
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const imagePath = `/uploads/${data}`;
-        insertImage(imagePath, file.name);
-      } else {
-        console.error('Failed to upload image');
-        alert('Failed to upload image. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      alert('Error uploading image. Please try again.');
-    }
-
-    // Reset the file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   return (
     <div className="lexical-toolbar">
@@ -209,14 +72,6 @@ function ToolbarPlugin() {
         title="Underline"
       >
         <i className="fa-solid fa-underline"></i>
-      </button>
-      <button
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}
-        className="toolbar-item"
-        type="button"
-        title="Strikethrough"
-      >
-        <i className="fa-solid fa-strikethrough"></i>
       </button>
       
       <div className="toolbar-divider"></div>
@@ -268,25 +123,6 @@ function ToolbarPlugin() {
       <div className="toolbar-divider"></div>
       
       <button
-        onClick={() => editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined)}
-        className="toolbar-item"
-        type="button"
-        title="Indent"
-      >
-        <i className="fa-solid fa-indent"></i>
-      </button>
-      <button
-        onClick={() => editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined)}
-        className="toolbar-item"
-        type="button"
-        title="Outdent"
-      >
-        <i className="fa-solid fa-outdent"></i>
-      </button>
-      
-      <div className="toolbar-divider"></div>
-      
-      <button
         onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'quote')}
         className="toolbar-item"
         type="button"
@@ -294,25 +130,6 @@ function ToolbarPlugin() {
       >
         <i className="fa-solid fa-quote-left"></i>
       </button>
-      
-      <div className="toolbar-divider"></div>
-      
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="toolbar-item"
-        type="button"
-        title="Insert Image"
-      >
-        <i className="fa-solid fa-image"></i>
-      </button>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleImageUpload}
-      />
     </div>
   );
 }
@@ -327,14 +144,12 @@ function UpdateContentPlugin({ onChange }) {
       if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
         editorState.read(() => {
           try {
-            // Export the full editor state as JSON to preserve formatting
-            const serializedState = JSON.stringify(editorState.toJSON());
-            onChange(serializedState);
-          } catch (error) {
-            console.error('Error serializing editor state:', error);
-            // Fallback to text content if JSON serialization fails
+            // For now, just get text content to avoid serialization issues
             const root = $getRoot();
-            onChange(root.getTextContent());
+            const textContent = root.getTextContent();
+            onChange(textContent);
+          } catch (error) {
+            console.error('Error getting editor content:', error);
           }
         });
       }
@@ -352,34 +167,23 @@ function SetInitialContentPlugin({ content }) {
   useEffect(() => {
     if (!content || !content.trim() || initialContentSet) return;
     
-    console.log('SetInitialContentPlugin - setting initial content:', content); // Debug log
+    console.log('SetInitialContentPlugin - setting initial content:', content);
     
     editor.update(() => {
       try {
-        // Try to parse as JSON first (Lexical format)
-        const parsedContent = JSON.parse(content);
-        if (parsedContent && parsedContent.root) {
-          // This is Lexical JSON format, set the editor state
-          const editorState = editor.parseEditorState(content);
-          editor.setEditorState(editorState);
-          console.log('Lexical JSON content loaded successfully'); // Debug log
-        } else {
-          throw new Error('Not valid Lexical JSON');
-        }
-      } catch (error) {
-        // If JSON parsing fails, treat as plain text
-        console.log('Content is not Lexical JSON, treating as plain text:', error.message);
         const root = $getRoot();
         root.clear();
         
-        // Create a paragraph node and add the text content
+        // For now, just treat all content as plain text
         const paragraphNode = $createParagraphNode();
         const textNode = $createTextNode(content);
         paragraphNode.append(textNode);
         root.append(paragraphNode);
-        console.log('Plain text content set in editor'); // Debug log
+        console.log('Content set in editor');
+        setInitialContentSet(true);
+      } catch (error) {
+        console.error('Error setting initial content:', error);
       }
-      setInitialContentSet(true);
     });
   }, [content, editor, initialContentSet]);
 
@@ -466,10 +270,6 @@ export default function LexicalEditor({
       LinkNode,
       AutoLinkNode,
       CodeNode,
-      TableNode,
-      TableCellNode,
-      TableRowNode,
-      ImageNode,
     ],
     onError: (error) => {
       console.error('Lexical error:', error);
@@ -488,12 +288,19 @@ export default function LexicalEditor({
             placeholder={
               <div className="lexical-placeholder">{placeholder}</div>
             }
-            ErrorBoundary={({ children }) => children}
+            ErrorBoundary={({ children, error }) => {
+              console.error('Lexical Editor Error:', error);
+              return (
+                <div style={{ color: 'red', padding: '10px' }}>
+                  Editor error occurred. Please refresh the page.
+                  {children}
+                </div>
+              );
+            }}
           />
           <HistoryPlugin />
           <ListPlugin />
           <LinkPlugin />
-          <TablePlugin />
           <OnChangePlugin onChange={onChange} />
           <UpdateContentPlugin onChange={onChange} />
           <SetInitialContentPlugin content={value} />
