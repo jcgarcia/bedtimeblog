@@ -83,7 +83,7 @@ export default function ContentManagement() {
           <p>Start writing a new blog post</p>
           <button 
             className="btn-secondary"
-            onClick={() => window.open('/create-post', '_blank')}
+            onClick={() => window.open('/write', '_blank')}
           >
             Create
           </button>
@@ -178,7 +178,7 @@ export default function ContentManagement() {
                     <td>
                       <button 
                         className="btn-small"
-                        onClick={() => window.open(`/create-post?edit=${post.id}`, '_blank')}
+                        onClick={() => window.open(`/write?edit=${post.id}`, '_blank')}
                       >
                         Edit
                       </button>
@@ -310,7 +310,7 @@ export default function ContentManagement() {
           {activeSection === 'posts' ? (
             <button 
               className="btn-primary"
-              onClick={() => window.open('/create-post', '_blank')}
+              onClick={() => window.open('/write', '_blank')}
             >
               <i className="fa-solid fa-plus"></i> New Post
             </button>
