@@ -81,25 +81,62 @@ export default function ContentManagement() {
         <div className="post-card">
           <h3>Create New Post</h3>
           <p>Start writing a new blog post</p>
-          <button className="btn-secondary">Create</button>
+          <button 
+            className="btn-secondary"
+            onClick={() => window.open('/create-post', '_blank')}
+          >
+            Create
+          </button>
         </div>
 
         <div className="post-card">
           <h3>Draft Posts</h3>
           <p>Continue working on saved drafts</p>
-          <button className="btn-secondary">View Drafts</button>
+          <button 
+            className="btn-secondary"
+            onClick={() => {
+              const drafts = posts.filter(post => post.status === 'draft');
+              if (drafts.length === 0) {
+                alert('No draft posts found');
+              } else {
+                alert(`Found ${drafts.length} draft post(s). This feature will show drafts in a future update.`);
+              }
+            }}
+          >
+            View Drafts
+          </button>
         </div>
 
         <div className="post-card">
           <h3>Published Posts</h3>
           <p>Edit or manage published content</p>
-          <button className="btn-secondary">Manage</button>
+          <button 
+            className="btn-secondary"
+            onClick={() => {
+              const published = posts.filter(post => post.status === 'published');
+              alert(`Found ${published.length} published post(s). Use the Recent Posts table below to manage them.`);
+            }}
+          >
+            Manage
+          </button>
         </div>
 
         <div className="post-card">
           <h3>Scheduled Posts</h3>
           <p>Posts scheduled for future publication</p>
-          <button className="btn-secondary">Schedule</button>
+          <button 
+            className="btn-secondary"
+            onClick={() => {
+              const scheduled = posts.filter(post => post.status === 'scheduled');
+              if (scheduled.length === 0) {
+                alert('No scheduled posts found');
+              } else {
+                alert(`Found ${scheduled.length} scheduled post(s). This feature will be enhanced in a future update.`);
+              }
+            }}
+          >
+            Schedule
+          </button>
         </div>
       </div>
 
@@ -139,7 +176,12 @@ export default function ContentManagement() {
                     </td>
                     <td>{new Date(post.created_at).toLocaleDateString()}</td>
                     <td>
-                      <button className="btn-small">Edit</button>
+                      <button 
+                        className="btn-small"
+                        onClick={() => window.open(`/create-post?edit=${post.id}`, '_blank')}
+                      >
+                        Edit
+                      </button>
                       <button 
                         className="btn-small btn-danger"
                         onClick={() => handleDeletePost(post.id)}
@@ -199,10 +241,29 @@ export default function ContentManagement() {
               <p className="post-count">{category.post_count} posts</p>
             </div>
             <div className="category-actions">
-              <button className="btn-secondary">
+              <button 
+                className="btn-secondary"
+                onClick={() => {
+                  const newName = prompt('Enter new category name:', category.name);
+                  if (newName && newName !== category.name) {
+                    setCategories(categories.map(cat => 
+                      cat.id === category.id 
+                        ? {...cat, name: newName, slug: generateSlug(newName)}
+                        : cat
+                    ));
+                  }
+                }}
+              >
                 <i className="fa-solid fa-edit"></i> Edit
               </button>
-              <button className="btn-danger">
+              <button 
+                className="btn-danger"
+                onClick={() => {
+                  if (window.confirm(`Delete category "${category.name}"? This cannot be undone.`)) {
+                    setCategories(categories.filter(cat => cat.id !== category.id));
+                  }
+                }}
+              >
                 <i className="fa-solid fa-trash"></i> Delete
               </button>
             </div>
@@ -247,7 +308,10 @@ export default function ContentManagement() {
         </div>
         <div className="header-actions">
           {activeSection === 'posts' ? (
-            <button className="btn-primary">
+            <button 
+              className="btn-primary"
+              onClick={() => window.open('/create-post', '_blank')}
+            >
               <i className="fa-solid fa-plus"></i> New Post
             </button>
           ) : (
