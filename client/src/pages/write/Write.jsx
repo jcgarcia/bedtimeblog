@@ -340,7 +340,14 @@ export default function Write() {
           <button 
             type="button" 
             className="writeCancel"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              // If editing, go back to ops content management, otherwise go to home
+              if (isEditing) {
+                navigate('/ops');
+              } else {
+                navigate('/');
+              }
+            }}
             disabled={loading}
           >
             Cancel
