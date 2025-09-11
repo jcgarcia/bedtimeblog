@@ -233,6 +233,21 @@
   color: #a0824a;
 }
 
+/* Image Styles */
+.lexical-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lexical-image-wrapper {
+  margin: 1em 0;
+  text-align: center;
+}
+
 /* Code Highlight Tokens */
 .lexical-token-comment {
   color: #6a9955;
