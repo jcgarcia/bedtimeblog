@@ -29,9 +29,16 @@ export default function Write() {
   const [isEditing, setIsEditing] = useState(false);
   const [postId, setPostId] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const currentUser = isAdmin && adminUser ? adminUser : user;
   const editPostId = searchParams.get('edit');
+
+  // Add auth check delay
+  useEffect(() => {
+    const timer = setTimeout(() => setAuthChecked(true), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (editPostId) {
@@ -207,6 +214,10 @@ export default function Write() {
   };
 
   // Redirect if user can't write
+  if (!authChecked) {
+    return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
+  }
+
   if (!currentUser) {
     return (
       <div className="write">

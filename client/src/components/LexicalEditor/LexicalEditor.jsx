@@ -147,9 +147,12 @@ function UpdateContentPlugin({ onChange }) {
             // For now, just get text content to avoid serialization issues
             const root = $getRoot();
             const textContent = root.getTextContent();
-            onChange(textContent);
+            // Ensure we always pass a string
+            onChange(textContent || '');
           } catch (error) {
             console.error('Error getting editor content:', error);
+            // Pass empty string on error
+            onChange('');
           }
         });
       }
@@ -165,7 +168,8 @@ function SetInitialContentPlugin({ content }) {
   const [initialContentSet, setInitialContentSet] = useState(false);
 
   useEffect(() => {
-    if (!content || !content.trim() || initialContentSet) return;
+    // Ensure content is a string and has actual content
+    if (!content || typeof content !== 'string' || !content.trim() || initialContentSet) return;
     
     console.log('SetInitialContentPlugin - setting initial content:', content);
     
@@ -197,6 +201,9 @@ export default function LexicalEditor({
   placeholder = 'Start writing your story...',
   className = ''
 }) {
+  // Ensure value is always a string
+  const safeValue = typeof value === 'string' ? value : '';
+  
   const initialConfig = {
     namespace: 'BlogEditor',
     theme: {
@@ -303,7 +310,7 @@ export default function LexicalEditor({
           <LinkPlugin />
           <OnChangePlugin onChange={onChange} />
           <UpdateContentPlugin onChange={onChange} />
-          <SetInitialContentPlugin content={value} />
+          <SetInitialContentPlugin content={safeValue} />
         </div>
       </LexicalComposer>
     </div>
