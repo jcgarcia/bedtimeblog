@@ -91,6 +91,10 @@
     width: 70vw;
 }
 
+.writeFormGroupFull .lexical-container {
+    width: 100%;
+}
+
 .featured-image-preview {
     position: relative;
     display: inline-block;
@@ -270,6 +274,10 @@
 
     .writeFormGroupFull {
         width: calc(100vw - 40px);
+    }
+
+    .writeFormGroupFull .lexical-container {
+        width: 100%;
     }
     
     .writeFormActions {

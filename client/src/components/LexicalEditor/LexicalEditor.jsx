@@ -170,9 +170,9 @@ function UpdateContentPlugin({ onChange }) {
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
-        const root = $getRoot();
-        const htmlString = root.getTextContent();
-        onChange(htmlString);
+        // Export the full editor state as JSON to preserve formatting
+        const serializedState = JSON.stringify(editorState.toJSON());
+        onChange(serializedState);
       });
     });
   }, [editor, onChange]);

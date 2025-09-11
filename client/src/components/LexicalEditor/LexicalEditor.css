@@ -4,6 +4,8 @@
   border-radius: 8px;
   overflow: hidden;
   background: white;
+  width: 100%;
+  max-width: none;
 }
 
 /* Toolbar Styles */
@@ -15,6 +17,8 @@
   padding: 8px 12px;
   background: #f8f9fa;
   border-bottom: 1px solid #ddd;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .toolbar-item {
@@ -55,6 +59,7 @@
 .lexical-editor-wrapper {
   position: relative;
   min-height: 400px;
+  width: 100%;
 }
 
 /* Content Editable */
@@ -67,6 +72,10 @@
   line-height: 1.6;
   color: #333;
   overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .lexical-content-editable:focus {
