@@ -12,7 +12,8 @@ export const getPosts = async (req, res) => {
         FROM posts p
         LEFT JOIN users u ON p.author_id = u.id
         LEFT JOIN categories c ON p.category_id = c.id
-        WHERE LOWER(c.slug) = LOWER($1) OR LOWER(c.name) = LOWER($1)
+        WHERE (LOWER(c.slug) = LOWER($1) OR LOWER(c.name) = LOWER($1))
+        AND p.status = 'published'
         ORDER BY p.created_at DESC
       `;
       result = await pool.query(q, [req.query.cat]);
@@ -22,6 +23,7 @@ export const getPosts = async (req, res) => {
         FROM posts p
         LEFT JOIN users u ON p.author_id = u.id
         LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.status = 'published'
         ORDER BY p.created_at DESC
       `;
       result = await pool.query(q);

@@ -119,9 +119,14 @@ export default function SinglePost() {
     
     if (confirmDelete) {
       try {
-        // TODO: Implement delete API call
-        console.log('Delete post:', postId);
-        alert('Delete functionality will be implemented soon.');
+        const response = await postsAPI.deletePost(postId);
+        if (response.success || response.status === 200) {
+          alert('Post deleted successfully!');
+          // Redirect to home page after deletion
+          navigate('/');
+        } else {
+          alert('Failed to delete post: ' + (response.error || 'Unknown error'));
+        }
       } catch (error) {
         console.error('Error deleting post:', error);
         alert('Failed to delete post. Please try again.');

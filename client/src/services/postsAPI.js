@@ -100,6 +100,7 @@ ${postData.content || postData.desc || description}`;
         const result = await response.json();
         // Convert response to match expected format
         return {
+          success: true,
           data: {
             id: result.postId,
             title: result.title,
@@ -111,14 +112,28 @@ ${postData.content || postData.desc || description}`;
           }
         };
       } else {
-        // If publish endpoint fails, fall back to original posts endpoint
-        console.warn('Publish endpoint failed, trying original posts endpoint');
-        return api.post('/posts', postData);
+        // If publish endpoint fails, get error details
+        let errorMessage = 'Failed to create post';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          // If we can't parse error JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        console.warn('Publish endpoint failed:', errorMessage);
+        return {
+          success: false,
+          error: errorMessage
+        };
       }
     } catch (error) {
-      console.warn('Publish endpoint error, falling back to original:', error.message);
-      // Fallback to original posts endpoint
-      return api.post('/posts', postData);
+      console.error('Publish endpoint error:', error.message);
+      return {
+        success: false,
+        error: error.message || 'Network error occurred'
+      };
     }
   },
 
