@@ -192,8 +192,8 @@ export const publishMarkdownPost = (req, res) => {
       }
       
       // Prepare database query for new schema
-      const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-      const values = [title, slug, content, userId, postDate];
+      const q = `INSERT INTO posts (title, slug, content, author_id, published_at, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`;
+      const values = [title, slug, content, userId, postDate, status];
       const result = await pool.query(q, values);
       
       // Clean up uploaded file
@@ -242,6 +242,7 @@ export const publishMarkdownContent = async (req, res) => {
     const title = frontmatter.title;
     const description = frontmatter.description;
     const category = extractCategory(frontmatter);
+    const status = frontmatter.status || 'draft';
     const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
     const slug = await generateSlug(title, pool);
     let userId = null;
@@ -268,8 +269,8 @@ export const publishMarkdownContent = async (req, res) => {
     }
     
     // Prepare database query for new schema
-    const q = `INSERT INTO posts (title, slug, content, author_id, published_at) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-    const values = [title, slug, content, userId, postDate];
+    const q = `INSERT INTO posts (title, slug, content, author_id, published_at, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`;
+    const values = [title, slug, content, userId, postDate, status];
     const result = await pool.query(q, values);
     
     res.status(201).json({

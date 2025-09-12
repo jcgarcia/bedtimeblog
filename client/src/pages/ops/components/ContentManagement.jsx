@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
+import { postsAPI } from '../../../services/postsAPI';
 import './ContentManagement.css';
 
 export default function ContentManagement() {
@@ -94,12 +95,18 @@ export default function ContentManagement() {
           <p>Continue working on saved drafts</p>
           <button 
             className="btn-secondary"
-            onClick={() => {
-              const drafts = posts.filter(post => post.status === 'draft');
-              if (drafts.length === 0) {
-                alert('No draft posts found');
-              } else {
-                alert(`Found ${drafts.length} draft post(s). This feature will show drafts in a future update.`);
+            onClick={async () => {
+              try {
+                const response = await postsAPI.getDrafts();
+                const drafts = response.data || [];
+                if (drafts.length === 0) {
+                  alert('No draft posts found');
+                } else {
+                  alert(`Found ${drafts.length} draft post(s):\n\n${drafts.map(draft => `• ${draft.title}`).join('\n')}`);
+                }
+              } catch (error) {
+                console.error('Error fetching drafts:', error);
+                alert('Failed to fetch drafts. Please try again.');
               }
             }}
           >

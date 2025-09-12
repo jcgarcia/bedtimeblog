@@ -52,6 +52,12 @@ export const postsAPI = {
     return api.get(url);
   },
 
+  // Get draft posts
+  getDrafts: (category = null) => {
+    const url = category ? `/posts/drafts?cat=${category}` : '/posts/drafts';
+    return api.get(url);
+  },
+
   // Get single post by ID
   getPost: (id) => {
     return api.get(`/posts/${id}`);

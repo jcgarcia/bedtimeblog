@@ -35,6 +35,40 @@ export const getPosts = async (req, res) => {
   }
 };
 
+export const getDrafts = async (req, res) => {
+  const pool = getDbPool();
+  try {
+    let q, result;
+    if (req.query.cat) {
+      // Filter by category slug (name) instead of ID
+      q = `
+        SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
+        FROM posts p
+        LEFT JOIN users u ON p.author_id = u.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE (LOWER(c.slug) = LOWER($1) OR LOWER(c.name) = LOWER($1))
+        AND p.status = 'draft'
+        ORDER BY p.created_at DESC
+      `;
+      result = await pool.query(q, [req.query.cat]);
+    } else {
+      q = `
+        SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
+        FROM posts p
+        LEFT JOIN users u ON p.author_id = u.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.status = 'draft'
+        ORDER BY p.created_at DESC
+      `;
+      result = await pool.query(q);
+    }
+    return res.status(200).json(result.rows);
+  } catch (err) {
+    console.error('Database error in getDrafts:', err);
+    return res.status(500).json({ error: 'Failed to fetch drafts' });
+  }
+};
+
 export const getPost = async (req, res) => {
   const pool = getDbPool();
   try {
