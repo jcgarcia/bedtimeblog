@@ -182,7 +182,7 @@ export const publishMarkdownPost = (req, res) => {
         userId = parseInt(req.systemConfig?.blogUserId || process.env.BLOG_USER_ID) || 1;
       } else if (token) {
         try {
-          const userInfo = jwt.verify(token, "jwtkey");
+          const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
           userId = userInfo.id;
         } catch (jwtErr) {
           return res.status(403).json({ error: 'Invalid token' });
@@ -258,7 +258,7 @@ export const publishMarkdownContent = async (req, res) => {
       userId = parseInt(req.systemConfig?.blogUserId || process.env.BLOG_USER_ID) || 1;
     } else if (token) {
       try {
-        const userInfo = jwt.verify(token, "jwtkey");
+        const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
         userId = userInfo.id;
       } catch (jwtErr) {
         return res.status(403).json({ error: 'Invalid token' });

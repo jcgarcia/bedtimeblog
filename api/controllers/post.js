@@ -67,7 +67,7 @@ export const addPost = async (req, res) => {
   }
   
   try {
-    const userInfo = jwt.verify(token, "jwtkey");
+    const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
     // Generate unique slug from title
     let baseSlug = req.body.title
@@ -132,7 +132,7 @@ export const deletePost = async (req, res) => {
   }
   
   try {
-    const userInfo = jwt.verify(token, "jwtkey");
+    const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const postId = req.params.id;
     const q = "DELETE FROM posts WHERE id = $1 AND author_id = $2";
     
@@ -162,7 +162,7 @@ export const updatePost = async (req, res) => {
   }
   
   try {
-    const userInfo = jwt.verify(token, "jwtkey");
+    const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const postId = req.params.id;
     
     // Generate slug from title if title is provided
