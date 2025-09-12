@@ -72,15 +72,16 @@ export const postsAPI = {
   createPost: async (postData) => {
     try {
       // First try the working publish/content endpoint (like CLI tool)
+      const description = postData.desc || postData.excerpt || postData.content || postData.title || 'Blog post';
       const markdownContent = `---
 title: ${postData.title}
-description: ${postData.desc || postData.excerpt || ''}
+description: ${description}
 category: ${postData.cat || '1'}
-excerpt: ${postData.excerpt || ''}
+excerpt: ${postData.excerpt || description}
 status: ${postData.status || 'draft'}
 ---
 
-${postData.desc || ''}`;
+${postData.content || postData.desc || description}`;
 
       // Get auth token
       const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
