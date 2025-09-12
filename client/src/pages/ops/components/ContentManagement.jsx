@@ -102,7 +102,8 @@ export default function ContentManagement() {
                 if (drafts.length === 0) {
                   alert('No draft posts found');
                 } else {
-                  alert(`Found ${drafts.length} draft post(s):\n\n${drafts.map(draft => `• ${draft.title}`).join('\n')}`);
+                  // Navigate to a proper draft management page
+                  window.location.href = '/ops/drafts';
                 }
               } catch (error) {
                 console.error('Error fetching drafts:', error);

@@ -212,16 +212,17 @@ export const updatePost = async (req, res) => {
     
     const q = `
       UPDATE posts 
-      SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, updated_at=CURRENT_TIMESTAMP 
-      WHERE id = $6 AND author_id = $7
+      SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
+      WHERE id = $7 AND author_id = $8
       RETURNING *
     `;
     const values = [
       req.body.title, 
       slug, 
-      req.body.desc, 
+      req.body.content || req.body.desc, 
       req.body.img, 
       req.body.cat, 
+      req.body.status,
       postId, 
       userInfo.id
     ];

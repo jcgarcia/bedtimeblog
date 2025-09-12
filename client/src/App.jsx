@@ -7,6 +7,7 @@ import ScrollToTop from "./components/ScrollToTop/ScrollToTop";
 import Write from "./pages/write/Write";
 import EditPage from "./pages/editPage/EditPage";
 import Ops from "./pages/ops/Ops";
+import DraftManagement from "./pages/ops/DraftManagement";
 import Settings from "./pages/settings/Settings";
 import Login from "./pages/login/Login";
 import UserLogin from "./pages/userLogin/UserLogin";
@@ -89,6 +90,11 @@ function App() {
               <Route path="/ops" element={
                 <ProtectedRoute requireAdmin={true}>
                   <Ops />
+                </ProtectedRoute>
+              } />
+              <Route path="/ops/drafts" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <DraftManagement />
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={<Settings />} />
