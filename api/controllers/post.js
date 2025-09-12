@@ -59,7 +59,9 @@ export const getPost = async (req, res) => {
 
 export const addPost = async (req, res) => {
   const pool = getDbPool();
-  const token = req.cookies.access_token;
+  
+  // Check for token in both cookie and Authorization header
+  const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json("Not authenticated!");
   }
@@ -67,11 +69,31 @@ export const addPost = async (req, res) => {
   try {
     const userInfo = jwt.verify(token, "jwtkey");
     
-    // Generate slug from title
-    const slug = req.body.title
+    // Generate unique slug from title
+    let baseSlug = req.body.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+    
+    let slug = baseSlug;
+    let counter = 1;
+    
+    // Check if slug exists and add suffix if needed
+    while (true) {
+      try {
+        const existingPost = await pool.query('SELECT id FROM posts WHERE slug = $1', [slug]);
+        if (existingPost.rows.length === 0) {
+          break; // Slug is unique
+        }
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      } catch (error) {
+        console.error('Error checking slug uniqueness:', error);
+        // If database error, use timestamp suffix as fallback
+        slug = `${baseSlug}-${Date.now()}`;
+        break;
+      }
+    }
     
     const q = `
       INSERT INTO posts(title, slug, content, featured_image, category_id, author_id, status, published_at) 
@@ -102,7 +124,9 @@ export const addPost = async (req, res) => {
 
 export const deletePost = async (req, res) => {
   const pool = getDbPool();
-  const token = req.cookies.access_token;
+  
+  // Check for token in both cookie and Authorization header
+  const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json("Not authenticated!");
   }
@@ -130,7 +154,9 @@ export const deletePost = async (req, res) => {
 
 export const updatePost = async (req, res) => {
   const pool = getDbPool();
-  const token = req.cookies.access_token;
+  
+  // Check for token in both cookie and Authorization header
+  const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json("Not authenticated!");
   }
