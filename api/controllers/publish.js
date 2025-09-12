@@ -103,14 +103,36 @@ function extractCategory(frontmatter) {
   return 'general';
 }
 
-// Generate slug from title
-function generateSlug(title) {
-  return title
+// Generate unique slug from title
+async function generateSlug(title, pool) {
+  const baseSlug = title
     .toLowerCase()
     .replace(/[^\w\s-]/g, '') // Remove special characters
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-') // Replace multiple hyphens with single
     .trim();
+  
+  let slug = baseSlug;
+  let counter = 1;
+  
+  // Check if slug exists and add suffix if needed
+  while (true) {
+    try {
+      const existingPost = await pool.query('SELECT id FROM posts WHERE slug = $1', [slug]);
+      if (existingPost.rows.length === 0) {
+        break; // Slug is unique
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    } catch (error) {
+      console.error('Error checking slug uniqueness:', error);
+      // If database error, use timestamp suffix as fallback
+      slug = `${baseSlug}-${Date.now()}`;
+      break;
+    }
+  }
+  
+  return slug;
 }
 
 // Main publish function
@@ -142,7 +164,7 @@ export const publishMarkdownPost = (req, res) => {
       const description = frontmatter.description;
       const category = extractCategory(frontmatter);
       const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
-      const slug = generateSlug(title);
+      const slug = await generateSlug(title, pool);
       let userId = null;
       
       const apiKey = req.headers['x-api-key'];
@@ -221,7 +243,7 @@ export const publishMarkdownContent = async (req, res) => {
     const description = frontmatter.description;
     const category = extractCategory(frontmatter);
     const postDate = frontmatter.date ? new Date(frontmatter.date) : new Date();
-    const slug = generateSlug(title);
+    const slug = await generateSlug(title, pool);
     let userId = null;
     
     const apiKey = req.headers['x-api-key'];
