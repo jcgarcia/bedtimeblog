@@ -149,14 +149,15 @@ export const publishMarkdownPost = (req, res) => {
       const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
       
       if (apiKey) {
-        const validApiKey = req.apiKeys?.publishApiKey;
+        // Try database-stored API key first, then fall back to environment variable
+        const validApiKey = req.apiKeys?.publishApiKey || process.env.PUBLISH_API_KEY || process.env.BLOG_API_KEY;
         if (!validApiKey) {
-          return res.status(401).json({ error: 'Invalid API key (no key loaded)'});
+          return res.status(401).json({ error: 'Invalid API key (no key configured)'});
         }
         if (apiKey !== validApiKey) {
           return res.status(401).json({ error: 'Invalid API key (mismatch)'});
         }
-        userId = parseInt(req.systemConfig?.blogUserId) || 1;
+        userId = parseInt(req.systemConfig?.blogUserId || process.env.BLOG_USER_ID) || 1;
       } else if (token) {
         try {
           const userInfo = jwt.verify(token, "jwtkey");
@@ -227,11 +228,12 @@ export const publishMarkdownContent = async (req, res) => {
     const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
     
     if (apiKey) {
-      const validApiKey = req.apiKeys?.publishApiKey;
+      // Try database-stored API key first, then fall back to environment variable
+      const validApiKey = req.apiKeys?.publishApiKey || process.env.PUBLISH_API_KEY || process.env.BLOG_API_KEY;
       if (!validApiKey || apiKey !== validApiKey) {
         return res.status(401).json({ error: 'Invalid API key' });
       }
-      userId = parseInt(req.systemConfig?.blogUserId) || 1;
+      userId = parseInt(req.systemConfig?.blogUserId || process.env.BLOG_USER_ID) || 1;
     } else if (token) {
       try {
         const userInfo = jwt.verify(token, "jwtkey");

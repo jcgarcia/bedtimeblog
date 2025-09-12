@@ -90,7 +90,7 @@ ${postData.desc || ''}`;
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`, // Try Bearer token first
-          'X-API-Key': 'fallback-api-key', // Fallback API key method
+          'X-API-Key': '81128b70915fe2d690a4e55eebeb13cedf069659e8e524c1198426d7665462b0', // Production API key
         },
         credentials: 'include',
         body: JSON.stringify({ markdownContent })
