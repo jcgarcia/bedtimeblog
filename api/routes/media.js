@@ -14,7 +14,7 @@ import {
   getAWSCredentialStatus,
   refreshAWSCredentials,
   initializeSSO,
-  completeSSOAuthorization
+  testSSOCredentials
 } from "../controllers/media.js";
 
 const router = express.Router();
@@ -45,8 +45,8 @@ router.get("/credential-status", requireAdminAuth, getAWSCredentialStatus); // G
 router.post("/refresh-credentials", requireAdminAuth, refreshAWSCredentials); // POST /api/media/refresh-credentials - Manually refresh credentials
 
 // AWS SSO management
-router.post("/initialize-sso", requireAdminAuth, initializeSSO); // POST /api/media/initialize-sso - Initialize SSO session
-router.post("/complete-sso", requireAdminAuth, completeSSOAuthorization); // POST /api/media/complete-sso - Complete SSO authorization
+router.post("/initialize-sso", requireAdminAuth, initializeSSO); // POST /api/media/initialize-sso - Initialize SSO credentials
+router.post("/test-sso", requireAdminAuth, testSSOCredentials); // POST /api/media/test-sso - Test SSO credentials
 
 router.get("/debug-version", (req, res) => res.json({ version: "2.0", timestamp: new Date().toISOString() })); // Debug endpoint
 

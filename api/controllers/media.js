@@ -910,25 +910,21 @@ export const refreshAWSCredentials = async (req, res) => {
 // SSO Management endpoints
 export const initializeSSO = async (req, res) => {
   try {
-    const { startUrl, region, accountId, roleName } = req.body;
+    const { accountId, roleName } = req.body;
     
-    if (!startUrl || !region || !accountId || !roleName) {
+    if (!accountId || !roleName) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required SSO configuration: startUrl, region, accountId, roleName'
+        message: 'Missing required SSO configuration: accountId, roleName'
       });
     }
     
-    const result = await credentialManager.initializeSSOSession({
-      startUrl,
-      region,
-      accountId,
-      roleName
-    });
+    const result = await credentialManager.initializeSSO(accountId, roleName);
     
     res.json({
       success: true,
-      message: 'SSO session initialized successfully',
+      message: 'SSO credential provider initialized successfully',
+      instructions: 'Please run "aws sso login" in your terminal to authenticate, then credentials will refresh automatically',
       ...result
     });
     
@@ -941,20 +937,28 @@ export const initializeSSO = async (req, res) => {
   }
 };
 
-export const completeSSOAuthorization = async (req, res) => {
+export const testSSOCredentials = async (req, res) => {
   try {
-    await credentialManager.completeSSOAuthorization();
+    // Try to get credentials from SSO
+    const credentials = await credentialManager.getCredentialsFromSSO();
     
     res.json({
       success: true,
-      message: 'SSO authorization completed successfully'
+      message: 'SSO credentials obtained successfully',
+      hasCredentials: !!credentials,
+      expiryInfo: credentialManager.credentialExpiry 
+        ? new Date(credentialManager.credentialExpiry).toISOString()
+        : 'Unknown'
     });
     
   } catch (error) {
-    console.error('Error completing SSO authorization:', error);
+    console.error('Error testing SSO credentials:', error);
     res.status(500).json({
       success: false,
-      message: `Failed to complete SSO authorization: ${error.message}`
+      message: `SSO credentials test failed: ${error.message}`,
+      instructions: error.message.includes('SSO session') 
+        ? 'Please run "aws sso login" in your terminal to authenticate'
+        : 'Check your SSO configuration'
     });
   }
 };

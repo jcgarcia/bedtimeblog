@@ -1,6 +1,7 @@
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { SSOClient, GetRoleCredentialsCommand } from '@aws-sdk/client-sso';
-import { SSOOIDCClient, CreateTokenCommand } from '@aws-sdk/client-sso-oidc';
+import { SSOOIDCClient, CreateTokenCommand, StartDeviceAuthorizationCommand } from '@aws-sdk/client-sso-oidc';
+import { fromSSO } from '@aws-sdk/credential-providers';
 import { getDbPool } from '../db.js';
 import crypto from 'crypto';
 
@@ -10,94 +11,90 @@ class AWSCredentialManager {
     this.credentialExpiry = null;
     this.refreshTimer = null;
     this.isRefreshing = false;
-    this.ssoTokenInfo = null; // Store SSO token information
-    this.deviceAuthInfo = null; // Store device authorization info
+    this.ssoCredentialProvider = null;
+    this.ssoConfig = {
+      ssoStartUrl: 'https://ingasti.awsapps.com/start/#',
+      ssoRegion: 'eu-west-2',
+      // These will be set when configuration is provided
+      ssoAccountId: null,
+      ssoRoleName: null
+    };
   }
 
   /**
-   * Initialize SSO session for automatic credential refresh
+   * Initialize SSO credential provider with AWS SDK built-in refresh
    */
-  async initializeSSOSession(ssoConfig) {
+  async initializeSSO(accountId, roleName) {
     try {
-      console.log('🔄 Initializing AWS SSO session for automatic refresh...');
+      console.log('🔄 Initializing AWS SSO credential provider...');
       
-      const { startUrl, region, accountId, roleName } = ssoConfig;
+      this.ssoConfig.ssoAccountId = accountId;
+      this.ssoConfig.ssoRoleName = roleName;
       
-      if (!startUrl || !region || !accountId || !roleName) {
-        throw new Error('Missing required SSO configuration: startUrl, region, accountId, roleName');
-      }
-
-      // Store SSO configuration
-      await this.storeSSOConfig(ssoConfig);
+      // Use AWS SDK's built-in SSO credential provider with automatic refresh
+      this.ssoCredentialProvider = fromSSO({
+        ssoStartUrl: this.ssoConfig.ssoStartUrl,
+        ssoRegion: this.ssoConfig.ssoRegion,
+        ssoAccountId: accountId,
+        ssoRoleName: roleName,
+        // Optional: clientName for better tracking
+        clientName: 'BedtimeBlog-MediaManager'
+      });
       
-      // Start device authorization flow
-      const deviceAuth = await this.initiateDeviceAuthorization(startUrl, region);
-      this.deviceAuthInfo = deviceAuth;
+      // Store configuration
+      await this.storeSSOConfig(this.ssoConfig);
       
-      console.log(`🔗 Complete SSO authorization: ${deviceAuth.verificationUriComplete}`);
-      console.log(`📋 User code: ${deviceAuth.userCode}`);
-      console.log(`⏰ Authorization expires in: ${deviceAuth.expiresIn} seconds`);
+      console.log('✅ SSO credential provider initialized successfully');
+      console.log(`📋 Configuration: ${this.ssoConfig.ssoStartUrl}, Region: ${this.ssoConfig.ssoRegion}`);
+      console.log(`🏢 Account: ${accountId}, Role: ${roleName}`);
       
       return {
         success: true,
-        authorizationUrl: deviceAuth.verificationUriComplete,
-        userCode: deviceAuth.userCode,
-        expiresIn: deviceAuth.expiresIn
+        message: 'SSO credential provider initialized. Credentials will be automatically refreshed.',
+        config: this.ssoConfig
       };
       
     } catch (error) {
-      console.error('❌ Failed to initialize SSO session:', error.message);
+      console.error('❌ Failed to initialize SSO:', error.message);
       throw error;
     }
   }
 
   /**
-   * Complete SSO authorization and get initial tokens
+   * Get credentials using SSO provider (automatically refreshes)
    */
-  async completeSSOAuthorization() {
+  async getCredentialsFromSSO() {
     try {
-      if (!this.deviceAuthInfo) {
-        throw new Error('No device authorization in progress');
+      if (!this.ssoCredentialProvider) {
+        throw new Error('SSO credential provider not initialized');
       }
-
-      console.log('🔄 Completing SSO authorization...');
       
-      const config = await this.getStoredSSOConfig();
-      const { startUrl, region } = config;
+      console.log('🔄 Getting credentials from SSO provider...');
       
-      const ssoOIDCClient = new SSOOIDCClient({ region });
+      // The AWS SDK handles refresh automatically
+      const credentials = await this.ssoCredentialProvider();
       
-      const tokenCommand = new CreateTokenCommand({
-        clientId: this.deviceAuthInfo.clientId,
-        clientSecret: this.deviceAuthInfo.clientSecret,
-        grantType: 'urn:ietf:params:oauth:grant-type:device_code',
-        deviceCode: this.deviceAuthInfo.deviceCode
-      });
-      
-      const tokenResponse = await ssoOIDCClient.send(tokenCommand);
-      
-      // Store token information
-      this.ssoTokenInfo = {
-        accessToken: tokenResponse.accessToken,
-        expiresIn: tokenResponse.expiresIn,
-        refreshToken: tokenResponse.refreshToken,
-        tokenType: tokenResponse.tokenType,
-        createdAt: Date.now()
+      // Cache for quick access (though SDK handles this internally)
+      this.cachedCredentials = {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
       };
       
-      await this.storeSSOTokenInfo(this.ssoTokenInfo);
+      // Set a reasonable expiry (SSO credentials typically last 1 hour)
+      this.credentialExpiry = Date.now() + (55 * 60 * 1000); // 55 minutes
       
-      // Get initial credentials
-      await this.refreshCredentialsFromSSO();
-      
-      // Schedule automatic refresh
-      this.scheduleSSORenewal();
-      
-      console.log('✅ SSO authorization completed successfully');
-      return { success: true };
+      console.log('✅ Credentials obtained from SSO successfully');
+      return this.cachedCredentials;
       
     } catch (error) {
-      console.error('❌ Failed to complete SSO authorization:', error.message);
+      console.error('❌ Failed to get credentials from SSO:', error.message);
+      
+      // If SSO fails, provide helpful error message
+      if (error.message.includes('SSO session')) {
+        throw new Error('SSO session not found or expired. Please run: aws sso login --profile your-profile');
+      }
+      
       throw error;
     }
   }
@@ -105,21 +102,35 @@ class AWSCredentialManager {
    * Get valid AWS credentials, refreshing if necessary
    */
   async getCredentials() {
-    // If we have valid cached credentials, return them
+    // Check if SSO is configured and try that first
+    if (this.ssoCredentialProvider) {
+      try {
+        return await this.getCredentialsFromSSO();
+      } catch (ssoError) {
+        console.warn('⚠️ SSO credentials failed, trying fallback:', ssoError.message);
+        // Fall through to legacy method
+      }
+    }
+
+    // Check for cached credentials from legacy method
     if (this.cachedCredentials && this.credentialExpiry && Date.now() < this.credentialExpiry - 300000) {
-      console.log('✅ Using cached AWS credentials');
+      console.log('✅ Using cached legacy AWS credentials');
       return this.cachedCredentials;
     }
 
-    // Check if we have SSO configuration
-    const ssoConfig = await this.getStoredSSOConfig();
-    if (ssoConfig && ssoConfig.startUrl) {
-      // Use SSO-based refresh
-      return await this.refreshCredentialsFromSSO();
-    } else {
-      // Fallback to legacy refresh
-      return await this.refreshCredentials();
+    // Try to initialize SSO from stored config
+    const storedConfig = await this.getStoredSSOConfig();
+    if (storedConfig && storedConfig.ssoAccountId && storedConfig.ssoRoleName && !this.ssoCredentialProvider) {
+      try {
+        await this.initializeSSO(storedConfig.ssoAccountId, storedConfig.ssoRoleName);
+        return await this.getCredentialsFromSSO();
+      } catch (ssoError) {
+        console.warn('⚠️ Could not initialize SSO from stored config:', ssoError.message);
+      }
     }
+
+    // Fallback to legacy refresh
+    return await this.refreshCredentials();
   }
 
   /**

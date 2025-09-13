@@ -17,6 +17,7 @@
     "@aws-sdk/client-sso": "^3.600.0",
     "@aws-sdk/client-sso-oidc": "^3.600.0",
     "@aws-sdk/client-sts": "^3.600.0",
+    "@aws-sdk/credential-providers": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
     "brace-expansion": "^4.0.1",
     "cookie-parser": "^1.4.6",
