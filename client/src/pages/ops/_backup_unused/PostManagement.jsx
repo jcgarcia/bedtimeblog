@@ -1,3 +1,8 @@
+// DEPRECATED: This component is not in use anymore
+// The current architecture uses ContentManagement.jsx component instead
+// This file should be considered for removal in future cleanup
+// Current ops panel structure: Ops.jsx -> ContentManagement.jsx (active)
+
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
 

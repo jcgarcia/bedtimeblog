@@ -137,7 +137,7 @@ async function generateSlug(title, pool) {
 
 // Main publish function
 export const publishMarkdownPost = (req, res) => {
-  const uploadSingle = upload.single('markdown');
+  const uploadSingle = upload.single('file'); // Changed from 'markdown' to 'file' to match frontend
   
   uploadSingle(req, res, async (err) => {
     if (err) {
@@ -192,6 +192,7 @@ export const publishMarkdownPost = (req, res) => {
       }
       
       // Prepare database query for new schema
+      const status = frontmatter.status || 'published'; // Default to published for uploaded files
       const q = `INSERT INTO posts (title, slug, content, author_id, published_at, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;`;
       const values = [title, slug, content, userId, postDate, status];
       const result = await pool.query(q, values);

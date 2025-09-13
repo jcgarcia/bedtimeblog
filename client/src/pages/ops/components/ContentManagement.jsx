@@ -95,13 +95,23 @@ export default function ContentManagement() {
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('markdown', file); // Use 'markdown' field name like the working script
       
       setUploadProgress(30);
 
+      // Get API key from environment or config
+      const apiKey = import.meta.env.VITE_BLOG_API_KEY || process.env.REACT_APP_BLOG_API_KEY;
+
+      const headers = {};
+      if (apiKey) {
+        headers['X-API-Key'] = apiKey; // Add authentication header like the working script
+      }
+
       const response = await fetch(API_ENDPOINTS.PUBLISH.MARKDOWN, {
         method: 'POST',
+        headers: headers,
         body: formData,
+        credentials: 'include', // Include cookies for authentication
       });
 
       setUploadProgress(70);
@@ -111,18 +121,19 @@ export default function ContentManagement() {
         setUploadProgress(100);
         
         setTimeout(() => {
-          alert('Post uploaded successfully! Refreshing posts list...');
+          alert(`Post uploaded successfully!\nTitle: ${result.title}\nCategory: ${result.category}\nPost ID: ${result.postId}`);
           fetchPosts(); // Refresh the posts list
           setUploadFile(null);
           setUploading(false);
           setUploadProgress(0);
         }, 500);
       } else {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`API Error (${response.status}): ${errorData.error || errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Failed to upload file. Please try again.');
+      alert(`Failed to upload file: ${error.message}`);
       setUploadFile(null);
       setUploading(false);
       setUploadProgress(0);

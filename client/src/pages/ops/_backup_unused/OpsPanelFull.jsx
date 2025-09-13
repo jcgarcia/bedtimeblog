@@ -1,3 +1,9 @@
+// DEPRECATED: This component is completely obsolete and not in use
+// The current architecture has been changed to use:
+// Ops.jsx (main ops panel) -> ContentManagement.jsx (posts & categories)
+// DO NOT USE THIS FILE - it will create conflicts with current architecture
+// This file should be deleted in the next cleanup cycle
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../../contexts/AdminContext';
