@@ -88,7 +88,9 @@ const upload = multer({
       cb(null, true);
     } else {
       console.log('❌ File type rejected:', file.mimetype, 'not in', allowedTypes);
-      cb(new Error('Invalid file type. Only images, PDFs, and videos are allowed.'), false);
+      const error = new Error(`Invalid file type '${file.mimetype}'. Only images, PDFs, and videos are allowed.`);
+      error.code = 'INVALID_FILE_TYPE';
+      cb(error, false);
     }
   },
 }).single('file');
@@ -164,8 +166,17 @@ export const uploadToS3 = async (req, res) => {
     console.log('🔍 DEBUG: upload object:', typeof upload, Object.keys(upload));
     upload(req, res, async (err) => {
       if (err) {
-        console.error('Upload error:', err);
-        return res.status(400).json({ success: false, message: err.message });
+        console.error('❌ Multer upload error:', {
+          message: err.message,
+          code: err.code,
+          field: err.field,
+          stack: err.stack
+        });
+        return res.status(400).json({ 
+          success: false, 
+          message: `File upload error: ${err.message}`,
+          errorType: 'multer'
+        });
       }
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'No file provided' });
@@ -355,13 +366,22 @@ export const uploadToS3 = async (req, res) => {
         res.status(500).json({ 
           success: false, 
           message: errorMessage,
-          debug: process.env.NODE_ENV === 'development' ? uploadError.message : undefined
+          debug: process.env.NODE_ENV === 'development' ? uploadError.message : undefined,
+          errorType: 's3_upload'
         });
       }
     });
   } catch (error) {
-    console.error('Upload controller error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('❌ Upload controller outer error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: `Upload controller error: ${error.message}`,
+      errorType: 'controller'
+    });
   }
 };
 
