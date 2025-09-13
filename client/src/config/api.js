@@ -64,6 +64,12 @@ export const API_ENDPOINTS = {
   // Upload
   UPLOAD: `${API_URL}/api/upload`,
   
+  // Publish
+  PUBLISH: {
+    MARKDOWN: `${API_URL}/api/publish/markdown`,
+    CONTENT: `${API_URL}/api/publish/content`,
+  },
+  
   // Health check
   HEALTH: `${API_URL}/health`,
   

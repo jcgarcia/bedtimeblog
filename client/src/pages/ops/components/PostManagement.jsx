@@ -4,6 +4,9 @@ import { API_ENDPOINTS } from '../../../config/api';
 export default function PostManagement() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   useEffect(() => {
     fetchPosts();
@@ -39,6 +42,107 @@ export default function PostManagement() {
     }
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Please select a Markdown file (.md or .markdown)'
+      });
+      return;
+    }
+
+    setUploadLoading(true);
+    setUploadStatus(null);
+    setUploadProgress('Validating file...');
+
+    try {
+      // Read and validate file content
+      const fileContent = await file.text();
+      
+      // Check for frontmatter
+      const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+      const match = fileContent.match(frontmatterRegex);
+      
+      if (!match) {
+        setUploadStatus({
+          type: 'error',
+          message: 'Invalid markdown file: Missing frontmatter. Please ensure your file has frontmatter with title and description.'
+        });
+        setUploadLoading(false);
+        setUploadProgress(null);
+        return;
+      }
+
+      const frontmatterText = match[1];
+      const hasTitle = frontmatterText.includes('title:');
+      const hasDescription = frontmatterText.includes('description:');
+
+      if (!hasTitle || !hasDescription) {
+        setUploadStatus({
+          type: 'error',
+          message: 'Invalid markdown file: Missing required frontmatter fields (title, description).'
+        });
+        setUploadLoading(false);
+        setUploadProgress(null);
+        return;
+      }
+
+      setUploadProgress('Uploading file...');
+
+      // Upload the file
+      const formData = new FormData();
+      formData.append('markdown', file);
+
+      const response = await fetch(API_ENDPOINTS.PUBLISH.MARKDOWN, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Upload failed (${response.status}): ${errorData.error || errorData.message || 'Unknown error'}`);
+      }
+
+      const result = await response.json();
+      
+      setUploadStatus({
+        type: 'success',
+        message: `Post "${result.title}" published successfully!`,
+        details: {
+          title: result.title,
+          category: result.category,
+          postId: result.postId,
+          publishedAt: result.publishedAt
+        }
+      });
+
+      // Refresh posts list
+      fetchPosts();
+
+    } catch (error) {
+      setUploadStatus({
+        type: 'error',
+        message: error.message
+      });
+    } finally {
+      setUploadLoading(false);
+      setUploadProgress(null);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  const clearUploadStatus = () => {
+    setUploadStatus(null);
+  };
+
   return (
     <div className="post-management">
       <div className="section-header">
@@ -71,6 +175,63 @@ export default function PostManagement() {
           <h3>Scheduled Posts</h3>
           <p>Posts scheduled for future publication</p>
           <button className="btn-secondary">Schedule</button>
+        </div>
+
+        <div className="post-card upload-card">
+          <h3>
+            <i className="fa-solid fa-upload"></i> Upload Posts
+          </h3>
+          <p>Upload markdown files from your device</p>
+          <div className="upload-area">
+            <input
+              type="file"
+              id="markdown-upload"
+              accept=".md,.markdown"
+              onChange={handleFileUpload}
+              disabled={uploadLoading}
+              style={{ display: 'none' }}
+            />
+            <label 
+              htmlFor="markdown-upload" 
+              className={`btn-secondary upload-btn ${uploadLoading ? 'disabled' : ''}`}
+            >
+              {uploadLoading ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  {uploadProgress || 'Uploading...'}
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-file-upload"></i>
+                  Select File
+                </>
+              )}
+            </label>
+          </div>
+          
+          {uploadStatus && (
+            <div className={`upload-status ${uploadStatus.type}`}>
+              <div className="status-header">
+                <i className={`fa-solid ${uploadStatus.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+                <span>{uploadStatus.message}</span>
+                <button 
+                  className="close-status" 
+                  onClick={clearUploadStatus}
+                  title="Dismiss"
+                >
+                  <i className="fa-solid fa-times"></i>
+                </button>
+              </div>
+              {uploadStatus.details && (
+                <div className="status-details">
+                  <p><strong>Title:</strong> {uploadStatus.details.title}</p>
+                  <p><strong>Category:</strong> {uploadStatus.details.category}</p>
+                  <p><strong>Post ID:</strong> {uploadStatus.details.postId}</p>
+                  <p><strong>Published:</strong> {new Date(uploadStatus.details.publishedAt).toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
