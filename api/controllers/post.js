@@ -1,5 +1,63 @@
 import { getDbPool } from "../db.js";
 import jwt from "jsonwebtoken";
+import { getS3Client } from "./media.js";
+import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+// Helper function to resolve media ID to signed URL
+async function resolveMediaUrl(mediaId) {
+  if (!mediaId || mediaId === '' || mediaId === 'null') {
+    return null;
+  }
+  
+  // If it's already a URL, return it as is
+  if (typeof mediaId === 'string' && (mediaId.startsWith('http') || mediaId.startsWith('/'))) {
+    return mediaId;
+  }
+  
+  try {
+    const pool = getDbPool();
+    
+    // Get media record by ID
+    const mediaQuery = 'SELECT * FROM media WHERE id = $1';
+    const mediaResult = await pool.query(mediaQuery, [mediaId]);
+    
+    if (mediaResult.rows.length === 0) {
+      console.warn(`Media ID ${mediaId} not found`);
+      return null;
+    }
+    
+    const media = mediaResult.rows[0];
+    
+    // If it's a private bucket, generate signed URL
+    if (media.public_url === 'PRIVATE_BUCKET') {
+      // Get AWS config
+      const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+      if (settingsRes.rows.length === 0) {
+        console.warn('AWS configuration not found');
+        return null;
+      }
+      
+      const awsConfig = JSON.parse(settingsRes.rows[0].value);
+      const s3Client = await getS3Client(awsConfig);
+      
+      const command = new GetObjectCommand({
+        Bucket: media.s3_bucket,
+        Key: media.s3_key,
+      });
+      
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      return signedUrl;
+    }
+    
+    // Return the stored URL for public buckets
+    return media.public_url;
+    
+  } catch (error) {
+    console.error('Error resolving media URL:', error);
+    return null;
+  }
+}
 
 export const getPosts = async (req, res) => {
   const pool = getDbPool();
@@ -28,7 +86,18 @@ export const getPosts = async (req, res) => {
       `;
       result = await pool.query(q);
     }
-    return res.status(200).json(result.rows);
+    
+    // Resolve featured image URLs for all posts
+    const postsWithImages = await Promise.all(
+      result.rows.map(async (post) => {
+        if (post.featured_image) {
+          post.featured_image = await resolveMediaUrl(post.featured_image);
+        }
+        return post;
+      })
+    );
+    
+    return res.status(200).json(postsWithImages);
   } catch (err) {
     console.error('Database error in getPosts:', err);
     return res.status(500).json({ error: 'Failed to fetch posts' });
@@ -62,7 +131,18 @@ export const getDrafts = async (req, res) => {
       `;
       result = await pool.query(q);
     }
-    return res.status(200).json(result.rows);
+    
+    // Resolve featured image URLs for all drafts
+    const draftsWithImages = await Promise.all(
+      result.rows.map(async (post) => {
+        if (post.featured_image) {
+          post.featured_image = await resolveMediaUrl(post.featured_image);
+        }
+        return post;
+      })
+    );
+    
+    return res.status(200).json(draftsWithImages);
   } catch (err) {
     console.error('Database error in getDrafts:', err);
     return res.status(500).json({ error: 'Failed to fetch drafts' });
@@ -86,7 +166,14 @@ export const getPost = async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    return res.status(200).json(result.rows[0]);
+    const post = result.rows[0];
+    
+    // Resolve featured image URL
+    if (post.featured_image) {
+      post.featured_image = await resolveMediaUrl(post.featured_image);
+    }
+    
+    return res.status(200).json(post);
   } catch (err) {
     console.error('Database error in getPost:', err);
     return res.status(500).json({ error: 'Failed to fetch post' });

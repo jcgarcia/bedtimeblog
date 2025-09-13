@@ -193,7 +193,7 @@ export const uploadAPI = {
       if (response.data.success && response.data.media) {
         return {
           success: true,
-          data: response.data.media.public_url || response.data.media.signed_url || response.data.media.s3_key
+          data: response.data.media.id // Return media ID instead of URL for database storage
         };
       } else {
         return {
