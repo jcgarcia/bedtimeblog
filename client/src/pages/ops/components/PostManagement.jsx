@@ -171,12 +171,32 @@ export default function PostManagement() {
           <button className="btn-secondary">Manage</button>
         </div>
 
-        <div className="post-card" style={{backgroundColor: '#f0f8ff', border: '2px solid #4CAF50'}}>
-          <h3 style={{color: '#2E7D32'}}>
-            <i className="fa-solid fa-upload"></i> Upload Posts
+        <div className="post-card" style={{
+          backgroundColor: '#e8f5e8', 
+          border: '5px solid #4CAF50', 
+          boxShadow: '0 0 20px rgba(76, 175, 80, 0.3)',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-10px',
+            right: '-10px',
+            backgroundColor: '#FF4444',
+            color: 'white',
+            padding: '5px 10px',
+            borderRadius: '15px',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}>
+            NEW!
+          </div>
+          <h3 style={{color: '#2E7D32', fontSize: '1.4rem', textAlign: 'center'}}>
+            📤 UPLOAD POSTS FROM DEVICE 📤
           </h3>
-          <p style={{color: '#555'}}>Upload markdown files from your device</p>
-          <div className="upload-area">
+          <p style={{color: '#2E7D32', fontWeight: 'bold', textAlign: 'center'}}>
+            🎯 Upload markdown files from your local device 🎯
+          </p>
+          <div className="upload-area" style={{textAlign: 'center'}}>
             <input
               type="file"
               id="markdown-upload"
@@ -188,7 +208,17 @@ export default function PostManagement() {
             <label 
               htmlFor="markdown-upload" 
               className={`btn-secondary upload-btn ${uploadLoading ? 'disabled' : ''}`}
-              style={{backgroundColor: '#4CAF50', color: 'white', border: 'none'}}
+              style={{
+                backgroundColor: '#4CAF50', 
+                color: 'white', 
+                border: 'none',
+                padding: '15px 25px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+              }}
             >
               {uploadLoading ? (
                 <>
@@ -197,8 +227,7 @@ export default function PostManagement() {
                 </>
               ) : (
                 <>
-                  <i className="fa-solid fa-file-upload"></i>
-                  Select File
+                  📁 CLICK TO SELECT MARKDOWN FILE 📁
                 </>
               )}
             </label>
