@@ -331,8 +331,32 @@ export const uploadToS3 = async (req, res) => {
         const mediaRecord = result.rows[0];
         res.status(201).json({ success: true, message: 'File uploaded successfully', media: mediaRecord });
       } catch (uploadError) {
-        console.error('S3/OCI upload error:', uploadError);
-        res.status(500).json({ success: false, message: 'Failed to upload file to cloud storage' });
+        console.error('❌ S3/OCI upload error details:', {
+          error: uploadError.message,
+          code: uploadError.code,
+          name: uploadError.name,
+          statusCode: uploadError.$metadata?.httpStatusCode,
+          requestId: uploadError.$metadata?.requestId,
+          stack: uploadError.stack
+        });
+        
+        // Provide more specific error messages
+        let errorMessage = 'Failed to upload file to cloud storage';
+        if (uploadError.name === 'CredentialsProviderError') {
+          errorMessage = 'AWS credentials are invalid or expired. Please refresh credentials in Operations Center.';
+        } else if (uploadError.name === 'AccessDenied') {
+          errorMessage = 'Access denied to S3 bucket. Check IAM permissions.';
+        } else if (uploadError.name === 'NoSuchBucket') {
+          errorMessage = 'S3 bucket not found. Check bucket configuration.';
+        } else if (uploadError.code === 'InvalidClientTokenId') {
+          errorMessage = 'AWS credentials are invalid. Please refresh credentials in Operations Center.';
+        }
+        
+        res.status(500).json({ 
+          success: false, 
+          message: errorMessage,
+          debug: process.env.NODE_ENV === 'development' ? uploadError.message : undefined
+        });
       }
     });
   } catch (error) {
