@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
 import { postsAPI } from '../../../services/postsAPI';
+import { useAdmin } from '../../../contexts/AdminContext';
 import './ContentManagement.css';
 
 export default function ContentManagement() {
+  const { isAdmin, adminUser } = useAdmin();
   const [posts, setPosts] = useState([]);
   const [categories, setCategories] = useState([
     { id: 1, name: 'Technology', slug: 'technology', post_count: 7 },
@@ -83,6 +85,12 @@ export default function ContentManagement() {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Check admin authentication
+    if (!isAdmin || !adminUser) {
+      alert('Admin authentication required. Please login again.');
+      return;
+    }
+
     // Validate file type
     if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
       alert('Please select a Markdown file (.md or .markdown)');
@@ -99,13 +107,16 @@ export default function ContentManagement() {
       
       setUploadProgress(30);
 
-      // Get API key from environment or config
-      const apiKey = import.meta.env.VITE_BLOG_API_KEY || process.env.REACT_APP_BLOG_API_KEY;
-
-      const headers = {};
-      if (apiKey) {
-        headers['X-API-Key'] = apiKey; // Add authentication header like the working script
+      // Get admin token from localStorage (for console uploads)
+      const adminToken = localStorage.getItem('adminToken');
+      
+      if (!adminToken) {
+        throw new Error('Admin authentication required. Please login again.');
       }
+
+      const headers = {
+        'Authorization': `Bearer ${adminToken}` // Use admin token for authentication
+      };
 
       const response = await fetch(API_ENDPOINTS.PUBLISH.MARKDOWN, {
         method: 'POST',
