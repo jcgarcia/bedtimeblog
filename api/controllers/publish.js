@@ -137,7 +137,7 @@ async function generateSlug(title, pool) {
 
 // Main publish function
 export const publishMarkdownPost = (req, res) => {
-  const uploadSingle = upload.single('file'); // Changed from 'markdown' to 'file' to match frontend
+  const uploadSingle = upload.single('markdown'); // Fixed to match blog-publish.js script
   
   uploadSingle(req, res, async (err) => {
     if (err) {
