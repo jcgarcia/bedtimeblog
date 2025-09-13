@@ -104,8 +104,9 @@ export default function Write() {
       setUploadingImage(true);
       const response = await uploadAPI.uploadFile(file);
       
-      if (response.data) {
-        const imagePath = `/uploads/${response.data}`;
+      if (response.success) {
+        // Media API returns a URL or key path
+        const imagePath = response.data;
         setFormData(prev => ({
           ...prev,
           featuredImage: imagePath
@@ -113,6 +114,9 @@ export default function Write() {
         setSuccess('Image uploaded successfully!');
         setTimeout(() => setSuccess(''), 3000);
         return imagePath;
+      } else {
+        setError(response.error || 'Failed to upload image');
+        setTimeout(() => setError(''), 3000);
       }
     } catch (err) {
       console.error('Error uploading image:', err);

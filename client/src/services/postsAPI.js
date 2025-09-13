@@ -176,22 +176,31 @@ export const categoriesAPI = {
 
 // Upload API
 export const uploadAPI = {
-  // Upload file
+  // Upload file to media storage (S3/OCI)
   uploadFile: async (file) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await api.post('/upload', formData, {
+      // Use the media upload endpoint that stores in S3/OCI
+      const response = await api.post('/media/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       
-      return {
-        success: true,
-        data: response.data
-      };
+      // The media API returns a different structure: { success, message, media }
+      if (response.data.success && response.data.media) {
+        return {
+          success: true,
+          data: response.data.media.public_url || response.data.media.signed_url || response.data.media.s3_key
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || 'Upload failed'
+        };
+      }
     } catch (error) {
       console.error('Error uploading file:', error);
       return {
