@@ -16,6 +16,9 @@ export default function ContentManagement() {
   const [activeSection, setActiveSection] = useState('posts');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', slug: '' });
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -76,8 +79,71 @@ export default function ContentManagement() {
     });
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+      alert('Please select a Markdown file (.md or .markdown)');
+      return;
+    }
+
+    setUploadFile(file);
+    setUploading(true);
+    setUploadProgress(10);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      setUploadProgress(30);
+
+      const response = await fetch(API_ENDPOINTS.PUBLISH.MARKDOWN, {
+        method: 'POST',
+        body: formData,
+      });
+
+      setUploadProgress(70);
+
+      if (response.ok) {
+        const result = await response.json();
+        setUploadProgress(100);
+        
+        setTimeout(() => {
+          alert('Post uploaded successfully! Refreshing posts list...');
+          fetchPosts(); // Refresh the posts list
+          setUploadFile(null);
+          setUploading(false);
+          setUploadProgress(0);
+        }, 500);
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file. Please try again.');
+      setUploadFile(null);
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const triggerFileUpload = () => {
+    document.getElementById('file-upload-input').click();
+  };
+
   const renderPostsSection = () => (
     <div className="posts-section">
+      {/* Hidden file input for upload functionality */}
+      <input
+        id="file-upload-input"
+        type="file"
+        accept=".md,.markdown"
+        onChange={handleFileUpload}
+        style={{ display: 'none' }}
+      />
+      
       <div className="posts-grid">
         <div className="post-card">
           <h3>Create New Post</h3>
@@ -88,6 +154,29 @@ export default function ContentManagement() {
           >
             Create
           </button>
+        </div>
+
+        <div className="post-card upload-card">
+          <h3>Upload Post</h3>
+          <p>Upload a Markdown file from your device</p>
+          {uploading ? (
+            <div className="upload-progress">
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <p>Uploading... {uploadProgress}%</p>
+            </div>
+          ) : (
+            <button 
+              className="btn-secondary upload-btn"
+              onClick={triggerFileUpload}
+            >
+              <i className="fa-solid fa-upload"></i> Upload .md
+            </button>
+          )}
         </div>
 
         <div className="post-card">

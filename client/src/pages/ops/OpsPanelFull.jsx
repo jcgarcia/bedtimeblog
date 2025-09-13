@@ -116,6 +116,7 @@ export default function Ops() {
 function PostManagement({ navigate }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   // Debug logging
   useEffect(() => {
@@ -157,6 +158,125 @@ function PostManagement({ navigate }) {
     }
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log('File selected:', file.name);
+    
+    // Validate file type
+    if (!file.name.endsWith('.md') && !file.name.endsWith('.txt')) {
+      setUploadStatus('Error: Only .md and .txt files are supported');
+      return;
+    }
+
+    setUploadStatus('Reading file...');
+
+    try {
+      const content = await file.text();
+      console.log('File content length:', content.length);
+      
+      setUploadStatus('Processing content...');
+      
+      // Extract metadata and content (similar to blog-publish.js logic)
+      const lines = content.split('\n');
+      let title = '';
+      let slug = '';
+      let description = '';
+      let tags = [];
+      let contentStart = 0;
+
+      // Look for frontmatter or extract from first heading
+      if (content.startsWith('---')) {
+        const frontmatterEnd = content.indexOf('---', 3);
+        if (frontmatterEnd !== -1) {
+          const frontmatter = content.slice(3, frontmatterEnd);
+          const frontmatterLines = frontmatter.split('\n');
+          
+          frontmatterLines.forEach(line => {
+            if (line.startsWith('title:')) title = line.replace('title:', '').trim().replace(/['"]/g, '');
+            if (line.startsWith('slug:')) slug = line.replace('slug:', '').trim().replace(/['"]/g, '');
+            if (line.startsWith('description:')) description = line.replace('description:', '').trim().replace(/['"]/g, '');
+            if (line.startsWith('tags:')) {
+              const tagStr = line.replace('tags:', '').trim().replace(/[\[\]'"]/g, '');
+              tags = tagStr.split(',').map(tag => tag.trim()).filter(tag => tag);
+            }
+          });
+          
+          contentStart = content.indexOf('---', frontmatterEnd + 3) + 3;
+        }
+      }
+
+      // If no title found in frontmatter, extract from first heading
+      if (!title) {
+        const firstHeading = lines.find(line => line.startsWith('#'));
+        if (firstHeading) {
+          title = firstHeading.replace(/^#+\s*/, '').trim();
+        } else {
+          title = file.name.replace(/\.(md|txt)$/, '');
+        }
+      }
+
+      // Generate slug if not provided
+      if (!slug) {
+        slug = title.toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim('-');
+      }
+
+      const postContent = contentStart > 0 ? content.slice(contentStart).trim() : content.trim();
+
+      setUploadStatus('Uploading to server...');
+
+      // Create the post
+      const postData = {
+        title,
+        slug,
+        content: postContent,
+        description: description || `${title} - Uploaded from file`,
+        tags: tags.length > 0 ? tags : ['uploaded'],
+        status: 'draft',
+        published_at: null
+      };
+
+      console.log('Uploading post data:', postData);
+
+      const response = await fetch(API_ENDPOINTS.POSTS.CREATE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(postData)
+      });
+
+      if (response.ok) {
+        const newPost = await response.json();
+        setUploadStatus('✅ Upload successful! Post created as draft.');
+        
+        // Refresh the posts list
+        fetchPosts();
+        
+        // Clear the file input
+        event.target.value = '';
+        
+        // Clear status after 3 seconds
+        setTimeout(() => setUploadStatus(''), 3000);
+        
+        console.log('Post created successfully:', newPost);
+      } else {
+        const error = await response.text();
+        console.error('Upload failed:', error);
+        setUploadStatus(`Error: ${error}`);
+      }
+
+    } catch (error) {
+      console.error('File upload error:', error);
+      setUploadStatus(`Error: ${error.message}`);
+    }
+  };
+
   return (
     <div className="post-management">
       <div className="section-header">
@@ -171,6 +291,26 @@ function PostManagement({ navigate }) {
           <h3>Create New Post</h3>
           <p>Start writing a new blog post</p>
           <button className="btn-secondary">Create</button>
+        </div>
+
+        <div className="post-card upload-card" style={{backgroundColor: '#e8f5e8', border: '2px solid #4CAF50'}}>
+          <h3>📁 Upload Post from File</h3>
+          <p>Upload a markdown file from your device</p>
+          <input
+            type="file"
+            id="file-upload"
+            accept=".md,.txt"
+            style={{display: 'none'}}
+            onChange={handleFileUpload}
+          />
+          <label htmlFor="file-upload" className="btn-secondary upload-btn">
+            Choose File
+          </label>
+          {uploadStatus && (
+            <div className="upload-status" style={{marginTop: '10px', color: uploadStatus.includes('Error') ? '#d32f2f' : '#4CAF50'}}>
+              {uploadStatus}
+            </div>
+          )}
         </div>
 
         <div className="post-card">
