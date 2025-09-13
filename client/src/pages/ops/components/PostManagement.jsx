@@ -171,11 +171,11 @@ export default function PostManagement() {
           <button className="btn-secondary">Manage</button>
         </div>
 
-        <div className="post-card upload-card">
-          <h3>
+        <div className="post-card" style={{backgroundColor: '#f0f8ff', border: '2px solid #4CAF50'}}>
+          <h3 style={{color: '#2E7D32'}}>
             <i className="fa-solid fa-upload"></i> Upload Posts
           </h3>
-          <p>Upload markdown files from your device</p>
+          <p style={{color: '#555'}}>Upload markdown files from your device</p>
           <div className="upload-area">
             <input
               type="file"
@@ -188,6 +188,7 @@ export default function PostManagement() {
             <label 
               htmlFor="markdown-upload" 
               className={`btn-secondary upload-btn ${uploadLoading ? 'disabled' : ''}`}
+              style={{backgroundColor: '#4CAF50', color: 'white', border: 'none'}}
             >
               {uploadLoading ? (
                 <>
@@ -226,12 +227,6 @@ export default function PostManagement() {
               )}
             </div>
           )}
-        </div>
-
-        <div className="post-card">
-          <h3>Scheduled Posts</h3>
-          <p>Posts scheduled for future publication</p>
-          <button className="btn-secondary">Schedule</button>
         </div>
       </div>
 
