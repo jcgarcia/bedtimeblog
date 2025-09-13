@@ -171,12 +171,6 @@ export default function PostManagement() {
           <button className="btn-secondary">Manage</button>
         </div>
 
-        <div className="post-card">
-          <h3>Scheduled Posts</h3>
-          <p>Posts scheduled for future publication</p>
-          <button className="btn-secondary">Schedule</button>
-        </div>
-
         <div className="post-card upload-card">
           <h3>
             <i className="fa-solid fa-upload"></i> Upload Posts
@@ -232,6 +226,12 @@ export default function PostManagement() {
               )}
             </div>
           )}
+        </div>
+
+        <div className="post-card">
+          <h3>Scheduled Posts</h3>
+          <p>Posts scheduled for future publication</p>
+          <button className="btn-secondary">Schedule</button>
         </div>
       </div>
 
