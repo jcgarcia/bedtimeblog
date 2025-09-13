@@ -21,6 +21,7 @@ export default function MediaManagement() {
     totalPages: 0
   });
   const [activeSection, setActiveSection] = useState('library'); // 'library' or 'config'
+  const [credentialStatus, setCredentialStatus] = useState(null);
   // Media server configuration with OCI/AWS support
   const [mediaServerType, setMediaServerType] = useState('internal'); // 'internal', 'oci', 'aws'
   const [externalMediaServerUrl, setExternalMediaServerUrl] = useState('');
@@ -66,6 +67,7 @@ export default function MediaManagement() {
       loadAwsConfiguration();
       fetchMediaFiles(); // For AWS, we still load from database
       fetchFolders(); // AWS also uses folder structure
+      fetchCredentialStatus(); // Check credential status
     } else {
       // TODO: Integrate with external media server API when available
       setMediaFiles([]);
@@ -307,6 +309,54 @@ export default function MediaManagement() {
       alert('Error syncing S3 bucket with database');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Refresh AWS credentials manually
+  const refreshAwsCredentials = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.MEDIA.REFRESH_CREDENTIALS, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        alert('✅ AWS credentials refreshed successfully! You can now test the connection.');
+        // Update credential status after refresh
+        await fetchCredentialStatus();
+      } else {
+        const error = await response.json();
+        alert(`❌ Failed to refresh credentials: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error refreshing credentials:', error);
+      alert('❌ Error refreshing AWS credentials');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch credential status
+  const fetchCredentialStatus = async () => {
+    if (mediaServerType !== 'aws') return;
+    
+    try {
+      const response = await fetch(API_ENDPOINTS.MEDIA.CREDENTIAL_STATUS, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCredentialStatus(data.status);
+      }
+    } catch (error) {
+      console.error('Error fetching credential status:', error);
     }
   };
 
@@ -1044,6 +1094,27 @@ export default function MediaManagement() {
                         • Session Token: <span style={{color: cloudConfig.aws.sessionToken ? 'green' : 'red'}}>{cloudConfig.aws.sessionToken ? 'SET ✅' : 'REQUIRED ❌'}</span>
                       </div>
 
+                      {/* Credential Status Card */}
+                      {credentialStatus && (
+                        <div className="debug-info" style={{backgroundColor: credentialStatus.isExpired ? '#ffe6e6' : credentialStatus.isNearExpiry ? '#fff3cd' : '#e6ffe6'}}>
+                          <strong>🔑 Credential Status:</strong><br/>
+                          • Status: <span style={{color: credentialStatus.isExpired ? 'red' : credentialStatus.isNearExpiry ? 'orange' : 'green'}}>
+                            {credentialStatus.isExpired ? 'EXPIRED ❌' : credentialStatus.isNearExpiry ? 'EXPIRING SOON ⚠️' : 'VALID ✅'}
+                          </span><br/>
+                          {credentialStatus.timeUntilExpiryMinutes !== null && (
+                            <>• Time left: <span style={{color: credentialStatus.isNearExpiry ? 'orange' : 'green'}}>
+                              {credentialStatus.timeUntilExpiryMinutes > 0 ? `${credentialStatus.timeUntilExpiryMinutes} minutes` : 'Expired'}
+                            </span><br/></>
+                          )}
+                          • Cached: <span style={{color: credentialStatus.hasCachedCredentials ? 'green' : 'red'}}>
+                            {credentialStatus.hasCachedCredentials ? 'YES ✅' : 'NO ❌'}
+                          </span><br/>
+                          • Auto-refresh: <span style={{color: credentialStatus.nextRefreshScheduled ? 'green' : 'red'}}>
+                            {credentialStatus.nextRefreshScheduled ? 'ACTIVE ✅' : 'INACTIVE ❌'}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Configuration Complete Notice */}
                       <div className="aws-security-info">
                         <h5>✅ Configuration Complete</h5>
@@ -1074,6 +1145,26 @@ export default function MediaManagement() {
                         }}
                       >
                         <i className="fa-solid fa-plug"></i> Test Connection
+                      </button>
+
+                      <button 
+                        className="btn-refresh-credentials"
+                        onClick={refreshAwsCredentials}
+                        disabled={loading}
+                        style={{
+                          backgroundColor: '#fd7e14',
+                          color: 'white',
+                          border: '2px solid #e55100',
+                          fontSize: '14px',
+                          padding: '10px 20px',
+                          borderRadius: '6px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          width: '100%',
+                          marginBottom: '10px'
+                        }}
+                      >
+                        <i className="fa-solid fa-refresh"></i> Refresh Credentials
                       </button>
                       
                       <button 

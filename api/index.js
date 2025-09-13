@@ -19,6 +19,7 @@ import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
 import { closeDbPool } from "./db.js";
 import { createHealthCheckEndpoint, createConnectionInfoEndpoint } from "./utils/dbHealthCheck.js";
+import credentialManager from "./services/awsCredentialManager.js";
 
 // Load environment variables for database connection only
 dotenv.config({ path: '.env.local' });
@@ -164,8 +165,24 @@ app.use("/api/media", mediaRoutes);
 app.use("/api/likes", likesRoutes);
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`Connected! Server running on port ${PORT}`);
+  
+  // Initialize AWS credential manager for automatic refresh
+  try {
+    console.log('🔄 Initializing AWS credential manager...');
+    const status = credentialManager.getStatus();
+    if (!status.hasCachedCredentials) {
+      console.log('🔄 No cached credentials found, performing initial refresh...');
+      await credentialManager.getCredentials();
+      console.log('✅ AWS credential manager initialized successfully');
+    } else {
+      console.log('✅ AWS credential manager already has cached credentials');
+    }
+  } catch (error) {
+    console.warn('⚠️ AWS credential manager initialization failed:', error.message);
+    console.warn('⚠️ Media uploads may not work until credentials are manually configured');
+  }
 });
 
 // Graceful shutdown handling

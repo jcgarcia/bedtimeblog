@@ -10,7 +10,11 @@ import {
   createMediaFolder,
   testAwsConnection,
   syncS3Files,
-  clearMediaDatabase
+  clearMediaDatabase,
+  getAWSCredentialStatus,
+  refreshAWSCredentials,
+  initializeSSO,
+  completeSSOAuthorization
 } from "../controllers/media.js";
 
 const router = express.Router();
@@ -35,6 +39,15 @@ router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/
 router.post("/test-aws-connection", requireAdminAuth, testAwsConnection); // POST /api/media/test-aws-connection - Test AWS S3 connection
 router.post("/sync-s3", requireAdminAuth, syncS3Files);              // POST /api/media/sync-s3 - Sync S3 bucket with database
 router.post("/clear-database", requireAdminAuth, clearMediaDatabase); // POST /api/media/clear-database - Clear all media records
+
+// AWS credential management
+router.get("/credential-status", requireAdminAuth, getAWSCredentialStatus); // GET /api/media/credential-status - Get credential status
+router.post("/refresh-credentials", requireAdminAuth, refreshAWSCredentials); // POST /api/media/refresh-credentials - Manually refresh credentials
+
+// AWS SSO management
+router.post("/initialize-sso", requireAdminAuth, initializeSSO); // POST /api/media/initialize-sso - Initialize SSO session
+router.post("/complete-sso", requireAdminAuth, completeSSOAuthorization); // POST /api/media/complete-sso - Complete SSO authorization
+
 router.get("/debug-version", (req, res) => res.json({ version: "2.0", timestamp: new Date().toISOString() })); // Debug endpoint
 
 export default router;

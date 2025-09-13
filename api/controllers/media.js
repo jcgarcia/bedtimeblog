@@ -24,6 +24,16 @@ export async function getS3Client(config) {
     });
   } catch (error) {
     console.error('❌ Failed to get S3 client:', error.message);
+    
+    // Provide more specific error messages
+    if (error.message.includes('Identity Center credentials have expired')) {
+      throw new Error('Identity Center credentials have expired (12-hour limit). Please refresh credentials in Operations Panel > Media Management > Refresh Credentials button.');
+    } else if (error.message.includes('No AWS configuration found')) {
+      throw new Error('AWS configuration not found. Please configure AWS S3 settings in Operations Panel.');
+    } else if (error.message.includes('No Identity Center bootstrap credentials')) {
+      throw new Error('Identity Center credentials not configured. Please add Access Key, Secret Key, and Session Token in Operations Panel.');
+    }
+    
     throw new Error(`S3 client configuration failed: ${error.message}`);
   }
 }
@@ -864,7 +874,7 @@ export const createMediaFolder = async (req, res) => {
 // AWS Credential Management endpoints
 export const getAWSCredentialStatus = async (req, res) => {
   try {
-    const status = credentialManager.getStatus();
+    const status = await credentialManager.getStatus();
     res.json({
       success: true,
       status: {
@@ -893,6 +903,58 @@ export const refreshAWSCredentials = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: `Failed to refresh credentials: ${error.message}` 
+    });
+  }
+};
+
+// SSO Management endpoints
+export const initializeSSO = async (req, res) => {
+  try {
+    const { startUrl, region, accountId, roleName } = req.body;
+    
+    if (!startUrl || !region || !accountId || !roleName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required SSO configuration: startUrl, region, accountId, roleName'
+      });
+    }
+    
+    const result = await credentialManager.initializeSSOSession({
+      startUrl,
+      region,
+      accountId,
+      roleName
+    });
+    
+    res.json({
+      success: true,
+      message: 'SSO session initialized successfully',
+      ...result
+    });
+    
+  } catch (error) {
+    console.error('Error initializing SSO:', error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to initialize SSO: ${error.message}`
+    });
+  }
+};
+
+export const completeSSOAuthorization = async (req, res) => {
+  try {
+    await credentialManager.completeSSOAuthorization();
+    
+    res.json({
+      success: true,
+      message: 'SSO authorization completed successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error completing SSO authorization:', error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to complete SSO authorization: ${error.message}`
     });
   }
 };

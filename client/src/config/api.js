@@ -82,6 +82,10 @@ export const API_ENDPOINTS = {
     DELETE: (id) => `${API_URL}/api/media/files/${id}`,
     TEST_AWS_CONNECTION: `${API_URL}/api/media/test-aws-connection`,
     SYNC_S3: `${API_URL}/api/media/sync-s3`,
+    CREDENTIAL_STATUS: `${API_URL}/api/media/credential-status`,
+    REFRESH_CREDENTIALS: `${API_URL}/api/media/refresh-credentials`,
+    INITIALIZE_SSO: `${API_URL}/api/media/initialize-sso`,
+    COMPLETE_SSO: `${API_URL}/api/media/complete-sso`,
   },
 };
 
