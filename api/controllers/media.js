@@ -313,32 +313,74 @@ export const uploadToS3 = async (req, res) => {
         const s3Result = await s3.send(uploadCommand);
         // For private buckets, we don't store a public URL - we'll generate signed URLs on demand
         const privateUrl = 'PRIVATE_BUCKET'; // Placeholder for private bucket - use signed URLs instead
-        // Save to database
-        const dbQuery = `
-          INSERT INTO media (
-            filename, original_name, file_type, file_size, s3_key, s3_bucket, 
-            public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, thumbnail_key
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-          RETURNING *
-        `;
-        const values = [
-          path.basename(s3Key),
-          file.originalname,
-          path.extname(file.originalname).toLowerCase().replace('.', ''),
-          file.size,
-          s3Key,
-          BUCKET_NAME,
-          privateUrl,
-          userId,
-          folderPath,
-          tags,
-          altText,
-          file.mimetype,
-          width,
-          height,
-          thumbnailS3Key
-        ];
-        const result = await pool.query(dbQuery, values);
+        
+        // Save to database - handle thumbnail_key column gracefully  
+        let result;
+        
+        try {
+          // First try with thumbnail_key column (newer schema)
+          const dbQuery = `
+            INSERT INTO media (
+              filename, original_name, file_type, file_size, s3_key, s3_bucket, 
+              public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, thumbnail_key
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            RETURNING *
+          `;
+          const values = [
+            path.basename(s3Key),
+            file.originalname,
+            path.extname(file.originalname).toLowerCase().replace('.', ''),
+            file.size,
+            s3Key,
+            BUCKET_NAME,
+            privateUrl,
+            userId,
+            folderPath,
+            tags,
+            altText,
+            file.mimetype,
+            width,
+            height,
+            thumbnailS3Key
+          ];
+          
+          result = await pool.query(dbQuery, values);
+          
+        } catch (schemaError) {
+          // If thumbnail_key column doesn't exist, fallback to older schema
+          if (schemaError.code === '42703') { // Column does not exist error
+            console.log('📝 Using legacy database schema without thumbnail_key column');
+            const fallbackQuery = `
+              INSERT INTO media (
+                filename, original_name, file_type, file_size, s3_key, s3_bucket, 
+                public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+              RETURNING *
+            `;
+            const fallbackValues = [
+              path.basename(s3Key),
+              file.originalname,
+              path.extname(file.originalname).toLowerCase().replace('.', ''),
+              file.size,
+              s3Key,
+              BUCKET_NAME,
+              privateUrl,
+              userId,
+              folderPath,
+              tags,
+              altText,
+              file.mimetype,
+              width,
+              height
+            ];
+            
+            result = await pool.query(fallbackQuery, fallbackValues);
+          } else {
+            // Re-throw other database errors
+            throw schemaError;
+          }
+        }
+        
         const mediaRecord = result.rows[0];
         res.status(201).json({ success: true, message: 'File uploaded successfully', media: mediaRecord });
       } catch (uploadError) {
