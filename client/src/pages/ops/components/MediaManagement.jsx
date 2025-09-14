@@ -788,7 +788,7 @@ export default function MediaManagement() {
                       </p>
                     </div>
 
-                    <div className="media-actions">
+                    <div className="media-item-actions">
                       <button 
                         className="btn-icon"
                         onClick={() => window.open(file.public_url || file.signed_url, '_blank')}
