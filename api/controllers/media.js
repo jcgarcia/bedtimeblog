@@ -374,13 +374,13 @@ export const uploadToS3 = async (req, res) => {
         let result;
         
         try {
-          // First try with thumbnail_key column (newer schema)
+          // Insert into database with correct thumbnail columns
           const dbQuery = `
             INSERT INTO media (
               filename, original_name, file_type, file_size, s3_key, s3_bucket, 
               public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, 
-              thumbnail_key, thumbnail_path, thumbnail_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+              thumbnail_path, thumbnail_url
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
           `;
           const values = [
@@ -399,45 +399,14 @@ export const uploadToS3 = async (req, res) => {
             width,
             height,
             finalThumbnailS3Key,
-            pdfThumbnailPath,
-            finalThumbnailS3Key ? `${CDN_URL}/${finalThumbnailS3Key}` : null
+            finalThumbnailS3Key ? 'PRIVATE_BUCKET' : null
           ];
           
           result = await pool.query(dbQuery, values);
           
-        } catch (schemaError) {
-          // If thumbnail_key column doesn't exist, fallback to older schema
-          if (schemaError.code === '42703') { // Column does not exist error
-            console.log('📝 Using legacy database schema without thumbnail_key column');
-            const fallbackQuery = `
-              INSERT INTO media (
-                filename, original_name, file_type, file_size, s3_key, s3_bucket, 
-                public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-              RETURNING *
-            `;
-            const fallbackValues = [
-              path.basename(s3Key),
-              file.originalname,
-              path.extname(file.originalname).toLowerCase().replace('.', ''),
-              file.size,
-              s3Key,
-              BUCKET_NAME,
-              privateUrl,
-              userId,
-              folderPath,
-              tags,
-              altText,
-              file.mimetype,
-              width,
-              height
-            ];
-            
-            result = await pool.query(fallbackQuery, fallbackValues);
-          } else {
-            // Re-throw other database errors
-            throw schemaError;
-          }
+        } catch (dbError) {
+          // Re-throw database errors
+          throw dbError;
         }
         
         const mediaRecord = result.rows[0];
@@ -693,11 +662,11 @@ export const getMediaFiles = async (req, res) => {
             
             // Generate thumbnail URL if thumbnail exists
             let thumbnailUrl = null;
-            if (media.thumbnail_key) {
+            if (media.thumbnail_path) {
               try {
-                thumbnailUrl = await generateSignedUrl(media.thumbnail_key, media.s3_bucket);
+                thumbnailUrl = await generateSignedUrl(media.thumbnail_path, media.s3_bucket);
               } catch (thumbError) {
-                console.warn(`Could not generate thumbnail URL for ${media.thumbnail_key}:`, thumbError.message);
+                console.warn(`Could not generate thumbnail URL for ${media.thumbnail_path}:`, thumbError.message);
               }
             }
             
@@ -890,14 +859,14 @@ export const deleteMediaFile = async (req, res) => {
           console.log(`✅ Deleted file from S3: ${mediaFile.s3_key}`);
           
           // Also delete thumbnail if it exists
-          if (mediaFile.thumbnail_key) {
+          if (mediaFile.thumbnail_path) {
             try {
               const thumbnailDeleteCommand = new DeleteObjectCommand({
                 Bucket: bucketName,
-                Key: mediaFile.thumbnail_key
+                Key: mediaFile.thumbnail_path
               });
               await s3Client.send(thumbnailDeleteCommand);
-              console.log(`✅ Deleted thumbnail from S3: ${mediaFile.thumbnail_key}`);
+              console.log(`✅ Deleted thumbnail from S3: ${mediaFile.thumbnail_path}`);
             } catch (thumbnailError) {
               console.error('❌ Error deleting thumbnail from S3:', thumbnailError);
               // Continue even if thumbnail deletion fails
