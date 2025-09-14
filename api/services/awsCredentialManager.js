@@ -103,16 +103,69 @@ class AWSCredentialManager {
           throw new Error('No valid credentials in database. Please update in Operations Panel.');
         }
 
-        const credentials = {
-          accessKeyId: latestConfig.accessKey,
-          secretAccessKey: latestConfig.secretKey,
-          ...(latestConfig.sessionToken && { sessionToken: latestConfig.sessionToken }),
-          // AWS SDK expects an expiration date for automatic refresh
-          expiration: new Date(Date.now() + (11 * 60 * 60 * 1000)) // 11 hours from now
-        };
-
-        console.log('✅ AWS SDK credential refresh completed');
-        return credentials;
+        // If we have role assumption configured, use STS to get new credentials
+        if (latestConfig.roleArn && latestConfig.externalId) {
+          console.log('🎭 Refreshing credentials via role assumption...');
+          
+          const { STSClient, AssumeRoleCommand } = await import('@aws-sdk/client-sts');
+          
+          const stsClient = new STSClient({
+            region: latestConfig.region || 'eu-west-2',
+            credentials: {
+              accessKeyId: latestConfig.accessKey,
+              secretAccessKey: latestConfig.secretKey,
+              ...(latestConfig.sessionToken && { sessionToken: latestConfig.sessionToken })
+            }
+          });
+          
+          const assumeRoleCommand = new AssumeRoleCommand({
+            RoleArn: latestConfig.roleArn,
+            RoleSessionName: 'BedtimeBlog-AutoRefresh',
+            DurationSeconds: 3600, // 1 hour
+            ExternalId: latestConfig.externalId
+          });
+          
+          const assumeRoleResponse = await stsClient.send(assumeRoleCommand);
+          
+          const newCredentials = {
+            accessKeyId: assumeRoleResponse.Credentials.AccessKeyId,
+            secretAccessKey: assumeRoleResponse.Credentials.SecretAccessKey,
+            sessionToken: assumeRoleResponse.Credentials.SessionToken,
+            expiration: assumeRoleResponse.Credentials.Expiration
+          };
+          
+          // Update database with new credentials
+          await this.updateCredentialsInDatabase({
+            ...latestConfig,
+            accessKey: newCredentials.accessKeyId,
+            secretKey: newCredentials.secretAccessKey,
+            sessionToken: newCredentials.sessionToken,
+            lastRefresh: new Date().toISOString(),
+            expiresAt: newCredentials.expiration.toISOString()
+          });
+          
+          console.log('✅ AWS SDK credential refresh completed and database updated');
+          return newCredentials;
+          
+        } else {
+          // For direct credentials, return as-is but update last refresh time
+          const credentials = {
+            accessKeyId: latestConfig.accessKey,
+            secretAccessKey: latestConfig.secretKey,
+            ...(latestConfig.sessionToken && { sessionToken: latestConfig.sessionToken }),
+            // AWS SDK expects an expiration date for automatic refresh
+            expiration: new Date(Date.now() + (11 * 60 * 60 * 1000)) // 11 hours from now
+          };
+          
+          // Update last refresh time in database
+          await this.updateCredentialsInDatabase({
+            ...latestConfig,
+            lastRefresh: new Date().toISOString()
+          });
+          
+          console.log('✅ AWS SDK credential refresh completed');
+          return credentials;
+        }
 
       } catch (error) {
         console.error('❌ AWS SDK credential refresh failed:', error.message);
@@ -319,6 +372,27 @@ class AWSCredentialManager {
       
     } catch (error) {
       console.error('❌ Failed to update configuration:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Update credentials in database (for automatic refresh)
+   */
+  async updateCredentialsInDatabase(updatedConfig) {
+    try {
+      const pool = getDbPool();
+      
+      // Store updated configuration with new credentials
+      await pool.query(
+        "INSERT INTO settings (key, value, type) VALUES ($1, $2, $3) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        ['aws_config', JSON.stringify(updatedConfig), 'json']
+      );
+      
+      console.log('✅ AWS credentials updated in database');
+      
+    } catch (error) {
+      console.error('❌ Failed to update credentials in database:', error.message);
       throw error;
     }
   }
