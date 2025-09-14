@@ -1,4 +1,13 @@
-/* Media Management Component Styles */
+/* ⚠️  WARNING: SOME STYLES MAY BE OVERRIDDEN BY /pages/ops/ops.css ⚠️ 
+ * 
+ * The main media-management styles are defined in /pages/ops/ops.css
+ * This file may contain duplicate or conflicting styles.
+ * Always check ops.css for media-management layout issues.
+ * 
+ * TODO: Consolidate media-management styles into a single file.
+ */
+
+/* Media Management Styles */
 
 .media-management {
   max-width: 100%;

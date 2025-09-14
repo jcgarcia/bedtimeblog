@@ -1634,16 +1634,24 @@
 
 .media-management .section-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
   margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 2px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 100;
 }
 
 .media-actions {
   display: flex;
   gap: 10px;
+  position: relative;
+  z-index: 200;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 /* Media Controls */
