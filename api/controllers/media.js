@@ -889,63 +889,6 @@ export const moveMediaFile = async (req, res) => {
     });
   }
 };
-        settings[row.key] = row.value;
-      }
-    });
-    
-    const storageType = settings.media_storage_type || 'oci';
-    let s3, BUCKET_NAME;
-    
-    if (storageType === 'aws' && settings.aws_config && settings.aws_config.roleArn) {
-      // Use IAM Role with STS for AWS
-      s3 = await getS3Client(settings.aws_config);
-      BUCKET_NAME = settings.aws_config.bucketName;
-    } else if (storageType === 'aws' && settings.aws_config && settings.aws_config.accessKey) {
-      // Fallback: Use static keys if role not set
-      s3 = new S3Client({
-        credentials: {
-          accessKeyId: settings.aws_config.accessKey,
-          secretAccessKey: settings.aws_config.secretKey,
-        },
-        region: settings.aws_config.region,
-        endpoint: settings.aws_config.endpoint || undefined,
-        forcePathStyle: true
-      });
-      BUCKET_NAME = settings.aws_config.bucketName;
-    } else if (settings.oci_config && settings.oci_config.bucket) {
-      // OCI or other provider
-      s3 = new S3Client({
-        credentials: {
-          accessKeyId: settings.oci_config.accessKey,
-          secretAccessKey: settings.oci_config.secretKey,
-        },
-        region: settings.oci_config.region,
-        endpoint: settings.oci_config.endpoint || undefined,
-        forcePathStyle: true
-      });
-      BUCKET_NAME = settings.oci_config.bucket;
-    } else {
-      console.error('No valid storage configuration found for file deletion');
-      // Don't fail deletion if cloud storage isn't configured
-      // Just delete from database
-    }
-
-    // Delete from S3/OCI
-    if (s3 && BUCKET_NAME) {
-      try {
-        const deleteCommand = new DeleteObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: mediaFile.s3_key
-        });
-        await s3.send(deleteCommand);
-        console.log(`Successfully deleted file from cloud storage: ${mediaFile.s3_key}`);
-      } catch (s3Error) {
-        console.error('S3/OCI delete error:', s3Error);
-        // Continue with database deletion even if S3 delete fails
-      }
-    } else {
-      console.log('No cloud storage configured, skipping cloud file deletion');
-    }
 
     // Delete from database
     const deleteQuery = 'DELETE FROM media WHERE id = $1';
