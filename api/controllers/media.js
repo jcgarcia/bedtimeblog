@@ -50,22 +50,6 @@ async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     throw error;
   }
 }
-    
-    const awsConfig = JSON.parse(settingsRes.rows[0].value);
-    const s3Client = await getS3Client(awsConfig);
-    
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: s3Key,
-    });
-    
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
-    return signedUrl;
-  } catch (error) {
-    console.error('Error generating signed URL:', error);
-    throw error;
-  }
-}
 
 // Configure multer for file uploads
 const upload = multer({
