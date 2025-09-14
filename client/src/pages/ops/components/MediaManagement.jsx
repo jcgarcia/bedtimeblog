@@ -489,6 +489,7 @@ export default function MediaManagement() {
       if (response.ok) {
         setShowMoveModal(null);
         await fetchMediaFiles();
+        await fetchFolders(); // Refresh folder counts
         alert('File moved successfully!');
       } else {
         const error = await response.text();
