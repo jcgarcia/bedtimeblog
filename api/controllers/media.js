@@ -765,6 +765,81 @@ export const updateMediaFile = async (req, res) => {
 
 // Delete media file
 export const deleteMediaFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getDbPool();
+    
+    // Get media file info first
+    const getQuery = 'SELECT * FROM media WHERE id = $1';
+    const getResult = await pool.query(getQuery, [id]);
+    
+    if (getResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Media file not found'
+      });
+    }
+
+    const mediaFile = getResult.rows[0];
+
+    // Get storage settings from DB to initialize S3 client
+    const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'oci_config', 'aws_config')");
+    const settings = {};
+    settingsRes.rows.forEach(row => {
+      if (row.type === 'json') {
+        try { 
+          settings[row.key] = JSON.parse(row.value); 
+        } catch (e) { 
+          console.error(`Error parsing JSON setting ${row.key}:`, e);
+          settings[row.key] = {}; 
+        }
+      } else {
+        settings[row.key] = row.value;
+      }
+    });
+
+    // Delete from S3/OCI if key exists
+    if (mediaFile.s3_key) {
+      try {
+        const s3Client = await getS3Client(settings);
+        
+        // Get bucket name from settings
+        const bucketName = settings.oci_config?.bucket_name || settings.aws_config?.bucket_name;
+        if (!bucketName) {
+          console.warn('No bucket name found in settings, skipping S3 deletion');
+        } else {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: bucketName,
+            Key: mediaFile.s3_key
+          });
+          
+          await s3Client.send(deleteCommand);
+          console.log(`✅ Deleted file from S3: ${mediaFile.s3_key}`);
+        }
+      } catch (s3Error) {
+        console.error('❌ Error deleting from S3:', s3Error);
+        // Continue with database deletion even if S3 deletion fails
+      }
+    }
+
+    // Delete from database
+    const deleteQuery = 'DELETE FROM media WHERE id = $1 RETURNING *';
+    const deleteResult = await pool.query(deleteQuery, [id]);
+
+    res.json({
+      success: true,
+      message: 'Media file deleted successfully',
+      deletedFile: deleteResult.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Delete media file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete media file'
+    });
+  }
+};
 
 // Move media file to different folder
 export const moveMediaFile = async (req, res) => {
