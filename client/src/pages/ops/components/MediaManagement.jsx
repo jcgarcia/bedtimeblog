@@ -13,6 +13,7 @@ export default function MediaManagement() {
   const [filterType, setFilterType] = useState('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(null); // Contains file object when moving
   const [newFolderName, setNewFolderName] = useState('');
   const [pagination, setPagination] = useState({
     page: 1,
@@ -382,7 +383,7 @@ export default function MediaManagement() {
       console.log('Uploading file:', file.name, 'size:', file.size);
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('folderPath', currentFolder);
+      // Let backend auto-categorize based on file type instead of forcing current folder
 
       try {
         const response = await fetch(API_ENDPOINTS.MEDIA.UPLOAD, {
@@ -471,6 +472,31 @@ export default function MediaManagement() {
       }
     } catch (error) {
       console.error('Error deleting file:', error);
+    }
+  };
+
+  const handleMoveFile = async (fileId, targetFolder) => {
+    try {
+      const response = await fetch(`${API_ENDPOINTS.MEDIA.FILES}/${fileId}/move`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({ targetFolder }),
+      });
+
+      if (response.ok) {
+        setShowMoveModal(null);
+        await fetchMediaFiles();
+        alert('File moved successfully!');
+      } else {
+        const error = await response.text();
+        alert(`Error moving file: ${error}`);
+      }
+    } catch (error) {
+      console.error('Error moving file:', error);
+      alert('Error moving file. Please try again.');
     }
   };
 
@@ -802,6 +828,13 @@ export default function MediaManagement() {
                         title="Copy URL"
                       >
                         <i className="fa-solid fa-copy"></i>
+                      </button>
+                      <button 
+                        className="btn-icon"
+                        onClick={() => setShowMoveModal(file)}
+                        title="Move to different folder"
+                      >
+                        <i className="fa-solid fa-folder-arrow-up"></i>
                       </button>
                       <button 
                         className="btn-icon delete"
@@ -1342,6 +1375,51 @@ export default function MediaManagement() {
                   disabled={!newFolderName.trim()}
                 >
                   Create Folder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move File Modal */}
+      {showMoveModal && (
+        <div className="modal-overlay" onClick={() => setShowMoveModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Move File</h3>
+              <button onClick={() => setShowMoveModal(null)}>
+                <i className="fa-solid fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Move <strong>{showMoveModal.filename}</strong> to:</p>
+              <select 
+                className="folder-select"
+                onChange={(e) => {
+                  if (e.target.value && confirm(`Move ${showMoveModal.filename} to ${e.target.value}?`)) {
+                    handleMoveFile(showMoveModal.id, e.target.value);
+                  }
+                }}
+                defaultValue=""
+              >
+                <option value="">Select destination folder...</option>
+                {folders.map(folder => (
+                  <option 
+                    key={folder.name} 
+                    value={folder.name}
+                    disabled={folder.name === currentFolder}
+                  >
+                    {folder.name === '' ? 'Root' : folder.name}
+                  </option>
+                ))}
+              </select>
+              <div className="modal-actions">
+                <button 
+                  className="btn-secondary"
+                  onClick={() => setShowMoveModal(null)}
+                >
+                  Cancel
                 </button>
               </div>
             </div>

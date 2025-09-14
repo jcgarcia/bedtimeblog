@@ -1499,7 +1499,7 @@ function MediaManagement() {
     const uploadPromises = Array.from(files).map(async (file) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('folderPath', currentFolder);
+      // Let backend auto-categorize based on file type instead of forcing current folder
 
       try {
         const response = await fetch(`${API_ENDPOINTS.BASE_URL}/api/media/upload`, {

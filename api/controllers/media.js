@@ -765,6 +765,55 @@ export const updateMediaFile = async (req, res) => {
 
 // Delete media file
 export const deleteMediaFile = async (req, res) => {
+
+// Move media file to different folder
+export const moveMediaFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { targetFolder } = req.body;
+    
+    const pool = getDbPool();
+    
+    // First, check if the file exists
+    const fileCheck = await pool.query('SELECT * FROM media WHERE id = $1', [id]);
+    if (fileCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Media file not found'
+      });
+    }
+    
+    const file = fileCheck.rows[0];
+    const oldPath = file.folder_path || 'root';
+    
+    // Update the folder_path in database
+    const query = `
+      UPDATE media 
+      SET folder_path = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING *
+    `;
+    
+    // Empty string or null means root folder
+    const folderPath = targetFolder === 'root' || targetFolder === '' ? null : targetFolder;
+    const result = await pool.query(query, [folderPath, id]);
+    
+    console.log(`📁 Moved file "${file.filename}" from "${oldPath}" to "${targetFolder || 'root'}"`);
+    
+    res.json({
+      success: true,
+      message: `File moved successfully from ${oldPath} to ${targetFolder || 'root'}`,
+      media: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Move media file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to move media file'
+    });
+  }
+};
   try {
     const { id } = req.params;
     const pool = getDbPool();

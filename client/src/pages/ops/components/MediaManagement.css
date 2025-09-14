@@ -1409,3 +1409,25 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Move File Modal Styles */
+.media-management .folder-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  font-size: 1rem;
+  margin: 1rem 0;
+}
+
+.media-management .folder-select:focus {
+  outline: none;
+  border-color: #eb0bba;
+  box-shadow: 0 0 0 2px rgba(235, 11, 186, 0.1);
+}
+
+.media-management .folder-select option:disabled {
+  color: #999;
+  font-style: italic;
+}
