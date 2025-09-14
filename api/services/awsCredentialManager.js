@@ -1,14 +1,10 @@
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { SSOClient, GetRoleCredentialsCommand } from '@aws-sdk/client-sso';
 import { SSOOIDCClient, CreateTokenCommand, StartDeviceAuthorizationCommand } from '@aws-sdk/client-sso-oidc';
-import { fromSSO } from '@aws-sdk/credential-providers';
-import { getDbPool } from '../db.js';
-import crypto from 'crypto';
-
-import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { S3Client } from '@aws-sdk/client-s3';
 import { fromSSO, fromWebToken, fromTemporaryCredentials } from '@aws-sdk/credential-providers';
 import { getDbPool } from '../db.js';
+import crypto from 'crypto';
 
 class AWSCredentialManager {
   constructor() {
