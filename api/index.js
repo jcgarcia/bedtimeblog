@@ -171,17 +171,23 @@ const server = app.listen(PORT, async () => {
   // Initialize AWS credential manager for automatic refresh
   try {
     console.log('🔄 Initializing AWS credential manager...');
-    const status = credentialManager.getStatus();
+    const status = await credentialManager.getStatus();
     if (!status.hasCachedCredentials) {
       console.log('🔄 No cached credentials found, performing initial refresh...');
       await credentialManager.getCredentials();
       console.log('✅ AWS credential manager initialized successfully');
     } else {
       console.log('✅ AWS credential manager already has cached credentials');
+      console.log(`⏰ Credentials expire in ${status.timeUntilExpiryMinutes || 'unknown'} minutes`);
     }
+    
+    // Background monitoring is automatically started in constructor
+    console.log('🔍 Background credential monitoring is active');
+    
   } catch (error) {
     console.warn('⚠️ AWS credential manager initialization failed:', error.message);
     console.warn('⚠️ Media uploads may not work until credentials are manually configured');
+    console.warn('🔍 Background monitoring will continue to attempt automatic recovery');
   }
 });
 

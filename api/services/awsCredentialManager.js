@@ -10,8 +10,11 @@ class AWSCredentialManager {
     this.cachedCredentials = null;
     this.credentialExpiry = null;
     this.refreshTimer = null;
+    this.monitoringTimer = null;
     this.isRefreshing = false;
     this.ssoCredentialProvider = null;
+    this.retryAttempts = 0;
+    this.maxRetryAttempts = 5;
     this.ssoConfig = {
       ssoStartUrl: 'https://ingasti.awsapps.com/start/#',
       ssoRegion: 'eu-west-2',
@@ -19,6 +22,9 @@ class AWSCredentialManager {
       ssoAccountId: null,
       ssoRoleName: null
     };
+    
+    // Start background monitoring immediately
+    this.startBackgroundMonitoring();
   }
 
   /**
@@ -526,7 +532,7 @@ class AWSCredentialManager {
   }
 
   /**
-   * Schedule automatic credential refresh
+   * Schedule automatic credential refresh with enhanced monitoring
    */
   scheduleCredentialRefresh() {
     // Clear existing timer
@@ -534,30 +540,121 @@ class AWSCredentialManager {
       clearTimeout(this.refreshTimer);
     }
 
-    // Calculate refresh interval based on expiry time
-    const timeUntilExpiry = this.credentialExpiry - Date.now();
-    const refreshBuffer = 5 * 60 * 1000; // 5 minutes before expiry
-    const refreshInterval = Math.max(timeUntilExpiry - refreshBuffer, 60000); // At least 1 minute
+    // For Identity Center credentials (12-hour expiry), refresh every 10 hours
+    // For role credentials (1-hour expiry), refresh every 55 minutes
+    let refreshInterval;
+    let refreshBuffer;
+    
+    if (this.credentialExpiry) {
+      const timeUntilExpiry = this.credentialExpiry - Date.now();
+      refreshBuffer = 5 * 60 * 1000; // 5 minutes before expiry
+      refreshInterval = Math.max(timeUntilExpiry - refreshBuffer, 60000); // At least 1 minute
+    } else {
+      // Default to Identity Center refresh cycle (10 hours for 12-hour tokens)
+      refreshInterval = 10 * 60 * 60 * 1000; // 10 hours
+      refreshBuffer = 2 * 60 * 60 * 1000; // 2 hour buffer
+    }
     
     this.refreshTimer = setTimeout(async () => {
       try {
         console.log('⏰ Scheduled credential refresh triggered');
         await this.refreshCredentials();
+        console.log('✅ Scheduled credential refresh completed successfully');
       } catch (error) {
         console.error('❌ Scheduled credential refresh failed:', error.message);
         
         // If it's an Identity Center expiration, log helpful message
         if (error.message.includes('Identity Center credentials have expired')) {
           console.error('🔔 ACTION REQUIRED: Identity Center credentials need manual refresh in Operations Panel');
+          // Try to recover by checking for valid cached credentials
+          await this.attemptCredentialRecovery();
         }
         
-        // Retry in 5 minutes for other errors
-        setTimeout(() => this.scheduleCredentialRefresh(), 5 * 60 * 1000);
+        // Retry with exponential backoff
+        this.scheduleRetryRefresh();
       }
     }, refreshInterval);
 
     const refreshTime = new Date(Date.now() + refreshInterval);
     console.log(`⏰ Next credential refresh scheduled for: ${refreshTime.toISOString()}`);
+    console.log(`⏰ Refresh interval: ${Math.floor(refreshInterval / 1000 / 60)} minutes`);
+  }
+
+  /**
+   * Schedule retry refresh with exponential backoff
+   */
+  scheduleRetryRefresh(attempt = 1) {
+    const maxAttempts = 5;
+    const baseDelay = 5 * 60 * 1000; // 5 minutes
+    const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), 60 * 60 * 1000); // Max 1 hour
+    
+    if (attempt > maxAttempts) {
+      console.error('🚨 Maximum credential refresh retry attempts reached. Manual intervention required.');
+      return;
+    }
+    
+    console.log(`⏰ Scheduling credential refresh retry #${attempt} in ${Math.floor(delay / 1000 / 60)} minutes`);
+    
+    setTimeout(async () => {
+      try {
+        await this.refreshCredentials();
+        console.log('✅ Retry credential refresh succeeded');
+      } catch (error) {
+        console.error(`❌ Retry credential refresh #${attempt} failed:`, error.message);
+        this.scheduleRetryRefresh(attempt + 1);
+      }
+    }, delay);
+  }
+
+  /**
+   * Attempt to recover from credential expiration
+   */
+  async attemptCredentialRecovery() {
+    try {
+      console.log('🔄 Attempting credential recovery...');
+      
+      // Try to get SSO configuration and see if we can refresh
+      const ssoConfig = await this.getStoredSSOConfig();
+      if (ssoConfig && this.ssoCredentialProvider) {
+        console.log('🔄 Attempting SSO credential recovery...');
+        try {
+          const credentials = await this.getCredentialsFromSSO();
+          console.log('✅ SSO credential recovery successful');
+          return credentials;
+        } catch (ssoError) {
+          console.warn('⚠️ SSO credential recovery failed:', ssoError.message);
+        }
+      }
+      
+      // Check if we have any fallback credentials
+      const config = await this.getStoredAWSConfig();
+      if (config && config.accessKey && config.secretKey) {
+        console.log('🔄 Checking if stored credentials are still valid...');
+        try {
+          // Test credentials by making a simple AWS call
+          const testCredentials = {
+            accessKeyId: config.accessKey,
+            secretAccessKey: config.secretKey,
+            ...(config.sessionToken && { sessionToken: config.sessionToken })
+          };
+          
+          // If we get here without error, credentials might still be valid
+          this.cachedCredentials = testCredentials;
+          this.credentialExpiry = Date.now() + (30 * 60 * 1000); // Give 30 minutes
+          console.log('✅ Credential recovery attempt with stored credentials');
+          return testCredentials;
+        } catch (testError) {
+          console.warn('⚠️ Stored credentials are no longer valid:', testError.message);
+        }
+      }
+      
+      console.error('❌ All credential recovery attempts failed');
+      return null;
+      
+    } catch (error) {
+      console.error('❌ Credential recovery process failed:', error.message);
+      return null;
+    }
   }
 
   /**
@@ -612,8 +709,117 @@ class AWSCredentialManager {
       nextRefreshScheduled: !!this.refreshTimer,
       lastRefreshTime: this.credentialExpiry ? new Date(this.credentialExpiry - (55 * 60 * 1000)) : null,
       sso: ssoStatus,
-      authMethod: ssoConfig ? 'SSO' : 'Manual'
+      authMethod: ssoConfig ? 'SSO' : 'Manual',
+      retryAttempts: this.retryAttempts,
+      maxRetryAttempts: this.maxRetryAttempts,
+      backgroundMonitoring: !!this.monitoringTimer
     };
+  }
+
+  /**
+   * Start background monitoring system for proactive credential management
+   */
+  startBackgroundMonitoring() {
+    // Clear existing monitoring timer
+    if (this.monitoringTimer) {
+      clearInterval(this.monitoringTimer);
+    }
+
+    console.log('🔍 Starting background credential monitoring system...');
+    
+    // Check every 30 minutes
+    const monitoringInterval = 30 * 60 * 1000; // 30 minutes
+    
+    this.monitoringTimer = setInterval(async () => {
+      try {
+        await this.performMonitoringCheck();
+      } catch (error) {
+        console.error('❌ Background monitoring error:', error.message);
+      }
+    }, monitoringInterval);
+    
+    // Perform initial check after 1 minute
+    setTimeout(async () => {
+      try {
+        await this.performMonitoringCheck();
+      } catch (error) {
+        console.error('❌ Initial monitoring check error:', error.message);
+      }
+    }, 60000);
+    
+    console.log('✅ Background credential monitoring started (checks every 30 minutes)');
+  }
+
+  /**
+   * Perform a monitoring check of credential status
+   */
+  async performMonitoringCheck() {
+    const status = await this.getStatus();
+    const now = Date.now();
+    
+    console.log(`🔍 Background monitoring check: ${new Date().toISOString()}`);
+    console.log(`📊 Credential status: ${status.hasCachedCredentials ? 'CACHED' : 'NONE'}`);
+    
+    if (status.timeUntilExpiry) {
+      const hoursUntilExpiry = Math.floor(status.timeUntilExpiry / (60 * 60 * 1000));
+      const minutesUntilExpiry = Math.floor((status.timeUntilExpiry % (60 * 60 * 1000)) / (60 * 1000));
+      console.log(`⏰ Time until expiry: ${hoursUntilExpiry}h ${minutesUntilExpiry}m`);
+      
+      // If credentials expire within 2 hours, trigger proactive refresh
+      if (status.timeUntilExpiry <= (2 * 60 * 60 * 1000) && !this.isRefreshing) {
+        console.log('🚨 Credentials expiring within 2 hours - triggering proactive refresh');
+        try {
+          await this.refreshCredentials();
+          this.retryAttempts = 0; // Reset retry counter on success
+          console.log('✅ Proactive credential refresh completed successfully');
+        } catch (error) {
+          console.error('❌ Proactive credential refresh failed:', error.message);
+          this.retryAttempts++;
+          
+          // If we've failed too many times, try recovery
+          if (this.retryAttempts >= this.maxRetryAttempts) {
+            console.log('🔄 Max retry attempts reached, attempting credential recovery...');
+            await this.attemptCredentialRecovery();
+          }
+        }
+      }
+      
+      // If credentials expire within 30 minutes, try emergency refresh
+      else if (status.timeUntilExpiry <= (30 * 60 * 1000) && !this.isRefreshing) {
+        console.log('🚨 EMERGENCY: Credentials expiring within 30 minutes - emergency refresh');
+        try {
+          await this.forceRefresh();
+          console.log('✅ Emergency credential refresh completed');
+        } catch (error) {
+          console.error('❌ Emergency credential refresh failed:', error.message);
+          await this.attemptCredentialRecovery();
+        }
+      }
+    } else if (!status.hasCachedCredentials) {
+      console.log('⚠️ No cached credentials found - attempting to initialize');
+      try {
+        await this.getCredentials();
+        console.log('✅ Credential initialization completed');
+      } catch (error) {
+        console.error('❌ Credential initialization failed:', error.message);
+      }
+    }
+    
+    // Log overall system health
+    if (status.hasCachedCredentials && status.timeUntilExpiry > (60 * 60 * 1000)) {
+      console.log('💚 Credential system healthy - no action needed');
+    }
+  }
+
+  /**
+   * Stop background monitoring (for cleanup)
+   */
+  stopBackgroundMonitoring() {
+    if (this.monitoringTimer) {
+      clearInterval(this.monitoringTimer);
+      this.monitoringTimer = null;
+      console.log('🛑 Background credential monitoring stopped');
+    }
   }
 }
 

@@ -961,14 +961,23 @@ export const createMediaFolder = async (req, res) => {
 export const getAWSCredentialStatus = async (req, res) => {
   try {
     const status = await credentialManager.getStatus();
+    
+    // Add helpful status indicators
+    const enhancedStatus = {
+      ...status,
+      statusLevel: getStatusLevel(status),
+      statusMessage: getStatusMessage(status),
+      actionRequired: getActionRequired(status),
+      nextCheck: status.backgroundMonitoring ? 'Every 30 minutes' : 'Not scheduled',
+      recommendations: getRecommendations(status),
+      timeUntilExpiryHuman: status.timeUntilExpiry 
+        ? `${Math.floor(status.timeUntilExpiry / 60000)} minutes`
+        : 'N/A'
+    };
+    
     res.json({
       success: true,
-      status: {
-        ...status,
-        timeUntilExpiryHuman: status.timeUntilExpiry 
-          ? `${Math.floor(status.timeUntilExpiry / 60000)} minutes`
-          : 'N/A'
-      }
+      status: enhancedStatus
     });
   } catch (error) {
     console.error('Error getting credential status:', error);
@@ -1342,3 +1351,72 @@ export const testAwsConnection = async (req, res) => {
     });
   }
 };
+
+// Helper functions for enhanced credential status
+function getStatusLevel(status) {
+  if (!status.hasCachedCredentials) return 'CRITICAL';
+  if (status.isExpired) return 'CRITICAL';
+  if (status.timeUntilExpiry && status.timeUntilExpiry <= (30 * 60 * 1000)) return 'EMERGENCY';
+  if (status.timeUntilExpiry && status.timeUntilExpiry <= (2 * 60 * 60 * 1000)) return 'WARNING';
+  if (status.retryAttempts > 0) return 'WARNING';
+  return 'HEALTHY';
+}
+
+function getStatusMessage(status) {
+  const level = getStatusLevel(status);
+  switch (level) {
+    case 'CRITICAL':
+      return status.hasCachedCredentials ? 'Credentials have expired' : 'No credentials available';
+    case 'EMERGENCY':
+      return `Credentials expire in ${status.timeUntilExpiryMinutes} minutes`;
+    case 'WARNING':
+      return status.retryAttempts > 0 
+        ? `${status.retryAttempts} failed refresh attempts` 
+        : `Credentials expire in ${Math.floor(status.timeUntilExpiry / (60 * 60 * 1000))} hours`;
+    case 'HEALTHY':
+      return `Credentials valid for ${Math.floor(status.timeUntilExpiry / (60 * 60 * 1000))} hours`;
+    default:
+      return 'Status unknown';
+  }
+}
+
+function getActionRequired(status) {
+  const level = getStatusLevel(status);
+  switch (level) {
+    case 'CRITICAL':
+    case 'EMERGENCY':
+      return 'IMMEDIATE_REFRESH_REQUIRED';
+    case 'WARNING':
+      return 'MONITOR_CLOSELY';
+    case 'HEALTHY':
+      return 'NONE';
+    default:
+      return 'CHECK_CONFIGURATION';
+  }
+}
+
+function getRecommendations(status) {
+  const recommendations = [];
+  
+  if (!status.hasCachedCredentials) {
+    recommendations.push('Configure AWS credentials in Operations Panel');
+  }
+  
+  if (status.isExpired || (status.timeUntilExpiry && status.timeUntilExpiry <= (30 * 60 * 1000))) {
+    recommendations.push('Click "Refresh Credentials" button immediately');
+  }
+  
+  if (status.retryAttempts >= status.maxRetryAttempts / 2) {
+    recommendations.push('Check AWS SSO session with: aws sso login');
+  }
+  
+  if (!status.sso.configured) {
+    recommendations.push('Consider configuring AWS SSO for better automation');
+  }
+  
+  if (!status.backgroundMonitoring) {
+    recommendations.push('Restart application to enable background monitoring');
+  }
+  
+  return recommendations;
+}
