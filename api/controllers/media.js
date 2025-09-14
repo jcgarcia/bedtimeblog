@@ -890,24 +890,6 @@ export const moveMediaFile = async (req, res) => {
   }
 };
 
-    // Delete from database
-    const deleteQuery = 'DELETE FROM media WHERE id = $1';
-    await pool.query(deleteQuery, [id]);
-
-    res.json({
-      success: true,
-      message: 'Media file deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Delete media file error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete media file'
-    });
-  }
-};
-
 // Get media folders
 export const getMediaFolders = async (req, res) => {
   try {
