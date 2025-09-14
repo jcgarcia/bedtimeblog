@@ -105,6 +105,12 @@
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 100; /* Ensure section header always stays on top */
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .media-management .section-header h2 {
@@ -464,7 +470,7 @@
   box-shadow: none;
   overflow: visible;
   position: relative;
-  z-index: 10; /* Ensure it stays above other content */
+  z-index: 200; /* Even higher z-index to ensure it stays above everything */
 }
 
 .media-management .section-header .media-actions button {
@@ -574,7 +580,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
-  margin: 2rem 0;
+  margin: 2rem 0 2rem 0; /* Ensure positive top margin */
+  position: relative;
+  z-index: 1; /* Lower z-index than header */
 }
 
 .media-management .media-item {
