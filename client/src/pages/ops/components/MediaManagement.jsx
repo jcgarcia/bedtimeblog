@@ -1407,11 +1407,11 @@ export default function MediaManagement() {
                 <option value="">Select destination folder...</option>
                 {folders.map(folder => (
                   <option 
-                    key={folder.name} 
-                    value={folder.name}
-                    disabled={folder.name === currentFolder}
+                    key={folder.path} 
+                    value={folder.path}
+                    disabled={folder.path === currentFolder}
                   >
-                    {folder.name === '' ? 'Root' : folder.name}
+                    {folder.path === '/' ? 'Root' : folder.name}
                   </option>
                 ))}
               </select>
