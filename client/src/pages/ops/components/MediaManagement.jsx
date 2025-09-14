@@ -75,6 +75,15 @@ export default function MediaManagement() {
     }
   }, [currentFolder, pagination.page, filterType, searchTerm, mediaServerType]);
 
+  // Additional useEffect to handle folder navigation state changes
+  useEffect(() => {
+    // Force component update when returning to root to ensure upload button visibility
+    if (currentFolder === '/' && activeSection === 'library') {
+      // Reset any stale state that might hide the upload button
+      setLoading(false);
+    }
+  }, [currentFolder, activeSection]);
+
   const loadMediaStorageConfig = async () => {
     try {
       const response = await fetch(API_ENDPOINTS.SETTINGS.MEDIA_STORAGE, {
@@ -579,7 +588,7 @@ export default function MediaManagement() {
 
       {/* Media Library Section */}
       {activeSection === 'library' && (
-        <div className="library-section">
+        <div className="library-section" key={`library-${currentFolder}-${mediaFiles.length}`}>
           <div className="section-header">
             <h2>Media Library</h2>
             <div className="media-actions">
@@ -668,13 +677,26 @@ export default function MediaManagement() {
                 {currentFolder !== '/' && (
                   <div 
                     className="folder-item back-button"
-                    onClick={() => {
+                    onClick={async () => {
                       setCurrentFolder('/');
-                      // Force refresh of folders and files
-                      setTimeout(() => {
-                        fetchFolders();
-                        fetchMediaFiles();
-                      }, 100);
+                      // Reset pagination to page 1 when going back to root
+                      setPagination(prev => ({ ...prev, page: 1 }));
+                      // Clear any search/filter state that might interfere
+                      setSearchTerm('');
+                      setFilterType('all');
+                      // Force immediate re-render by updating loading state
+                      setLoading(true);
+                      // Fetch data immediately - no timeout needed
+                      try {
+                        await Promise.all([
+                          fetchFolders(),
+                          fetchMediaFiles()
+                        ]);
+                      } catch (error) {
+                        console.error('Error refreshing media library:', error);
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
                   >
                     <i className="fa-solid fa-arrow-up"></i>
