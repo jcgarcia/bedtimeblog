@@ -14,24 +14,19 @@ export async function getS3Client(config) {
   try {
     console.log('🔑 Getting S3 client with automatic credential management');
     
-    // Get fresh credentials from the credential manager
-    const credentials = await credentialManager.getCredentials();
+    // Use the credential manager's S3 client (with automatic refresh)
+    return await credentialManager.getS3Client();
     
-    return new S3Client({
-      region: config.region,
-      credentials: credentials,
-      forcePathStyle: true
-    });
   } catch (error) {
     console.error('❌ Failed to get S3 client:', error.message);
     
     // Provide more specific error messages
-    if (error.message.includes('Identity Center credentials have expired')) {
+    if (error.message.includes('Identity Center credentials expired')) {
       throw new Error('Identity Center credentials have expired (12-hour limit). Please refresh credentials in Operations Panel > Media Management > Refresh Credentials button.');
     } else if (error.message.includes('No AWS configuration found')) {
       throw new Error('AWS configuration not found. Please configure AWS S3 settings in Operations Panel.');
-    } else if (error.message.includes('No Identity Center bootstrap credentials')) {
-      throw new Error('Identity Center credentials not configured. Please add Access Key, Secret Key, and Session Token in Operations Panel.');
+    } else if (error.message.includes('credentials expired')) {
+      throw new Error('AWS credentials have expired. Please refresh them in the Operations Panel.');
     }
     
     throw new Error(`S3 client configuration failed: ${error.message}`);
@@ -41,13 +36,20 @@ export async function getS3Client(config) {
 // Helper: Generate signed URL for private S3 objects
 async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
-    // Get AWS config from database
-    const pool = getDbPool();
-    const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+    // Use the credential manager's S3 client
+    const s3Client = await credentialManager.getS3Client();
     
-    if (settingsRes.rows.length === 0) {
-      throw new Error('AWS configuration not found');
-    }
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: s3Key
+    });
+    
+    return await getSignedUrl(s3Client, command, { expiresIn });
+  } catch (error) {
+    console.error('❌ Failed to generate signed URL:', error.message);
+    throw error;
+  }
+}
     
     const awsConfig = JSON.parse(settingsRes.rows[0].value);
     const s3Client = await getS3Client(awsConfig);
@@ -962,17 +964,27 @@ export const getAWSCredentialStatus = async (req, res) => {
   try {
     const status = await credentialManager.getStatus();
     
+    // Test credentials to ensure they're working
+    let credentialTest = null;
+    try {
+      credentialTest = await credentialManager.testCredentials();
+    } catch (testError) {
+      credentialTest = { success: false, error: testError.message };
+    }
+    
     // Add helpful status indicators
     const enhancedStatus = {
       ...status,
-      statusLevel: getStatusLevel(status),
-      statusMessage: getStatusMessage(status),
-      actionRequired: getActionRequired(status),
-      nextCheck: status.backgroundMonitoring ? 'Every 30 minutes' : 'Not scheduled',
-      recommendations: getRecommendations(status),
-      timeUntilExpiryHuman: status.timeUntilExpiry 
-        ? `${Math.floor(status.timeUntilExpiry / 60000)} minutes`
-        : 'N/A'
+      test: credentialTest,
+      statusLevel: getSDKStatusLevel(status, credentialTest),
+      statusMessage: getSDKStatusMessage(status, credentialTest),
+      actionRequired: getSDKActionRequired(status, credentialTest),
+      recommendations: getSDKRecommendations(status, credentialTest),
+      refreshInfo: {
+        automatic: true,
+        managedBy: 'AWS SDK',
+        refreshStrategy: status.authMethod || 'Unknown'
+      }
     };
     
     res.json({
@@ -988,10 +1000,15 @@ export const getAWSCredentialStatus = async (req, res) => {
 export const refreshAWSCredentials = async (req, res) => {
   try {
     console.log('🔄 Manual credential refresh requested');
-    await credentialManager.forceRefresh();
+    await credentialManager.reinitialize();
+    
+    // Test the refreshed credentials
+    const testResult = await credentialManager.testCredentials();
+    
     res.json({ 
       success: true, 
-      message: 'AWS credentials refreshed successfully' 
+      message: 'AWS credential provider reinitialized successfully',
+      test: testResult
     });
   } catch (error) {
     console.error('Error refreshing credentials:', error);
@@ -1416,6 +1433,106 @@ function getRecommendations(status) {
   
   if (!status.backgroundMonitoring) {
     recommendations.push('Restart application to enable background monitoring');
+  }
+  
+  return recommendations;
+}
+
+// Helper functions for SDK-based credential status
+function getSDKStatusLevel(status, testResult) {
+  if (!status.configured) return 'CRITICAL';
+  if (!status.initialized) return 'WARNING';
+  if (testResult && !testResult.success) return 'CRITICAL';
+  if (status.credentialsValid === false) return 'CRITICAL';
+  if (status.isNearExpiry) return 'WARNING';
+  return 'HEALTHY';
+}
+
+function getSDKStatusMessage(status, testResult) {
+  const level = getSDKStatusLevel(status, testResult);
+  
+  switch (level) {
+    case 'CRITICAL':
+      if (!status.configured) return 'AWS configuration not found';
+      if (!status.initialized) return 'Credential provider not initialized';
+      if (testResult && !testResult.success) return `Credential test failed: ${testResult.error}`;
+      if (status.credentialsValid === false) return 'Credentials are invalid';
+      return 'Critical credential issue';
+      
+    case 'WARNING':
+      if (!status.initialized) return 'Credential provider initializing';
+      if (status.isNearExpiry) {
+        return status.timeUntilExpiryMinutes 
+          ? `Credentials expire in ${status.timeUntilExpiryMinutes} minutes`
+          : 'Credentials expiring soon';
+      }
+      return 'Credentials need attention';
+      
+    case 'HEALTHY':
+      if (status.timeUntilExpiryMinutes) {
+        const hours = Math.floor(status.timeUntilExpiryMinutes / 60);
+        const minutes = status.timeUntilExpiryMinutes % 60;
+        return `Credentials valid for ${hours}h ${minutes}m (AWS SDK auto-refresh enabled)`;
+      }
+      return 'Credentials healthy (AWS SDK auto-refresh enabled)';
+      
+    default:
+      return 'Status unknown';
+  }
+}
+
+function getSDKActionRequired(status, testResult) {
+  const level = getSDKStatusLevel(status, testResult);
+  
+  switch (level) {
+    case 'CRITICAL':
+      if (!status.configured) return 'CONFIGURE_AWS';
+      if (testResult && !testResult.success) return 'REFRESH_CREDENTIALS';
+      return 'IMMEDIATE_ACTION_REQUIRED';
+      
+    case 'WARNING':
+      return 'MONITOR';
+      
+    case 'HEALTHY':
+      return 'NONE';
+      
+    default:
+      return 'CHECK_STATUS';
+  }
+}
+
+function getSDKRecommendations(status, testResult) {
+  const recommendations = [];
+  const level = getSDKStatusLevel(status, testResult);
+  
+  if (!status.configured) {
+    recommendations.push('Configure AWS settings in Operations Panel > Media Management');
+    recommendations.push('Add Access Key, Secret Key, and Session Token from AWS Identity Center');
+  }
+  
+  if (!status.initialized) {
+    recommendations.push('Credential provider will initialize automatically on next use');
+  }
+  
+  if (testResult && !testResult.success) {
+    if (testResult.error.includes('expired')) {
+      recommendations.push('AWS credentials have expired - refresh them in AWS Identity Center portal');
+      recommendations.push('Copy new credentials to Operations Panel > Media Management');
+    } else if (testResult.error.includes('Invalid')) {
+      recommendations.push('AWS credentials are invalid - check Access Key and Secret Key');
+    } else {
+      recommendations.push('Check AWS configuration and network connectivity');
+    }
+  }
+  
+  if (status.isNearExpiry) {
+    recommendations.push('AWS SDK will automatically refresh credentials soon');
+    recommendations.push('No manual action required unless refresh fails');
+  }
+  
+  if (level === 'HEALTHY') {
+    recommendations.push('✅ System working correctly with automatic credential refresh');
+    recommendations.push('AWS SDK will handle credential renewal automatically');
   }
   
   return recommendations;
