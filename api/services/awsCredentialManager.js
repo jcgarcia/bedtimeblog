@@ -322,7 +322,6 @@ class AWSCredentialManager {
       throw error;
     }
   }
-  }
 }
 
 // Singleton instance with automatic initialization
