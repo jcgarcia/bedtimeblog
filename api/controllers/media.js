@@ -889,35 +889,6 @@ export const moveMediaFile = async (req, res) => {
     });
   }
 };
-  try {
-    const { id } = req.params;
-    const pool = getDbPool();
-    
-    // Get media file info first
-    const getQuery = 'SELECT * FROM media WHERE id = $1';
-    const getResult = await pool.query(getQuery, [id]);
-    
-    if (getResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Media file not found'
-      });
-    }
-
-    const mediaFile = getResult.rows[0];
-
-    // Get storage settings from DB to initialize S3 client
-    const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'oci_config', 'aws_config')");
-    const settings = {};
-    settingsRes.rows.forEach(row => {
-      if (row.type === 'json') {
-        try { 
-          settings[row.key] = JSON.parse(row.value); 
-        } catch (e) { 
-          console.error(`Error parsing JSON setting ${row.key}:`, e);
-          settings[row.key] = {}; 
-        }
-      } else {
         settings[row.key] = row.value;
       }
     });
