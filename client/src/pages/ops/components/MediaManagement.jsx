@@ -834,7 +834,7 @@ export default function MediaManagement() {
                         onClick={() => setShowMoveModal(file)}
                         title="Move to different folder"
                       >
-                        <i className="fa-solid fa-folder-arrow-up"></i>
+                        <i className="fa-solid fa-arrows-turn-right"></i>
                       </button>
                       <button 
                         className="btn-icon delete"
