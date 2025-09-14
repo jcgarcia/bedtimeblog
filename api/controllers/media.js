@@ -8,6 +8,9 @@ import { getDbPool } from '../db.js';
 import jwt from 'jsonwebtoken';
 import credentialManager from '../services/awsCredentialManager.js';
 import sharp from 'sharp';
+import { generatePdfThumbnail, deletePdfThumbnail, getThumbnailRelativePath } from '../utils/pdfThumbnails.js';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 
 // Helper: Get S3 Client with automatic credential management
 export async function getS3Client(config) {
@@ -282,6 +285,73 @@ export const uploadToS3 = async (req, res) => {
           }
         }
         
+        // Generate thumbnail for PDFs
+        let pdfThumbnailS3Key = null;
+        let pdfThumbnailPath = null;
+        if (file.mimetype === 'application/pdf') {
+          try {
+            // Create temporary file for PDF processing
+            const tempDir = path.join(process.cwd(), 'temp');
+            await fs.mkdir(tempDir, { recursive: true });
+            
+            const tempPdfPath = path.join(tempDir, `temp-${Date.now()}-${file.originalname}`);
+            await fs.writeFile(tempPdfPath, file.buffer);
+            
+            const thumbnailDir = path.join(tempDir, 'thumbnails');
+            const filenameWithoutExt = path.parse(file.originalname).name;
+            
+            const thumbnailResult = await generatePdfThumbnail(tempPdfPath, thumbnailDir, filenameWithoutExt);
+            
+            if (thumbnailResult.success) {
+              // Read the generated thumbnail
+              const thumbnailBuffer = await fs.readFile(thumbnailResult.thumbnailPath);
+              
+              // Generate S3 key for thumbnail
+              pdfThumbnailS3Key = s3Key.replace(/(\.[^.]+)$/, '_thumb.png');
+              
+              // Upload thumbnail to S3
+              const pdfThumbnailUploadCommand = new PutObjectCommand({
+                Bucket: BUCKET_NAME,
+                Key: pdfThumbnailS3Key,
+                Body: thumbnailBuffer,
+                ContentType: 'image/png',
+                Metadata: {
+                  originalName: file.originalname + '_pdf_thumbnail',
+                  uploadedBy: userId.toString(),
+                  uploadedAt: new Date().toISOString(),
+                  thumbnailFor: s3Key,
+                  generatedFrom: 'pdf'
+                }
+              });
+              
+              await s3.send(pdfThumbnailUploadCommand);
+              console.log(`✅ PDF thumbnail uploaded: ${pdfThumbnailS3Key}`);
+              
+              // Store the relative path for database
+              pdfThumbnailPath = getThumbnailRelativePath(s3Key, filenameWithoutExt);
+            } else {
+              console.warn(`⚠️ PDF thumbnail generation failed: ${thumbnailResult.error}`);
+            }
+            
+            // Clean up temporary files
+            try {
+              await fs.unlink(tempPdfPath);
+              if (thumbnailResult.success && existsSync(thumbnailResult.thumbnailPath)) {
+                await fs.unlink(thumbnailResult.thumbnailPath);
+              }
+            } catch (cleanupError) {
+              console.warn('⚠️ Cleanup warning:', cleanupError.message);
+            }
+            
+          } catch (pdfError) {
+            console.error('❌ PDF thumbnail generation error:', pdfError.message);
+            // Continue with upload even if thumbnail generation fails
+          }
+        }
+        
+        // Use the appropriate thumbnail key (image or PDF)
+        const finalThumbnailS3Key = thumbnailS3Key || pdfThumbnailS3Key;
+        
         // Upload main file to S3/OCI
         const uploadCommand = new PutObjectCommand({
           Bucket: BUCKET_NAME,
@@ -292,7 +362,7 @@ export const uploadToS3 = async (req, res) => {
             originalName: file.originalname,
             uploadedBy: userId.toString(),
             uploadedAt: new Date().toISOString(),
-            ...(thumbnailS3Key ? { thumbnailKey: thumbnailS3Key } : {})
+            ...(finalThumbnailS3Key ? { thumbnailKey: finalThumbnailS3Key } : {})
           }
         });
         
@@ -308,8 +378,9 @@ export const uploadToS3 = async (req, res) => {
           const dbQuery = `
             INSERT INTO media (
               filename, original_name, file_type, file_size, s3_key, s3_bucket, 
-              public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, thumbnail_key
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+              public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, 
+              thumbnail_key, thumbnail_path, thumbnail_url
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
           `;
           const values = [
@@ -327,7 +398,9 @@ export const uploadToS3 = async (req, res) => {
             file.mimetype,
             width,
             height,
-            thumbnailS3Key
+            finalThumbnailS3Key,
+            pdfThumbnailPath,
+            finalThumbnailS3Key ? `${CDN_URL}/${finalThumbnailS3Key}` : null
           ];
           
           result = await pool.query(dbQuery, values);
@@ -815,6 +888,21 @@ export const deleteMediaFile = async (req, res) => {
           
           await s3Client.send(deleteCommand);
           console.log(`✅ Deleted file from S3: ${mediaFile.s3_key}`);
+          
+          // Also delete thumbnail if it exists
+          if (mediaFile.thumbnail_key) {
+            try {
+              const thumbnailDeleteCommand = new DeleteObjectCommand({
+                Bucket: bucketName,
+                Key: mediaFile.thumbnail_key
+              });
+              await s3Client.send(thumbnailDeleteCommand);
+              console.log(`✅ Deleted thumbnail from S3: ${mediaFile.thumbnail_key}`);
+            } catch (thumbnailError) {
+              console.error('❌ Error deleting thumbnail from S3:', thumbnailError);
+              // Continue even if thumbnail deletion fails
+            }
+          }
         }
       } catch (s3Error) {
         console.error('❌ Error deleting from S3:', s3Error);

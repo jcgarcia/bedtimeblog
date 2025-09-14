@@ -781,14 +781,21 @@ export default function MediaManagement() {
                 mediaFiles.map(file => (
                   <div key={file.id} className="media-item">
                     <div className="media-thumbnail">
-                      {isImage(file.mime_type) ? (
+                      {(isImage(file.mime_type) || (file.mime_type === 'application/pdf' && file.thumbnail_url)) ? (
                         <img 
                           src={file.thumbnail_url || file.public_url || file.signed_url} 
                           alt={file.alt_text || file.original_name}
+                          className={file.mime_type === 'application/pdf' ? 'pdf-thumbnail' : ''}
                           onError={(e) => {
-                            // If thumbnail fails, try the original image
+                            // If thumbnail fails, try the original image (for images) or show file icon
                             if (file.thumbnail_url && e.target.src === file.thumbnail_url) {
-                              e.target.src = file.public_url || file.signed_url;
+                              if (isImage(file.mime_type)) {
+                                e.target.src = file.public_url || file.signed_url;
+                              } else {
+                                // For PDFs, just show the file icon if thumbnail fails
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }
                             } else {
                               // If all fails, show file icon
                               e.target.style.display = 'none';
@@ -800,7 +807,7 @@ export default function MediaManagement() {
                       ) : null}
                       <div 
                         className="file-icon" 
-                        style={{ display: isImage(file.mime_type) ? 'none' : 'flex' }}
+                        style={{ display: (isImage(file.mime_type) || (file.mime_type === 'application/pdf' && file.thumbnail_url)) ? 'none' : 'flex' }}
                       >
                         <i className={`fa-solid ${getFileIcon(file.file_type, file.mime_type)}`}></i>
                       </div>
