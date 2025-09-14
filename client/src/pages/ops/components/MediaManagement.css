@@ -1,13 +1,21 @@
 /* ⚠️  WARNING: SOME STYLES MAY BE OVERRIDDEN BY /pages/ops/ops.css ⚠️ 
  * 
- * The main media-management styles are defined in /pages/ops/ops.css
- * This file may contain duplicate or conflicting styles.
- * Always check ops.css for media-management layout issues.
+ * UPDATE: Cleaning up duplicate styles. Moving all media-management styles here.
+ * This file should be the ONLY place for MediaManagement component styles.
  * 
- * TODO: Consolidate media-management styles into a single file.
+ * TODO: Remove media-management styles from /pages/ops/ops.css (DONE).
  */
 
 /* Media Management Styles */
+
+/* Media Management Container - MOVED FROM ops.css */
+.media-management {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
 
 .media-management {
   max-width: 100%;
