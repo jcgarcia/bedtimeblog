@@ -13,23 +13,37 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
   const fetchMedia = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://bapi.ingasti.com/api/media/files', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      
+      // Fetch from all possible image folders
+      const folders = ['/', '/Images/', '/images/'];
+      let allMedia = [];
+      
+      for (const folder of folders) {
+        try {
+          const response = await fetch(`https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.media) {
+              // Filter only image files
+              const imageFiles = data.media.filter(item => 
+                item.file_type && item.file_type.startsWith('image/')
+              );
+              allMedia = [...allMedia, ...imageFiles];
+            }
+          }
+        } catch (folderError) {
+          console.warn(`Failed to fetch from folder ${folder}:`, folderError);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch media');
       }
       
-      const data = await response.json();
-      if (data.success) {
-        setMedia(data.media || []);
-      } else {
-        throw new Error(data.message || 'Failed to fetch media');
-      }
+      setMedia(allMedia);
     } catch (err) {
+      console.error('Error fetching media:', err);
       setError(err.message);
     } finally {
       setLoading(false);
