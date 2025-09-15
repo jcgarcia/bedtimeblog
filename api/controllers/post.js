@@ -15,6 +15,32 @@ async function resolveMediaUrl(mediaId) {
     return mediaId;
   }
   
+  // If it's an S3 key (string starting with uploads/), generate signed URL
+  if (typeof mediaId === 'string' && mediaId.startsWith('uploads/')) {
+    try {
+      const pool = getDbPool();
+      const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+      if (settingsRes.rows.length === 0) {
+        console.warn('AWS configuration not found');
+        return mediaId; // Return S3 key as fallback
+      }
+      
+      const awsConfig = JSON.parse(settingsRes.rows[0].value);
+      const s3Client = await getS3Client(awsConfig);
+      
+      const command = new GetObjectCommand({
+        Bucket: awsConfig.bucketName,
+        Key: mediaId,
+      });
+      
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      return signedUrl;
+    } catch (error) {
+      console.error('Error generating signed URL for S3 key:', error);
+      return mediaId; // Return S3 key as fallback
+    }
+  }
+  
   try {
     const pool = getDbPool();
     
@@ -225,12 +251,6 @@ export const addPost = async (req, res) => {
       RETURNING *
     `;
     
-    // Debug logging for featured image issue
-    console.log('🔍 AddPost Debug Info:');
-    console.log('req.body.img (featured image):', req.body.img);
-    console.log('req.body.status:', req.body.status);
-    console.log('Final status value:', req.body.status || 'draft');
-    
     const values = [
       req.body.title,
       slug,
@@ -296,17 +316,6 @@ export const updatePost = async (req, res) => {
     const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const postId = req.params.id;
     
-    // Debug logging
-    console.log('🔍 UpdatePost Debug Info:');
-    console.log('Post ID:', postId);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('Title length:', req.body.title?.length);
-    console.log('Content length:', (req.body.content || req.body.desc)?.length);
-    console.log('Featured image URL:', req.body.img);
-    console.log('Featured image length:', req.body.img?.length);
-    console.log('Category:', req.body.cat);
-    console.log('Status:', req.body.status);
-    
     // Get current post to check if title is changing
     const currentPost = await pool.query('SELECT title, slug FROM posts WHERE id = $1', [postId]);
     if (currentPost.rows.length === 0) {
@@ -362,9 +371,6 @@ export const updatePost = async (req, res) => {
       postId, 
       userInfo.id
     ];
-    
-    console.log('🔍 SQL Values Debug:');
-    console.log('Values array:', values.map((val, idx) => `$${idx+1}: ${typeof val} - ${val?.toString()?.length || 0} chars - "${val}"`));
     
     const result = await pool.query(q, values);
     
