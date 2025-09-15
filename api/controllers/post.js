@@ -197,7 +197,7 @@ export const addPost = async (req, res) => {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')
-      .substring(0, 490); // Leave room for counter suffix (-123)
+      .substring(0, 240); // Leave room for counter suffix (-123) within 255 char limit
     
     let slug = baseSlug;
     let counter = 1;
@@ -209,7 +209,7 @@ export const addPost = async (req, res) => {
         if (existingPost.rows.length === 0) {
           break; // Slug is unique
         }
-        slug = `${baseSlug}-${counter}`.substring(0, 500);
+        slug = `${baseSlug}-${counter}`.substring(0, 255);
         counter++;
       } catch (error) {
         console.error('Error checking slug uniqueness:', error);
@@ -310,7 +310,7 @@ export const updatePost = async (req, res) => {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '')
-        .substring(0, 490); // Leave room for counter suffix
+        .substring(0, 240); // Leave room for counter suffix (-123) within 255 char limit
       
       let newSlug = baseSlug;
       let counter = 1;
@@ -322,12 +322,12 @@ export const updatePost = async (req, res) => {
           if (existingPost.rows.length === 0) {
             break; // Slug is unique
           }
-          newSlug = `${baseSlug}-${counter}`.substring(0, 500);
+          newSlug = `${baseSlug}-${counter}`.substring(0, 255);
           counter++;
         } catch (error) {
           console.error('Error checking slug uniqueness:', error);
           // If database error, use timestamp suffix as fallback
-          newSlug = `${baseSlug}-${Date.now()}`.substring(0, 500);
+          newSlug = `${baseSlug}-${Date.now()}`.substring(0, 255);
           break;
         }
       }
