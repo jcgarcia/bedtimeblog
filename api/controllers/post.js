@@ -223,15 +223,22 @@ export const addPost = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
       RETURNING *
     `;
+    
+    // Debug logging for featured image issue
+    console.log('🔍 AddPost Debug Info:');
+    console.log('req.body.img (featured image):', req.body.img);
+    console.log('req.body.status:', req.body.status);
+    console.log('Final status value:', req.body.status || 'draft');
+    
     const values = [
       req.body.title,
       slug,
-      req.body.desc,
-      req.body.img,
-      req.body.cat,
-      userInfo.id,
-      'published',
-      new Date()
+      req.body.desc,  // This maps to content column
+      req.body.img,   // This maps to featured_image column
+      req.body.cat,   // This maps to category_id column
+      userInfo.id,    // This maps to author_id column
+      req.body.status || 'draft',
+      req.body.status === 'published' ? new Date() : null
     ];
     
     const result = await pool.query(q, values);

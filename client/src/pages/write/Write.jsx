@@ -4,6 +4,7 @@ import { useUser } from "../../contexts/UserContext";
 import { useAdmin } from "../../contexts/AdminContext";
 import { postsAPI, categoriesAPI, uploadAPI } from "../../services/postsAPI";
 import LexicalEditor from "../../components/LexicalEditor/LexicalEditor";
+import MediaSelector from "../../components/MediaSelector";
 import "../../components/LexicalEditor/LexicalEditor.css";
 import "./write.css";
 import PostImg from '../../media/NewPost.jpg';
@@ -29,6 +30,7 @@ export default function Write() {
   const [postId, setPostId] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
 
   const currentUser = isAdmin && adminUser ? adminUser : user;
   const editPostId = searchParams.get('edit');
@@ -133,6 +135,16 @@ export default function Write() {
     if (file) {
       await handleImageUpload(file);
     }
+  };
+
+  // Handle media library selection
+  const handleMediaSelect = (imageUrl) => {
+    setFormData(prev => ({
+      ...prev,
+      featuredImage: imageUrl
+    }));
+    setSuccess('Image selected from media library!');
+    setTimeout(() => setSuccess(''), 3000);
   };
 
   const handleInputChange = (e) => {
@@ -264,18 +276,29 @@ export default function Write() {
       
       <form className="writeForm" onSubmit={handleSubmit}>
         <div className="writeFormGroup">
-          <label htmlFor="fileInput" className="file-upload-label">
-            <i className="writeIcon fa-solid fa-file-arrow-up"></i> 
-            {uploadingImage ? 'Uploading...' : 'Upload Featured Image'}
-          </label>
-          <input 
-            type="file" 
-            id="fileInput" 
-            style={{display:"none"}} 
-            accept="image/*"
-            onChange={handleFeaturedImageChange}
-            disabled={uploadingImage}
-          />
+          <div className="featured-image-options">
+            <label htmlFor="fileInput" className="file-upload-label">
+              <i className="writeIcon fa-solid fa-file-arrow-up"></i> 
+              {uploadingImage ? 'Uploading...' : 'Upload New Image'}
+            </label>
+            <input 
+              type="file" 
+              id="fileInput" 
+              style={{display:"none"}} 
+              accept="image/*"
+              onChange={handleFeaturedImageChange}
+              disabled={uploadingImage}
+            />
+            
+            <button 
+              type="button" 
+              className="media-library-btn"
+              onClick={() => setShowMediaSelector(true)}
+            >
+              <i className="writeIcon fa-solid fa-images"></i> 
+              Choose from Library
+            </button>
+          </div>
           
           <input 
             type="text" 
@@ -375,6 +398,14 @@ export default function Write() {
           </button>
         </div>
       </form>
+      
+      {showMediaSelector && (
+        <MediaSelector
+          onSelect={handleMediaSelect}
+          selectedImage={formData.featuredImage}
+          onClose={() => setShowMediaSelector(false)}
+        />
+      )}
     </div>
   );
 }
