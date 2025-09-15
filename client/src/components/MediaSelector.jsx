@@ -14,8 +14,23 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     try {
       setLoading(true);
       
-      // Fetch from all possible image folders
-      const folders = ['/', '/Images/', '/images/'];
+      // First, get all folders
+      const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      
+      let folders = ['/'];  // Default to root folder
+      
+      if (foldersResponse.ok) {
+        const foldersData = await foldersResponse.json();
+        if (foldersData.success && foldersData.folders) {
+          folders = foldersData.folders.map(folder => folder.path || folder.folder_path || folder);
+        }
+      }
+      
+      // Now fetch images from all folders
       let allMedia = [];
       
       for (const folder of folders) {
@@ -41,6 +56,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
         }
       }
       
+      console.log('Fetched media files:', allMedia); // Debug log
       setMedia(allMedia);
     } catch (err) {
       console.error('Error fetching media:', err);
