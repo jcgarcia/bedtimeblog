@@ -13,7 +13,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
   const fetchMedia = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://bapi.ingasti.com/api/media', {
+      const response = await fetch('https://bapi.ingasti.com/api/media/files', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -24,7 +24,11 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
       }
       
       const data = await response.json();
-      setMedia(data.media || []);
+      if (data.success) {
+        setMedia(data.media || []);
+      } else {
+        throw new Error(data.message || 'Failed to fetch media');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,19 +85,19 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
               {media.map((item, index) => (
                 <div 
                   key={index} 
-                  className={`media-item ${selectedImage === item.url ? 'selected' : ''}`}
-                  onClick={() => handleImageSelect(item.url)}
+                  className={`media-item ${selectedImage === item.public_url ? 'selected' : ''}`}
+                  onClick={() => handleImageSelect(item.public_url)}
                 >
                   <img 
-                    src={item.url} 
-                    alt={item.name}
+                    src={item.public_url} 
+                    alt={item.file_name}
                     className="media-thumbnail"
                   />
                   <div className="media-info">
-                    <div className="media-name">{item.name}</div>
+                    <div className="media-name">{item.file_name}</div>
                     <div className="media-details">
-                      {item.size && <span className="media-size">{item.size}</span>}
-                      {item.type && <span className="media-type">{item.type}</span>}
+                      {item.file_size && <span className="media-size">{item.file_size}</span>}
+                      {item.file_type && <span className="media-type">{item.file_type}</span>}
                     </div>
                   </div>
                 </div>
