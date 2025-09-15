@@ -1080,6 +1080,57 @@ export const refreshAWSCredentials = async (req, res) => {
   }
 };
 
+// Update AWS credentials manually
+export const updateAWSCredentials = async (req, res) => {
+  try {
+    const { accessKeyId, secretAccessKey, sessionToken, region } = req.body;
+    
+    if (!accessKeyId || !secretAccessKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required credentials: accessKeyId, secretAccessKey'
+      });
+    }
+    
+    // Get current config and update with new credentials
+    const currentConfig = await credentialManager.getStoredAWSConfig() || {};
+    
+    const newConfig = {
+      ...currentConfig,
+      accessKey: accessKeyId,
+      secretKey: secretAccessKey,
+      ...(sessionToken && { sessionToken }),
+      region: region || currentConfig.region || 'eu-west-2',
+      credentialUpdated: new Date().toISOString()
+    };
+    
+    // Update configuration in database and reinitialize
+    await credentialManager.updateConfiguration(newConfig);
+    
+    // Test the new credentials
+    const testResult = await credentialManager.testCredentials();
+    
+    res.json({
+      success: true,
+      message: 'AWS credentials updated and reinitialized successfully',
+      test: testResult,
+      config: {
+        accessKey: accessKeyId.substring(0, 8) + '...',
+        hasSessionToken: !!sessionToken,
+        region: newConfig.region,
+        updatedAt: newConfig.credentialUpdated
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error updating AWS credentials:', error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to update credentials: ${error.message}`
+    });
+  }
+};
+
 // SSO Management endpoints
 export const initializeSSO = async (req, res) => {
   try {

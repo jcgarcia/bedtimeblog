@@ -14,6 +14,7 @@ import {
   clearMediaDatabase,
   getAWSCredentialStatus,
   refreshAWSCredentials,
+  updateAWSCredentials,
   initializeSSO,
   testSSOCredentials
 } from "../controllers/media.js";
@@ -45,6 +46,7 @@ router.post("/clear-database", requireAdminAuth, clearMediaDatabase); // POST /a
 // AWS credential management
 router.get("/credential-status", requireAdminAuth, getAWSCredentialStatus); // GET /api/media/credential-status - Get credential status
 router.post("/refresh-credentials", requireAdminAuth, refreshAWSCredentials); // POST /api/media/refresh-credentials - Manually refresh credentials
+router.put("/update-credentials", requireAdminAuth, updateAWSCredentials); // PUT /api/media/update-credentials - Update AWS credentials manually
 
 // AWS SSO management
 router.post("/initialize-sso", requireAdminAuth, initializeSSO); // POST /api/media/initialize-sso - Initialize SSO credentials
