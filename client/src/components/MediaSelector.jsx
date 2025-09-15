@@ -34,6 +34,18 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
             console.log(`Data for ${folder}:`, data);
             
             if (data.success && data.media && data.media.length > 0) {
+              console.log(`Raw media array for ${folder}:`, data.media);
+              
+              // Debug: log each media item
+              data.media.forEach((item, index) => {
+                console.log(`Media item ${index} in ${folder}:`, {
+                  file_name: item.file_name,
+                  file_type: item.file_type,
+                  public_url: item.public_url,
+                  full_item: item
+                });
+              });
+              
               // Filter only image files
               const imageFiles = data.media.filter(item => 
                 item.file_type && (
@@ -43,6 +55,8 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
               );
               console.log(`Found ${imageFiles.length} images in ${folder}:`, imageFiles);
               allMedia = [...allMedia, ...imageFiles];
+            } else {
+              console.log(`No media or empty array in ${folder}. Success: ${data.success}, Media length: ${data.media?.length}`);
             }
           } else {
             console.log(`Failed to fetch ${folder}:`, response.status);
