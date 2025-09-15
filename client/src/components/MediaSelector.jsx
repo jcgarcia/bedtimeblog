@@ -13,7 +13,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
   const fetchMedia = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/media', {
+      const response = await fetch('https://bapi.ingasti.com/api/media', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
