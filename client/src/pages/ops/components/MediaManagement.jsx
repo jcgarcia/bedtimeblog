@@ -1088,7 +1088,7 @@ export default function MediaManagement() {
                   <div className="auth-section-header">
                     <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
                     <small style={{ color: '#1976d2', fontWeight: '600' }}>
-                      ℹ️ Obtain these credentials from AWS Identity Center portal - refresh manually when expired
+                      ℹ️ Obtain these credentials from AWS Identity Center portal - refreshed automatically by AWS SDK
                     </small>
                   </div>
                   <div className="access-key-grid">
@@ -1132,7 +1132,7 @@ export default function MediaManagement() {
                         placeholder="Session token..."
                         required
                       />
-                      <small style={{ color: '#28a745' }}>From Identity Center portal (12-hour expiration)</small>
+                      <small style={{ color: '#28a745' }}>From Identity Center portal (12-hour expiration, auto-refresh enabled)</small>
                     </div>
                   </div>
                   <div className="auth-method-note">
@@ -1169,9 +1169,6 @@ export default function MediaManagement() {
                               {credentialStatus.timeUntilExpiryMinutes > 0 ? `${credentialStatus.timeUntilExpiryMinutes} minutes` : 'Expired'}
                             </span><br/></>
                           )}
-                          • Cached: <span style={{color: credentialStatus.hasCachedCredentials ? 'green' : 'red'}}>
-                            {credentialStatus.hasCachedCredentials ? 'YES ✅' : 'NO ❌'}
-                          </span><br/>
                           • Auto-refresh: <span style={{color: credentialStatus.autoRefresh ? 'green' : 'red'}}>
                             {credentialStatus.autoRefresh ? 'ACTIVE ✅' : 'INACTIVE ❌'}
                           </span>
