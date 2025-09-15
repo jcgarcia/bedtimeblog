@@ -14,19 +14,27 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     try {
       setLoading(true);
       
+      const adminToken = localStorage.getItem('adminToken');
+      console.log('📱 MediaSelector Debug Info:');
+      console.log('- Admin token exists:', !!adminToken);
+      console.log('- Admin token (first 20 chars):', adminToken?.substring(0, 20) + '...');
+      
       // First, get the actual folder list from the API
-      console.log('Fetching actual folders from API...');
+      console.log('🗂️ Fetching actual folders from API...');
       const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
         }
       });
+      
+      console.log('📁 Folders response status:', foldersResponse.status);
       
       let actualFolders = ['/']; // Default fallback
       
       if (foldersResponse.ok) {
         const foldersData = await foldersResponse.json();
-        console.log('Folders API response:', foldersData);
+        console.log('📁 Folders API response:', foldersData);
         
         if (foldersData.success && foldersData.folders) {
           // Extract folder paths - try different possible property names
@@ -34,70 +42,88 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
             if (typeof folder === 'string') return folder;
             return folder.path || folder.folder_path || folder.name || '/';
           });
-          console.log('Actual folders found:', actualFolders);
+          console.log('📁 Actual folders found:', actualFolders);
         }
       } else {
-        console.log('Failed to fetch folders, using defaults');
+        console.error('❌ Failed to fetch folders. Status:', foldersResponse.status);
+        const errorText = await foldersResponse.text();
+        console.error('❌ Error response:', errorText);
       }
       
       // Now try both actual folders AND common patterns
       const allFoldersToTry = [...new Set([...actualFolders, '/', '/Images/', '/images/', '/media/', '/Media/'])];
-      console.log('All folders to try:', allFoldersToTry);
+      console.log('📂 All folders to try:', allFoldersToTry);
       
       let allMedia = [];
       
       for (const folder of allFoldersToTry) {
         try {
-          console.log(`Trying folder: ${folder}`);
-          const response = await fetch(`https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`, {
+          console.log(`🔍 Trying folder: "${folder}"`);
+          const mediaUrl = `https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`;
+          console.log(`🔗 Media URL: ${mediaUrl}`);
+          
+          const response = await fetch(mediaUrl, {
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+              'Authorization': `Bearer ${adminToken}`,
+              'Content-Type': 'application/json'
             }
           });
           
-          console.log(`Response for ${folder}:`, response.status, response.ok);
+          console.log(`📊 Response for "${folder}": Status ${response.status}, OK: ${response.ok}`);
           
           if (response.ok) {
             const data = await response.json();
-            console.log(`Data for ${folder}:`, data);
+            console.log(`📄 Data for "${folder}":`, data);
             
-            if (data.success && data.media && data.media.length > 0) {
-              console.log(`Raw media array for ${folder}:`, data.media);
+            if (data.success && data.media && Array.isArray(data.media)) {
+              console.log(`✅ Valid response for "${folder}": ${data.media.length} items found`);
               
               // Debug: log each media item
               data.media.forEach((item, index) => {
-                console.log(`Media item ${index} in ${folder}:`, {
-                  file_name: item.file_name,
+                console.log(`📷 Media item ${index} in "${folder}":`, {
+                  file_name: item.file_name || item.original_name,
                   file_type: item.file_type,
                   public_url: item.public_url,
+                  signed_url: item.signed_url,
                   full_item: item
                 });
               });
               
-              // Filter only image files
-              const imageFiles = data.media.filter(item => 
-                item.file_type && (
+              // Filter only image files and add them with proper URLs
+              const imageFiles = data.media.filter(item => {
+                const isImage = item.file_type && (
                   item.file_type.startsWith('image/') || 
-                  item.file_name?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
-                )
-              );
-              console.log(`Found ${imageFiles.length} images in ${folder}:`, imageFiles);
+                  (item.file_name || item.original_name)?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                );
+                console.log(`🖼️ File "${item.file_name || item.original_name}" is image: ${isImage}`);
+                return isImage;
+              }).map(item => ({
+                ...item,
+                // Ensure we have the right properties for display
+                file_name: item.file_name || item.original_name,
+                public_url: item.public_url || item.signed_url || item.url
+              }));
+              
+              console.log(`🎯 Found ${imageFiles.length} images in "${folder}":`, imageFiles);
               allMedia = [...allMedia, ...imageFiles];
             } else {
-              console.log(`No media or empty array in ${folder}. Success: ${data.success}, Media length: ${data.media?.length}`);
+              console.log(`⚠️ No media or invalid response structure in "${folder}". Success: ${data.success}, Media: ${data.media}, Is Array: ${Array.isArray(data.media)}`);
             }
           } else {
-            console.log(`Failed to fetch ${folder}:`, response.status);
+            console.error(`❌ Failed to fetch "${folder}": Status ${response.status}`);
+            const errorText = await response.text();
+            console.error(`❌ Error response for "${folder}":`, errorText);
           }
         } catch (folderError) {
-          console.error(`Error fetching folder ${folder}:`, folderError);
+          console.error(`💥 Error fetching folder "${folder}":`, folderError);
         }
       }
       
-      console.log('Total media files found:', allMedia);
+      console.log('🏁 Total media files found across all folders:', allMedia.length);
+      console.log('📋 Final media list:', allMedia);
       setMedia(allMedia);
     } catch (err) {
-      console.error('Error fetching media:', err);
+      console.error('💥 Error fetching media:', err);
       setError(err.message);
     } finally {
       setLoading(false);
