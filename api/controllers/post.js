@@ -235,7 +235,7 @@ export const addPost = async (req, res) => {
       slug,
       req.body.desc,  // This maps to content column
       req.body.img,   // This maps to featured_image column
-      req.body.cat,   // This maps to category_id column
+      req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null,   // This maps to category_id column
       userInfo.id,    // This maps to author_id column
       req.body.status || 'draft',
       req.body.status === 'published' ? new Date() : null
@@ -315,7 +315,7 @@ export const updatePost = async (req, res) => {
       slug, 
       req.body.content || req.body.desc, 
       req.body.img, 
-      req.body.cat, 
+      req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null, 
       req.body.status,
       postId, 
       userInfo.id
