@@ -1172,8 +1172,8 @@ export default function MediaManagement() {
                           • Cached: <span style={{color: credentialStatus.hasCachedCredentials ? 'green' : 'red'}}>
                             {credentialStatus.hasCachedCredentials ? 'YES ✅' : 'NO ❌'}
                           </span><br/>
-                          • Auto-refresh: <span style={{color: credentialStatus.nextRefreshScheduled ? 'green' : 'red'}}>
-                            {credentialStatus.nextRefreshScheduled ? 'ACTIVE ✅' : 'INACTIVE ❌'}
+                          • Auto-refresh: <span style={{color: credentialStatus.autoRefresh ? 'green' : 'red'}}>
+                            {credentialStatus.autoRefresh ? 'ACTIVE ✅' : 'INACTIVE ❌'}
                           </span>
                         </div>
                       )}
