@@ -14,49 +14,45 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     try {
       setLoading(true);
       
-      // First, get all folders
-      const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      
-      let folders = ['/'];  // Default to root folder
-      
-      if (foldersResponse.ok) {
-        const foldersData = await foldersResponse.json();
-        if (foldersData.success && foldersData.folders) {
-          folders = foldersData.folders.map(folder => folder.path || folder.folder_path || folder);
-        }
-      }
-      
-      // Now fetch images from all folders
+      // Simple approach: try common folder patterns
+      const possibleFolders = ['/', '/Images/', '/images/', '/media/', '/Media/'];
       let allMedia = [];
       
-      for (const folder of folders) {
+      for (const folder of possibleFolders) {
         try {
+          console.log(`Trying folder: ${folder}`);
           const response = await fetch(`https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
             }
           });
           
+          console.log(`Response for ${folder}:`, response.status, response.ok);
+          
           if (response.ok) {
             const data = await response.json();
-            if (data.success && data.media) {
+            console.log(`Data for ${folder}:`, data);
+            
+            if (data.success && data.media && data.media.length > 0) {
               // Filter only image files
               const imageFiles = data.media.filter(item => 
-                item.file_type && item.file_type.startsWith('image/')
+                item.file_type && (
+                  item.file_type.startsWith('image/') || 
+                  item.file_name?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                )
               );
+              console.log(`Found ${imageFiles.length} images in ${folder}:`, imageFiles);
               allMedia = [...allMedia, ...imageFiles];
             }
+          } else {
+            console.log(`Failed to fetch ${folder}:`, response.status);
           }
         } catch (folderError) {
-          console.warn(`Failed to fetch from folder ${folder}:`, folderError);
+          console.error(`Error fetching folder ${folder}:`, folderError);
         }
       }
       
-      console.log('Fetched media files:', allMedia); // Debug log
+      console.log('Total media files found:', allMedia);
       setMedia(allMedia);
     } catch (err) {
       console.error('Error fetching media:', err);
