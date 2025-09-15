@@ -14,11 +14,39 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     try {
       setLoading(true);
       
-      // Simple approach: try common folder patterns
-      const possibleFolders = ['/', '/Images/', '/images/', '/media/', '/Media/'];
+      // First, get the actual folder list from the API
+      console.log('Fetching actual folders from API...');
+      const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      
+      let actualFolders = ['/']; // Default fallback
+      
+      if (foldersResponse.ok) {
+        const foldersData = await foldersResponse.json();
+        console.log('Folders API response:', foldersData);
+        
+        if (foldersData.success && foldersData.folders) {
+          // Extract folder paths - try different possible property names
+          actualFolders = foldersData.folders.map(folder => {
+            if (typeof folder === 'string') return folder;
+            return folder.path || folder.folder_path || folder.name || '/';
+          });
+          console.log('Actual folders found:', actualFolders);
+        }
+      } else {
+        console.log('Failed to fetch folders, using defaults');
+      }
+      
+      // Now try both actual folders AND common patterns
+      const allFoldersToTry = [...new Set([...actualFolders, '/', '/Images/', '/images/', '/media/', '/Media/'])];
+      console.log('All folders to try:', allFoldersToTry);
+      
       let allMedia = [];
       
-      for (const folder of possibleFolders) {
+      for (const folder of allFoldersToTry) {
         try {
           console.log(`Trying folder: ${folder}`);
           const response = await fetch(`https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`, {
