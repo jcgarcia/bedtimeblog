@@ -196,7 +196,8 @@ export const addPost = async (req, res) => {
     let baseSlug = req.body.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/(^-|-$)/g, '')
+      .substring(0, 490); // Leave room for counter suffix (-123)
     
     let slug = baseSlug;
     let counter = 1;
@@ -208,7 +209,7 @@ export const addPost = async (req, res) => {
         if (existingPost.rows.length === 0) {
           break; // Slug is unique
         }
-        slug = `${baseSlug}-${counter}`;
+        slug = `${baseSlug}-${counter}`.substring(0, 500);
         counter++;
       } catch (error) {
         console.error('Error checking slug uniqueness:', error);
@@ -301,7 +302,8 @@ export const updatePost = async (req, res) => {
       slug = req.body.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+        .replace(/(^-|-$)/g, '')
+        .substring(0, 500); // Truncate to database field limit
     }
     
     const q = `
