@@ -44,14 +44,21 @@ export default function ContentManagement() {
     if (window.confirm('Are you sure you want to delete this post?')) {
       try {
         const response = await fetch(API_ENDPOINTS.POSTS.DELETE(postId), {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          }
         });
         
         if (response.ok) {
           setPosts(posts.filter(post => post.id !== postId));
+        } else {
+          console.error('Failed to delete post:', response.status);
+          alert('Failed to delete post. Please try again.');
         }
       } catch (error) {
         console.error('Error deleting post:', error);
+        alert('Error deleting post. Please try again.');
       }
     }
   };
