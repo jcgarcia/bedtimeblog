@@ -296,14 +296,43 @@ export const updatePost = async (req, res) => {
     const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const postId = req.params.id;
     
-    // Generate slug from title if title is provided
-    let slug = null;
-    if (req.body.title) {
-      slug = req.body.title
+    // Get current post to check if title is changing
+    const currentPost = await pool.query('SELECT title, slug FROM posts WHERE id = $1', [postId]);
+    if (currentPost.rows.length === 0) {
+      return res.status(404).json("Post not found!");
+    }
+    
+    let slug = currentPost.rows[0].slug; // Keep existing slug by default
+    
+    // Only generate new slug if title is provided AND different from current title
+    if (req.body.title && req.body.title !== currentPost.rows[0].title) {
+      let baseSlug = req.body.title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '')
-        .substring(0, 500); // Truncate to database field limit
+        .substring(0, 490); // Leave room for counter suffix
+      
+      let newSlug = baseSlug;
+      let counter = 1;
+      
+      // Check if new slug exists (excluding current post)
+      while (true) {
+        try {
+          const existingPost = await pool.query('SELECT id FROM posts WHERE slug = $1 AND id != $2', [newSlug, postId]);
+          if (existingPost.rows.length === 0) {
+            break; // Slug is unique
+          }
+          newSlug = `${baseSlug}-${counter}`.substring(0, 500);
+          counter++;
+        } catch (error) {
+          console.error('Error checking slug uniqueness:', error);
+          // If database error, use timestamp suffix as fallback
+          newSlug = `${baseSlug}-${Date.now()}`.substring(0, 500);
+          break;
+        }
+      }
+      
+      slug = newSlug;
     }
     
     const q = `
