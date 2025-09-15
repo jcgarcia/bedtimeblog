@@ -88,8 +88,10 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     }
   };
 
-  const handleImageSelect = (imageUrl) => {
-    onSelect(imageUrl);
+  const handleImageSelect = (image) => {
+    // Pass the S3 key instead of the full signed URL to avoid varchar limit
+    const s3Key = image.s3_key || image.file_path || image.signed_url;
+    onSelect(s3Key);
     onClose();
   };
 
@@ -137,8 +139,8 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
               {media.map((item, index) => (
                 <div 
                   key={index} 
-                  className={`media-item ${selectedImage === item.public_url ? 'selected' : ''}`}
-                  onClick={() => handleImageSelect(item.public_url)}
+                  className="media-item"
+                  onClick={() => handleImageSelect(item)}
                 >
                   <img 
                     src={item.public_url} 
@@ -160,14 +162,6 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
         
         <div className="media-selector-footer">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          {selectedImage && (
-            <button 
-              className="btn-primary" 
-              onClick={() => handleImageSelect(selectedImage)}
-            >
-              Select Image
-            </button>
-          )}
         </div>
       </div>
     </div>

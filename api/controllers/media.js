@@ -1649,3 +1649,44 @@ function getSDKRecommendations(status, testResult) {
   
   return recommendations;
 }
+
+// Get signed URL for an S3 key
+export const getSignedUrlForKey = async (req, res) => {
+  try {
+    const { key } = req.query;
+    
+    if (!key) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'S3 key is required' 
+      });
+    }
+    
+    const pool = getDbPool();
+    
+    // Get AWS config from settings
+    const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+    if (settingsRes.rows.length === 0) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'AWS configuration not found' 
+      });
+    }
+    
+    const awsConfig = JSON.parse(settingsRes.rows[0].value);
+    const signedUrl = await generateSignedUrl(key, awsConfig.bucketName);
+    
+    res.json({
+      success: true,
+      signed_url: signedUrl,
+      s3_key: key
+    });
+    
+  } catch (error) {
+    console.error('Error generating signed URL:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to generate signed URL' 
+    });
+  }
+};

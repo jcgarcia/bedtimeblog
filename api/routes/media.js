@@ -16,7 +16,8 @@ import {
   refreshAWSCredentials,
   updateAWSCredentials,
   initializeSSO,
-  testSSOCredentials
+  testSSOCredentials,
+  getSignedUrlForKey
 } from "../controllers/media.js";
 
 const router = express.Router();
@@ -33,6 +34,7 @@ router.get("/files/:id", requireAdminAuth, getMediaFile);          // GET /api/m
 router.put("/files/:id", requireAdminAuth, updateMediaFile);       // PUT /api/media/files/:id - Update media metadata
 router.put("/files/:id/move", requireAdminAuth, moveMediaFile);    // PUT /api/media/files/:id/move - Move file to different folder
 router.delete("/files/:id", requireAdminAuth, deleteMediaFile);    // DELETE /api/media/files/:id - Delete media file
+router.get("/signed-url", requireAdminAuth, getSignedUrlForKey);   // GET /api/media/signed-url?key=... - Get signed URL for S3 key
 
 // Folder management routes
 router.get("/folders", requireAdminAuth, getMediaFolders);         // GET /api/media/folders - Get all folders

@@ -9,6 +9,32 @@ import "../../components/LexicalEditor/LexicalEditor.css";
 import "./write.css";
 import PostImg from '../../media/NewPost.jpg';
 
+// Helper function to convert S3 key to signed URL
+const getSignedUrl = async (s3Key) => {
+  if (!s3Key) return '';
+  
+  // If it's already a full URL (backward compatibility), return as-is
+  if (s3Key.startsWith('http')) return s3Key;
+  
+  try {
+    const response = await fetch(`https://bapi.ingasti.com/api/media/signed-url?key=${encodeURIComponent(s3Key)}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.signed_url;
+    }
+  } catch (error) {
+    console.error('Error getting signed URL:', error);
+  }
+  
+  return s3Key; // Fallback to original
+};
+
 export default function Write() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -31,6 +57,7 @@ export default function Write() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const [featuredImagePreviewUrl, setFeaturedImagePreviewUrl] = useState('');
 
   const currentUser = isAdmin && adminUser ? adminUser : user;
   const editPostId = searchParams.get('edit');
@@ -50,6 +77,20 @@ export default function Write() {
     // Load categories
     loadCategories();
   }, [editPostId]);
+
+  // Update featured image preview URL when featuredImage changes
+  useEffect(() => {
+    const updatePreviewUrl = async () => {
+      if (formData.featuredImage) {
+        const signedUrl = await getSignedUrl(formData.featuredImage);
+        setFeaturedImagePreviewUrl(signedUrl);
+      } else {
+        setFeaturedImagePreviewUrl('');
+      }
+    };
+    
+    updatePreviewUrl();
+  }, [formData.featuredImage]);
 
   // Load categories for dropdown
   const loadCategories = async () => {
@@ -315,7 +356,7 @@ export default function Write() {
         {formData.featuredImage && (
           <div className="writeFormGroup">
             <div className="featured-image-preview">
-              <img src={formData.featuredImage} alt="Featured" />
+              <img src={featuredImagePreviewUrl || formData.featuredImage} alt="Featured" />
               <button 
                 type="button" 
                 className="remove-image-btn"
