@@ -285,12 +285,25 @@ export const deletePost = async (req, res) => {
   try {
     const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const postId = req.params.id;
-    const q = "DELETE FROM posts WHERE id = $1 AND author_id = $2";
     
-    const result = await pool.query(q, [postId, userInfo.id]);
+    // Allow super_admin to delete any post, others can only delete their own posts
+    let q, values;
+    if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
+      q = "DELETE FROM posts WHERE id = $1";
+      values = [postId];
+    } else {
+      q = "DELETE FROM posts WHERE id = $1 AND author_id = $2";
+      values = [postId, userInfo.id];
+    }
+    
+    const result = await pool.query(q, values);
     
     if (result.rowCount === 0) {
-      return res.status(403).json("You can delete only your post!");
+      if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
+        return res.status(404).json("Post not found!");
+      } else {
+        return res.status(403).json("You can delete only your post!");
+      }
     }
     
     return res.json("Post has been deleted!");
@@ -355,27 +368,51 @@ export const updatePost = async (req, res) => {
       slug = newSlug;
     }
     
-    const q = `
-      UPDATE posts 
-      SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
-      WHERE id = $7 AND author_id = $8
-      RETURNING *
-    `;
-    const values = [
-      req.body.title, 
-      slug, 
-      req.body.content || req.body.desc, 
-      req.body.img, 
-      req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null, 
-      req.body.status,
-      postId, 
-      userInfo.id
-    ];
+    // Allow super_admin to edit any post, others can only edit their own posts
+    let q, values;
+    if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
+      q = `
+        UPDATE posts 
+        SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
+        WHERE id = $7
+        RETURNING *
+      `;
+      values = [
+        req.body.title, 
+        slug, 
+        req.body.content || req.body.desc, 
+        req.body.img, 
+        req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null, 
+        req.body.status,
+        postId
+      ];
+    } else {
+      q = `
+        UPDATE posts 
+        SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
+        WHERE id = $7 AND author_id = $8
+        RETURNING *
+      `;
+      values = [
+        req.body.title, 
+        slug, 
+        req.body.content || req.body.desc, 
+        req.body.img, 
+        req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null, 
+        req.body.status,
+        postId, 
+        userInfo.id
+      ];
+    }
     
     const result = await pool.query(q, values);
     
     if (result.rowCount === 0) {
-      return res.status(403).json("You can update only your post!");
+      if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
+        return res.status(404).json("Post not found!");
+      } else {
+        return res.status(403).json("You can update only your post!");
+      }
     }
     
     return res.json({ message: "Post has been updated.", post: result.rows[0] });
