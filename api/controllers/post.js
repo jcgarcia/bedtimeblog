@@ -86,13 +86,10 @@ async function resolveMediaUrl(mediaId) {
 }
 
 export const getPosts = async (req, res) => {
-  console.log('🔄 getPosts called with query:', req.query);
-  
   const pool = getDbPool();
   try {
     let q, result;
     if (req.query.cat) {
-      console.log('📂 Filtering by category:', req.query.cat);
       // Filter by category slug (name) instead of ID
       q = `
         SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
@@ -105,7 +102,6 @@ export const getPosts = async (req, res) => {
       `;
       result = await pool.query(q, [req.query.cat]);
     } else {
-      console.log('📂 No category filter, getting all posts');
       q = `
         SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
         FROM posts p
@@ -115,15 +111,6 @@ export const getPosts = async (req, res) => {
         ORDER BY p.created_at DESC
       `;
       result = await pool.query(q);
-    }
-    
-    console.log(`✅ Found ${result.rows.length} posts`);
-    if (req.query.cat && result.rows.length > 0) {
-      console.log('📋 Sample post categories:', result.rows.slice(0, 3).map(p => ({ 
-        title: p.title, 
-        category_name: p.category_name, 
-        category_slug: p.category_slug 
-      })));
     }
     
     // Resolve featured image URLs for all posts
@@ -330,9 +317,6 @@ export const deletePost = async (req, res) => {
 };
 
 export const updatePost = async (req, res) => {
-  console.log('🔄 updatePost called with ID:', req.params.id);
-  console.log('🔄 Request body:', req.body);
-  
   const pool = getDbPool();
   
   // Check for token in both cookie and Authorization header
@@ -422,7 +406,6 @@ export const updatePost = async (req, res) => {
     }
     
     const result = await pool.query(q, values);
-    console.log('✅ Update result:', result.rowCount, 'rows affected');
     
     if (result.rowCount === 0) {
       if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
@@ -432,7 +415,6 @@ export const updatePost = async (req, res) => {
       }
     }
     
-    console.log('✅ Post updated successfully, sending response');
     return res.json({ message: "Post has been updated.", post: result.rows[0] });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
