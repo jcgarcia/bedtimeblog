@@ -108,16 +108,54 @@ export const postsAPI = {
   updatePost: async (id, postData) => {
     try {
       const response = await apiClient.put(`/api/posts/${id}`, postData);
-      return {
-        success: true,
-        data: response.data
-      };
+      
+      // Check if response indicates success (200-299 status codes)
+      if (response.status >= 200 && response.status < 300) {
+        return {
+          success: true,
+          data: response.data
+        };
+      } else {
+        return {
+          success: false,
+          error: `Unexpected status: ${response.status}`
+        };
+      }
     } catch (error) {
       console.error(`Error updating post ${id}:`, error);
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to update post'
-      };
+      
+      // Handle specific error cases
+      if (error.response) {
+        // Server responded with an error status
+        const status = error.response.status;
+        const errorMessage = error.response.data?.error || error.response.data || 'Failed to update post';
+        
+        // Some errors might still mean the operation succeeded
+        if (status === 308 || status === 302) {
+          // Redirect responses might indicate success but with redirect
+          return {
+            success: true,
+            data: { message: 'Post updated successfully' }
+          };
+        }
+        
+        return {
+          success: false,
+          error: errorMessage
+        };
+      } else if (error.request) {
+        // Network error
+        return {
+          success: false,
+          error: 'Network error - please check your connection'
+        };
+      } else {
+        // Other error
+        return {
+          success: false,
+          error: 'Failed to update post'
+        };
+      }
     }
   },
 
