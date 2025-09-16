@@ -662,12 +662,16 @@ export const getMediaFiles = async (req, res) => {
             
             // Generate thumbnail URL if thumbnail exists
             let thumbnailUrl = null;
+            console.log(`🔍 Debug thumbnail for ${media.original_name}: thumbnail_path=${media.thumbnail_path}, s3_bucket=${media.s3_bucket}`);
             if (media.thumbnail_path) {
               try {
                 thumbnailUrl = await generateSignedUrl(media.thumbnail_path, media.s3_bucket);
+                console.log(`✅ Generated thumbnail URL for ${media.original_name}: ${thumbnailUrl ? 'SUCCESS' : 'NULL'}`);
               } catch (thumbError) {
-                console.warn(`Could not generate thumbnail URL for ${media.thumbnail_path}:`, thumbError.message);
+                console.warn(`❌ Could not generate thumbnail URL for ${media.thumbnail_path}:`, thumbError.message);
               }
+            } else {
+              console.log(`⚠️ No thumbnail_path for ${media.original_name}`);
             }
             
             return { 
