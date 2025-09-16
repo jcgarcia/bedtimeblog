@@ -1,4 +1,5 @@
 import { getDbPool } from "../db.js";
+import jwt from "jsonwebtoken";
 
 export const getCategories = async (req, res) => {
   const pool = getDbPool();
@@ -14,5 +15,79 @@ export const getCategories = async (req, res) => {
   } catch (err) {
     console.error('Database error in getCategories:', err);
     return res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+};
+
+export const addCategory = async (req, res) => {
+  const pool = getDbPool();
+  
+  // Check authentication
+  const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json("Not authenticated!");
+  }
+  
+  try {
+    const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Only allow admin/super_admin to create categories
+    if (userInfo.role !== 'admin' && userInfo.role !== 'super_admin') {
+      return res.status(403).json("You don't have permission to create categories!");
+    }
+    
+    const { name, description, color } = req.body;
+    
+    if (!name || name.trim() === '') {
+      return res.status(400).json("Category name is required!");
+    }
+    
+    // Generate slug from name
+    let slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .substring(0, 100);
+    
+    // Check if slug exists and make it unique
+    let finalSlug = slug;
+    let counter = 1;
+    while (true) {
+      const existingCategory = await pool.query('SELECT id FROM categories WHERE slug = $1', [finalSlug]);
+      if (existingCategory.rows.length === 0) {
+        break;
+      }
+      finalSlug = `${slug}-${counter}`;
+      counter++;
+    }
+    
+    // Get the next sort order
+    const sortOrderResult = await pool.query('SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM categories');
+    const sortOrder = sortOrderResult.rows[0].next_order;
+    
+    const q = `
+      INSERT INTO categories (name, slug, description, color, sort_order, is_active, created_at, updated_at) 
+      VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+      RETURNING *
+    `;
+    
+    const result = await pool.query(q, [
+      name.trim(),
+      finalSlug,
+      description?.trim() || null,
+      color || '#3B82F6',
+      sortOrder
+    ]);
+    
+    return res.status(201).json({
+      message: "Category created successfully!",
+      category: result.rows[0]
+    });
+    
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(403).json("Token is not valid!");
+    }
+    console.error('Database error in addCategory:', err);
+    return res.status(500).json({ error: 'Failed to create category' });
   }
 };
