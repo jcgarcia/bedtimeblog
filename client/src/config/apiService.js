@@ -117,7 +117,7 @@ export const postsAPI = {
       console.error(`Error updating post ${id}:`, error);
       return {
         success: false,
-        error: error.response?.data || error.response?.data?.error || 'Failed to update post'
+        error: error.response?.data?.error || error.response?.data || 'Failed to update post'
       };
     }
   },

@@ -1,20 +1,35 @@
 import './sidebar.css'
 import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Welcome from '../welcome/Welcome'
 import { useSocialLinks } from '../../hooks/useSocialLinks'
+import { categoriesAPI } from '../../services/postsAPI'
 
 export default function Sidebar() {
   const location = useLocation();
   const { socialLinks, loading } = useSocialLinks();
-  
-  // Define available categories (matching database categories)
-  const categories = [
-    { name: 'Technology', slug: 'technology' },
-    { name: 'Lifestyle', slug: 'lifestyle' },
-    { name: 'Tutorial', slug: 'tutorial' },
-    { name: 'News', slug: 'news' },
-    { name: 'Review', slug: 'review' }
-  ];
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  // Load categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoriesAPI.getCategories();
+        if (response.success) {
+          setCategories(response.data);
+        } else {
+          console.error('Failed to fetch categories:', response.error);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Get current category from URL
   const getCurrentCategory = () => {
@@ -44,19 +59,29 @@ export default function Sidebar() {
           <li className={`sidebarListItem ${!currentCategory ? 'active' : ''}`}>
             <Link to="/" className="sidebar-link">All Posts</Link>
           </li>
-          {categories.map((category) => (
-            <li 
-              key={category.slug} 
-              className={`sidebarListItem ${currentCategory === category.slug ? 'active' : ''}`}
-            >
-              <Link 
-                to={`/category/${category.slug}`} 
-                className="sidebar-link"
-              >
-                {category.name}
-              </Link>
+          {categoriesLoading ? (
+            <li className="sidebarListItem">
+              <span style={{ color: '#999', fontSize: '0.9rem' }}>Loading categories...</span>
             </li>
-          ))}
+          ) : categories.length > 0 ? (
+            categories.map((category) => (
+              <li 
+                key={category.slug} 
+                className={`sidebarListItem ${currentCategory === category.slug ? 'active' : ''}`}
+              >
+                <Link 
+                  to={`/category/${category.slug}`} 
+                  className="sidebar-link"
+                >
+                  {category.name}
+                </Link>
+              </li>
+            ))
+          ) : (
+            <li className="sidebarListItem">
+              <span style={{ color: '#999', fontSize: '0.9rem' }}>No categories available</span>
+            </li>
+          )}
         </ul>
       </div>
 
