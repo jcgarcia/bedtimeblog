@@ -48,8 +48,17 @@ export const postsAPI = {
   // Get all posts with optional pagination and category filtering
   getAllPosts: async (page = 1, limit = 10, category = null) => {
     try {
-      // Simplified API call to match the backend API
-      const response = await apiClient.get('/api/posts');
+      console.log('🔄 getAllPosts called with:', { page, limit, category });
+      
+      let url = '/api/posts';
+      if (category) {
+        url += `?cat=${encodeURIComponent(category)}`;
+      }
+      
+      console.log('🌐 Making request to:', url);
+      const response = await apiClient.get(url);
+      
+      console.log('✅ getAllPosts response:', response.data);
       
       // The API returns an array directly, so we wrap it in a success structure
       return {
@@ -108,13 +117,26 @@ export const postsAPI = {
   // Update a post
   updatePost: async (id, postData) => {
     try {
+      console.log('🔄 Sending updatePost request:', { id, postData });
       const response = await apiClient.put(`/api/posts/${id}`, postData);
-      return {
-        success: true,
-        data: response.data
-      };
+      console.log('✅ updatePost response:', response);
+      
+      // Handle the actual backend response format
+      if (response.data.message) {
+        return {
+          success: true,
+          data: response.data
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Unexpected response format'
+        };
+      }
     } catch (error) {
-      console.error(`Error updating post ${id}:`, error);
+      console.error(`❌ Error updating post ${id}:`, error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
       return {
         success: false,
         error: error.response?.data?.error || error.response?.data || 'Failed to update post'
