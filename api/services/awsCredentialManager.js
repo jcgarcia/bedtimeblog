@@ -11,6 +11,7 @@ class AWSCredentialManager {
     this.s3Client = null;
     this.credentialProvider = null;
     this.isInitialized = false;
+    this.refreshTimer = null;
   }
 
   /**
@@ -93,6 +94,9 @@ class AWSCredentialManager {
    * Create a refreshable credential provider for Identity Center credentials
    */
   createRefreshableCredentialProvider(config) {
+    // Set up proactive refresh timer
+    this.setupProactiveRefresh(config);
+    
     const refreshFunction = async () => {
       try {
         console.log('🔄 AWS SDK triggered credential refresh...');
@@ -101,6 +105,18 @@ class AWSCredentialManager {
         const latestConfig = await this.getStoredAWSConfig();
         if (!latestConfig || !latestConfig.accessKey || !latestConfig.secretKey) {
           throw new Error('No valid credentials in database. Please update in Operations Panel.');
+        }
+        
+        // Check if Identity Center credentials are about to expire
+        if (latestConfig.expiresAt) {
+          const expirationTime = new Date(latestConfig.expiresAt);
+          const timeUntilExpiry = expirationTime.getTime() - Date.now();
+          const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60);
+          
+          if (hoursUntilExpiry < 0.5) { // Less than 30 minutes
+            console.warn('⚠️ Identity Center credentials expire in less than 30 minutes!');
+            console.warn('🔔 ACTION REQUIRED: Please refresh credentials in Operations Panel soon');
+          }
         }
 
         // If we have role assumption configured, use STS to get new credentials
@@ -153,8 +169,8 @@ class AWSCredentialManager {
             accessKeyId: latestConfig.accessKey,
             secretAccessKey: latestConfig.secretKey,
             ...(latestConfig.sessionToken && { sessionToken: latestConfig.sessionToken }),
-            // AWS SDK expects an expiration date for automatic refresh
-            expiration: new Date(Date.now() + (11 * 60 * 60 * 1000)) // 11 hours from now
+            // Set expiration to 30 minutes from now to trigger frequent refreshes
+            expiration: new Date(Date.now() + (30 * 60 * 1000)) // 30 minutes from now
           };
           
           // Update last refresh time in database
@@ -163,7 +179,7 @@ class AWSCredentialManager {
             lastRefresh: new Date().toISOString()
           });
           
-          console.log('✅ AWS SDK credential refresh completed');
+          console.log('✅ AWS SDK credential refresh completed (30-minute cycle)');
           return credentials;
         }
 
@@ -395,6 +411,49 @@ class AWSCredentialManager {
       console.error('❌ Failed to update credentials in database:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * Setup proactive refresh timer to avoid expiration
+   */
+  setupProactiveRefresh(config) {
+    // Clear any existing timer
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+    }
+    
+    // Set up a timer to check credentials every 15 minutes
+    this.refreshTimer = setInterval(async () => {
+      try {
+        const latestConfig = await this.getStoredAWSConfig();
+        if (!latestConfig || !latestConfig.expiresAt) return;
+        
+        const expirationTime = new Date(latestConfig.expiresAt);
+        const timeUntilExpiry = expirationTime.getTime() - Date.now();
+        const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60);
+        
+        // If less than 2 hours until expiry, log a warning
+        if (hoursUntilExpiry < 2 && hoursUntilExpiry > 0) {
+          console.warn(`⚠️ Identity Center credentials expire in ${Math.round(hoursUntilExpiry * 60)} minutes`);
+          console.warn('🔔 Consider refreshing credentials in Operations Panel soon');
+        }
+        
+        // If less than 30 minutes until expiry, force reinitialize
+        if (hoursUntilExpiry < 0.5 && hoursUntilExpiry > 0) {
+          console.warn('🚨 URGENT: Credentials expire in less than 30 minutes - attempting refresh');
+          try {
+            await this.reinitialize();
+          } catch (refreshError) {
+            console.error('❌ Automatic refresh failed:', refreshError.message);
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Proactive refresh check failed:', error.message);
+      }
+    }, 15 * 60 * 1000); // Check every 15 minutes
+    
+    console.log('⏰ Proactive credential refresh timer started (15-minute intervals)');
   }
 }
 
