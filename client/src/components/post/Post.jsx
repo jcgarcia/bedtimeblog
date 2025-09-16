@@ -25,10 +25,10 @@ export default function Post({ post }) {
 
   // Extract tags from categories or meta data
   const getTags = () => {
-    // For now, we'll use status and visibility as tags since there's no tags field
     const tags = [];
     if (post?.status) tags.push(post.status);
     if (post?.visibility) tags.push(post.visibility);
+    if (post?.category_name) tags.push(post.category_name);
     return tags;
   };
 

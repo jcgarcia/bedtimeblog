@@ -151,7 +151,7 @@ export default function SinglePost() {
     const tags = [];
     if (post?.status) tags.push(post.status);
     if (post?.visibility) tags.push(post.visibility);
-    if (post?.category_id) tags.push(`Category ${post.category_id}`);
+    if (post?.category_name) tags.push(post.category_name);
     return tags;
   };
 
