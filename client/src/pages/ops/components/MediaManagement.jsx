@@ -1159,14 +1159,14 @@ export default function MediaManagement() {
 
                       {/* Credential Status Card */}
                       {credentialStatus && (
-                        <div className="debug-info" style={{backgroundColor: credentialStatus.isExpired ? '#ffe6e6' : credentialStatus.isNearExpiry ? '#fff3cd' : '#e6ffe6'}}>
+                        <div className="debug-info" style={{backgroundColor: !credentialStatus.credentialsValid ? '#ffe6e6' : credentialStatus.statusLevel === 'WARNING' ? '#fff3cd' : '#e6ffe6'}}>
                           <strong>🔑 Credential Status:</strong><br/>
-                          • Status: <span style={{color: credentialStatus.isExpired ? 'red' : credentialStatus.isNearExpiry ? 'orange' : 'green'}}>
-                            {credentialStatus.isExpired ? 'EXPIRED ❌' : credentialStatus.isNearExpiry ? 'EXPIRING SOON ⚠️' : 'VALID ✅'}
+                          • Status: <span style={{color: !credentialStatus.credentialsValid ? 'red' : credentialStatus.statusLevel === 'WARNING' ? 'orange' : 'green'}}>
+                            {!credentialStatus.credentialsValid ? 'EXPIRED ❌' : credentialStatus.statusLevel === 'WARNING' ? 'EXPIRING SOON ⚠️' : 'VALID ✅'}
                           </span><br/>
-                          {credentialStatus.timeUntilExpiryMinutes !== null && (
-                            <>• Time left: <span style={{color: credentialStatus.isNearExpiry ? 'orange' : 'green'}}>
-                              {credentialStatus.timeUntilExpiryMinutes > 0 ? `${credentialStatus.timeUntilExpiryMinutes} minutes` : 'Expired'}
+                          {credentialStatus.error && (
+                            <>• Error: <span style={{color: 'red', fontSize: '0.9em'}}>
+                              {credentialStatus.error}
                             </span><br/></>
                           )}
                           • Auto-refresh: <span style={{color: credentialStatus.autoRefresh ? 'green' : 'red'}}>
