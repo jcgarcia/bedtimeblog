@@ -319,9 +319,16 @@ export const deletePost = async (req, res) => {
 export const updatePost = async (req, res) => {
   const pool = getDbPool();
   
+  console.log('🔍 updatePost called for post ID:', req.params.id);
+  console.log('🍪 Cookies:', req.cookies);
+  console.log('🔑 Auth header:', req.headers.authorization);
+  
   // Check for token in both cookie and Authorization header
   const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
+  console.log('🎫 Token found:', !!token);
+  
   if (!token) {
+    console.log('❌ No token found, returning 401');
     return res.status(401).json("Not authenticated!");
   }
   
