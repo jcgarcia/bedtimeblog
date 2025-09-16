@@ -1065,6 +1065,27 @@ export const getAWSCredentialStatus = async (req, res) => {
 export const refreshAWSCredentials = async (req, res) => {
   try {
     console.log('🔄 Manual credential refresh requested');
+    
+    // Check if we have current credential status
+    const status = await credentialManager.getStatus();
+    
+    // If credentials are expired or about to expire, we need fresh Identity Center credentials
+    if (!status.credentialsValid || (status.timeUntilExpiryMinutes && status.timeUntilExpiryMinutes < 60)) {
+      return res.json({
+        success: false,
+        requiresNewCredentials: true,
+        message: 'Identity Center credentials have expired. Please obtain fresh credentials from AWS Identity Center portal and update the configuration.',
+        action: 'MANUAL_UPDATE_REQUIRED',
+        instructions: [
+          '1. Go to AWS Identity Center portal',
+          '2. Get fresh credentials (Access Key ID, Secret Access Key, Session Token)',
+          '3. Update the credentials in the Operations Panel',
+          '4. Test connection and save configuration'
+        ]
+      });
+    }
+    
+    // Only reinitialize if credentials are still valid
     await credentialManager.reinitialize();
     
     // Test the refreshed credentials

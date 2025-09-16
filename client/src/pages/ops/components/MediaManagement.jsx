@@ -334,13 +334,18 @@ export default function MediaManagement() {
         }
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         alert('✅ AWS credentials refreshed successfully! You can now test the connection.');
         // Update credential status after refresh
         await fetchCredentialStatus();
+      } else if (result.requiresNewCredentials) {
+        // Show detailed instructions for getting fresh credentials
+        const instructions = result.instructions.join('\n');
+        alert(`🔄 ${result.message}\n\nRequired Actions:\n${instructions}\n\nAfter obtaining fresh credentials, paste them into the form above and click "Save Configuration".`);
       } else {
-        const error = await response.json();
-        alert(`❌ Failed to refresh credentials: ${error.message}`);
+        alert(`❌ Failed to refresh credentials: ${result.message}`);
       }
     } catch (error) {
       console.error('Error refreshing credentials:', error);
@@ -1172,6 +1177,24 @@ export default function MediaManagement() {
                           • Auto-refresh: <span style={{color: credentialStatus.autoRefresh ? 'green' : 'red'}}>
                             {credentialStatus.autoRefresh ? 'ACTIVE ✅' : 'INACTIVE ❌'}
                           </span>
+                        </div>
+                      )}
+
+                      {/* Credentials Expired Warning */}
+                      {credentialStatus && !credentialStatus.credentialsValid && (
+                        <div className="debug-info" style={{backgroundColor: '#ffebee', border: '2px solid #f44336', borderRadius: '8px', padding: '15px', margin: '10px 0'}}>
+                          <strong style={{color: '#d32f2f'}}>⚠️ ACTION REQUIRED: Credentials Expired</strong><br/>
+                          <p style={{margin: '10px 0', fontSize: '14px'}}>
+                            AWS Identity Center credentials expire every 12 hours and cannot be automatically renewed. 
+                            You need to get fresh credentials from the AWS Identity Center portal.
+                          </p>
+                          <div style={{backgroundColor: '#fff', padding: '10px', borderRadius: '4px', margin: '10px 0'}}>
+                            <strong>Steps to fix:</strong><br/>
+                            1. Go to AWS Identity Center portal<br/>
+                            2. Copy the new Access Key ID, Secret Access Key, and Session Token<br/>
+                            3. Paste them into the fields above<br/>
+                            4. Click "Test Connection" then "Save Configuration"
+                          </div>
                         </div>
                       )}
 
