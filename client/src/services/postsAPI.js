@@ -172,6 +172,23 @@ export const categoriesAPI = {
       };
     }
   },
+
+  // Create a new category
+  createCategory: async (categoryData) => {
+    try {
+      const response = await api.post('/categories', categoryData);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error creating category:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.response?.data || 'Failed to create category'
+      };
+    }
+  },
 };
 
 // Upload API

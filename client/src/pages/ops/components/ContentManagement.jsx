@@ -1,30 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
-import { postsAPI } from '../../../services/postsAPI';
+import { postsAPI, categoriesAPI } from '../../../services/postsAPI';
 import { useAdmin } from '../../../contexts/AdminContext';
 import './ContentManagement.css';
 
 export default function ContentManagement() {
   const { isAdmin, adminUser } = useAdmin();
   const [posts, setPosts] = useState([]);
-  const [categories, setCategories] = useState([
-    { id: 1, name: 'Technology', slug: 'technology', post_count: 7 },
-    { id: 2, name: 'Lifestyle', slug: 'lifestyle', post_count: 0 },
-    { id: 3, name: 'Tutorial', slug: 'tutorial', post_count: 0 },
-    { id: 4, name: 'News', slug: 'news', post_count: 0 },
-    { id: 5, name: 'Review', slug: 'review', post_count: 0 }
-  ]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('posts');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: '', slug: '' });
+  const [newCategory, setNewCategory] = useState({ name: '', slug: '', description: '' });
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchPosts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesAPI.getCategories();
+      if (response.success) {
+        setCategories(response.data);
+      } else {
+        console.error('Failed to fetch categories:', response.error);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -63,17 +71,27 @@ export default function ContentManagement() {
     }
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (newCategory.name && newCategory.slug) {
-      const category = {
-        id: Date.now(),
-        name: newCategory.name,
-        slug: newCategory.slug,
-        post_count: 0
-      };
-      setCategories([...categories, category]);
-      setNewCategory({ name: '', slug: '' });
-      setShowAddForm(false);
+      try {
+        const response = await categoriesAPI.createCategory({
+          name: newCategory.name,
+          description: newCategory.description || ''
+        });
+        
+        if (response.success) {
+          // Add the new category to the local state
+          setCategories([...categories, response.data.category]);
+          setNewCategory({ name: '', slug: '', description: '' });
+          setShowAddForm(false);
+          alert('Category created successfully!');
+        } else {
+          alert(`Failed to create category: ${response.error}`);
+        }
+      } catch (error) {
+        console.error('Error creating category:', error);
+        alert('Error creating category. Please try again.');
+      }
     }
   };
 
