@@ -5,31 +5,38 @@ import jwt from "jsonwebtoken";
 export const getDefaultCategoryId = async () => {
   const pool = getDbPool();
   try {
-    // First, try to find existing default category
+    // First, try to find existing default category with ID 0
     let result = await pool.query(
-      "SELECT id FROM categories WHERE slug = 'general' AND is_active = true ORDER BY id ASC LIMIT 1"
+      "SELECT id FROM categories WHERE id = 0 AND is_active = true LIMIT 1"
     );
     
     if (result.rows.length > 0) {
-      return result.rows[0].id;
+      return 0;
     }
     
-    // If no default category exists, create one
-    console.log('Creating default "General" category...');
+    // If no default category exists, create one with ID 0
+    console.log('Creating default "Jumble" category with ID 0...');
     const insertResult = await pool.query(`
-      INSERT INTO categories (name, slug, description, color, sort_order, is_active, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO categories (id, name, slug, description, color, sort_order, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET 
+        name = EXCLUDED.name,
+        slug = EXCLUDED.slug,
+        description = EXCLUDED.description,
+        is_active = true,
+        updated_at = CURRENT_TIMESTAMP
       RETURNING id
     `, [
-      'General',
-      'general', 
+      0,
+      'Jumble',
+      'jumble', 
       'Default category for uncategorized posts',
       '#6B7280', // Gray color
       0 // Highest priority sort order
     ]);
     
-    console.log('Default category created with ID:', insertResult.rows[0].id);
-    return insertResult.rows[0].id;
+    console.log('Default category "Jumble" ensured with ID:', insertResult.rows[0].id);
+    return 0;
     
   } catch (error) {
     console.error('Error getting/creating default category:', error);
