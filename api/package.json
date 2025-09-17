@@ -16,6 +16,7 @@
     "@aws-sdk/client-sso": "^3.600.0",
     "@aws-sdk/client-sso-oidc": "^3.600.0",
     "@aws-sdk/client-sts": "^3.600.0",
+    "@aws-sdk/credential-provider-sso": "^3.600.0",
     "@aws-sdk/credential-providers": "^3.600.0",
     "@aws-sdk/s3-request-presigner": "^3.600.0",
     "argon2": "^0.43.1",
