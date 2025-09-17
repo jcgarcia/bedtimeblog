@@ -122,29 +122,44 @@ class AwsSsoRefreshService {
     
     try {
       console.log('🔄 Refreshing AWS SSO credentials...');
+      console.log(`📋 Using SSO: ${config.ssoStartUrl}, Account: ${config.accountId}, Role: ${config.roleName}`);
       
-      // Use AWS SDK credential provider for SSO
-      const credentials = await fromSSO({
-        profile: 'blog-media', // We'll create this profile
-        region: config.ssoRegion || 'eu-west-2',
+      // Create SSO credential provider with proper configuration
+      const ssoCredentialProvider = fromSSO({
+        ssoStartUrl: config.ssoStartUrl,
+        ssoRegion: config.ssoRegion || 'eu-west-2',
         ssoAccountId: config.accountId,
         ssoRoleName: config.roleName,
-        ssoRegion: config.ssoRegion || 'eu-west-2',
-        ssoStartUrl: config.ssoStartUrl
-      })();
+        clientName: 'bedtime-blog-media-client'
+      });
 
-      // Calculate expiration time (typically 12 hours for SSO credentials)
+      // Get fresh credentials from AWS SSO
+      const credentials = await ssoCredentialProvider();
+      
+      console.log('✅ Received fresh SSO credentials');
+      console.log(`📅 Credentials expire at: ${credentials.expiration ? credentials.expiration.toISOString() : 'Unknown'}`);
+
+      // Calculate proper expiration time from AWS response or default to 1 hour
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + (12 * 60 * 60 * 1000)); // 12 hours from now
+      let expiresAt;
+      
+      if (credentials.expiration) {
+        expiresAt = credentials.expiration;
+      } else {
+        // Fallback: assume 1 hour expiration for SSO temporary credentials
+        expiresAt = new Date(now.getTime() + (60 * 60 * 1000)); // 1 hour from now
+        console.log('⚠️ No expiration provided by AWS, using 1-hour default');
+      }
 
-      // Update configuration with new credentials
+      // Update configuration with new temporary credentials
       const updatedConfig = {
         ...config,
         accessKey: credentials.accessKeyId,
         secretKey: credentials.secretAccessKey,
         sessionToken: credentials.sessionToken,
         expiresAt: expiresAt.toISOString(),
-        lastRefresh: now.toISOString()
+        lastRefresh: now.toISOString(),
+        credentialSource: 'aws-sso-temporary'
       };
 
       // Save to database
@@ -154,24 +169,30 @@ class AwsSsoRefreshService {
         [JSON.stringify(updatedConfig)]
       );
 
-      console.log('✅ AWS SSO credentials refreshed successfully');
-      console.log(`ℹ️ New credentials expire at: ${expiresAt.toISOString()}`);
+      console.log('✅ AWS SSO credentials refreshed and saved successfully');
+      console.log(`ℹ️ New temporary credentials expire at: ${expiresAt.toISOString()}`);
       
       return {
         success: true,
         expiresAt: expiresAt.toISOString(),
-        message: 'Credentials refreshed successfully'
+        accessKeyId: credentials.accessKeyId,
+        source: 'aws-sso-temporary',
+        message: 'Temporary SSO credentials refreshed successfully'
       };
       
     } catch (error) {
       console.error('❌ Failed to refresh AWS SSO credentials:', error);
       
-      // If SSO requires re-authentication, provide helpful error
-      if (error.message.includes('token') || error.message.includes('login')) {
-        throw new Error('SSO session expired. Please run "aws sso login" on the server or provide fresh credentials manually.');
+      // Provide helpful error messages for common SSO issues
+      if (error.message.includes('token') || error.message.includes('expired')) {
+        throw new Error('SSO session expired. Please run "aws sso login" on the server or re-authenticate with AWS SSO.');
+      } else if (error.message.includes('profile') || error.message.includes('config')) {
+        throw new Error('AWS SSO configuration error. Please ensure the SSO settings are correct.');
+      } else if (error.message.includes('UnauthorizedOperation') || error.message.includes('AccessDenied')) {
+        throw new Error('SSO role access denied. Please verify the account ID and role name are correct.');
       }
       
-      throw error;
+      throw new Error(`SSO credential refresh failed: ${error.message}`);
     } finally {
       this.isRefreshing = false;
     }

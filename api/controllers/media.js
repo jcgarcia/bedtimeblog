@@ -1064,43 +1064,51 @@ export const getAWSCredentialStatus = async (req, res) => {
 
 export const refreshAWSCredentials = async (req, res) => {
   try {
-    console.log('🔄 Manual credential refresh requested');
+    console.log('🔄 Manual credential refresh requested via media route');
     
-    // Check if we have current credential status
-    const status = await credentialManager.getStatus();
+    // Use the new AWS SSO service for credential refresh
+    const awsSsoRefreshService = (await import('../services/awsSsoRefreshService.js')).default;
+    const result = await awsSsoRefreshService.manualRefresh();
     
-    // If credentials are expired or about to expire, we need fresh Identity Center credentials
-    if (!status.credentialsValid || (status.timeUntilExpiryMinutes && status.timeUntilExpiryMinutes < 60)) {
-      return res.json({
+    return res.json({
+      success: true,
+      message: result.message,
+      expiresAt: result.expiresAt,
+      source: result.source || 'aws-sso-temporary',
+      refreshedAt: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Manual credential refresh failed:', error);
+    
+    // Return proper error response based on error type
+    if (error.message.includes('SSO') || error.message.includes('sso')) {
+      return res.status(400).json({
         success: false,
-        requiresNewCredentials: true,
-        message: 'Identity Center credentials have expired. Please obtain fresh credentials from AWS Identity Center portal and update the configuration.',
-        action: 'MANUAL_UPDATE_REQUIRED',
+        requiresNewCredentials: false,
+        message: error.message,
+        action: 'SSO_CONFIGURATION_ERROR',
         instructions: [
-          '1. Go to AWS Identity Center portal',
-          '2. Get fresh credentials (Access Key ID, Secret Access Key, Session Token)',
-          '3. Update the credentials in the Operations Panel',
-          '4. Test connection and save configuration'
+          '1. Verify SSO configuration is complete in the Operations Panel',
+          '2. Ensure SSO Start URL, Account ID, and Role Name are correct',
+          '3. Check that AWS SSO session is active',
+          '4. Try refreshing the page and attempting again'
         ]
       });
     }
     
-    // Only reinitialize if credentials are still valid
-    await credentialManager.reinitialize();
-    
-    // Test the refreshed credentials
-    const testResult = await credentialManager.testCredentials();
-    
-    res.json({ 
-      success: true, 
-      message: 'AWS credential provider reinitialized successfully',
-      test: testResult
-    });
-  } catch (error) {
-    console.error('Error refreshing credentials:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: `Failed to refresh credentials: ${error.message}` 
+    return res.status(500).json({
+      success: false,
+      requiresNewCredentials: true,
+      message: 'AWS SSO credential refresh failed. Please check configuration.',
+      action: 'CHECK_CONFIGURATION',
+      error: error.message,
+      instructions: [
+        '1. Verify AWS SSO configuration in the Operations Panel',
+        '2. Ensure all SSO fields are properly filled',
+        '3. Check server logs for detailed error information',
+        '4. Contact administrator if problem persists'
+      ]
     });
   }
 };
