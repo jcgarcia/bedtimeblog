@@ -3,7 +3,6 @@ import { SSOOIDCClient, CreateTokenCommand } from "@aws-sdk/client-sso-oidc";
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
-import { pool } from '../db.js';
 import { getDbPool } from '../db.js';
 
 class AwsSsoRefreshService {
