@@ -317,6 +317,9 @@ export const deletePost = async (req, res) => {
 };
 
 export const updatePost = async (req, res) => {
+  console.log('🔄 [DEBUG] updatePost called - ID:', req.params.id);
+  console.log('🔄 [DEBUG] Request body keys:', Object.keys(req.body));
+  
   const pool = getDbPool();
   
   // Check for token in both cookie and Authorization header
@@ -326,14 +329,20 @@ export const updatePost = async (req, res) => {
   }
   
   try {
+    console.log('🔄 [DEBUG] Starting JWT verification...');
     const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    console.log('✅ [DEBUG] JWT verified - User ID:', userInfo.id, 'Role:', userInfo.role);
+    
     const postId = req.params.id;
     
+    console.log('🔄 [DEBUG] Fetching current post...');
     // Get current post to check if title is changing
     const currentPost = await pool.query('SELECT title, slug FROM posts WHERE id = $1', [postId]);
     if (currentPost.rows.length === 0) {
+      console.log('❌ [DEBUG] Post not found');
       return res.status(404).json("Post not found!");
     }
+    console.log('✅ [DEBUG] Current post found:', currentPost.rows[0].title);
     
     let slug = currentPost.rows[0].slug; // Keep existing slug by default
     
@@ -405,7 +414,9 @@ export const updatePost = async (req, res) => {
       ];
     }
     
+    console.log('🔄 [DEBUG] Executing SQL update with values:', values);
     const result = await pool.query(q, values);
+    console.log('✅ [DEBUG] SQL executed successfully, rows affected:', result.rowCount);
     
     if (result.rowCount === 0) {
       if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
@@ -415,12 +426,15 @@ export const updatePost = async (req, res) => {
       }
     }
     
+    console.log('✅ [DEBUG] Post updated successfully, sending response');
     return res.json({ message: "Post has been updated.", post: result.rows[0] });
   } catch (err) {
+    console.error('❌ [DEBUG] updatePost error:', err.message);
+    console.error('❌ [DEBUG] Error stack:', err.stack);
     if (err.name === 'JsonWebTokenError') {
       return res.status(403).json("Token is not valid!");
     }
     console.error('Database error in updatePost:', err);
-    return res.status(500).json({ error: 'Failed to update post' });
+    return res.status(500).json({ error: 'Failed to update post', details: err.message });
   }
 };
