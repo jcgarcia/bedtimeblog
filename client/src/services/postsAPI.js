@@ -144,8 +144,21 @@ ${postData.content || postData.desc || description}`;
   },
 
   // Update existing post
-  updatePost: (id, postData) => {
-    return api.put(`/posts/${id}`, postData);
+  updatePost: async (id, postData) => {
+    try {
+      const response = await api.put(`/posts/${id}`, postData);
+      return {
+        success: true,
+        data: response.data,
+        message: response.data.message || 'Post updated successfully'
+      };
+    } catch (error) {
+      console.error('Error updating post:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to update post'
+      };
+    }
   },
 
   // Delete post
