@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # Test AWS SSO credential extraction
-# This is a simplified version to verify the approach works
+echo "🔍 Testing AWS SSO credential extraction for Blog..."
 
-echo "🔍 Testing AWS SSO credential extraction..."
+# Blog AWS configuration
+ACCOUNT_ID="007041844937"
+ROLE_NAME="BlogMediaLibraryAccess" 
+REGION="eu-west-2"
 
 # Check if AWS CLI is available
 if ! command -v aws &> /dev/null; then

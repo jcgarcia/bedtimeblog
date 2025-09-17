@@ -1,16 +1,21 @@
 import express from 'express';
-import AwsCredentialRefreshService from '../services/awsCredentialRefreshService.js';
+import awsSsoRefreshService from '../services/awsSsoRefreshService.js';
+
 const router = express.Router();
 
-// Manual credential refresh endpoint
+/**
+ * POST /api/aws/refresh-credentials
+ * Manually trigger credential refresh
+ */
 router.post('/refresh-credentials', async (req, res) => {
   try {
-    const refreshService = new AwsCredentialRefreshService();
-    await refreshService.refresh();
+    console.log('🔄 Manual AWS SSO credential refresh requested');
+    const result = await awsSsoRefreshService.manualRefresh();
     
     res.json({
       success: true,
-      message: 'AWS credentials refreshed successfully'
+      message: result.message,
+      expiresAt: result.expiresAt
     });
   } catch (error) {
     console.error('Manual credential refresh failed:', error);
@@ -21,16 +26,16 @@ router.post('/refresh-credentials', async (req, res) => {
   }
 });
 
-// Check if credentials need refresh
+/**
+ * GET /api/aws/credential-status
+ * Get current AWS credential status
+ */
 router.get('/credential-status', async (req, res) => {
   try {
-    const refreshService = new AwsCredentialRefreshService();
-    const needsRefresh = await refreshService.needsRefresh();
-    
+    const status = await awsSsoRefreshService.getCredentialStatus();
     res.json({
       success: true,
-      needsRefresh,
-      message: needsRefresh ? 'Credentials need refresh' : 'Credentials are valid'
+      ...status
     });
   } catch (error) {
     console.error('Failed to check credential status:', error);
@@ -41,21 +46,77 @@ router.get('/credential-status', async (req, res) => {
   }
 });
 
-// Auto-refresh endpoint (can be called by cron)
+/**
+ * POST /api/aws/auto-refresh
+ * Auto-refresh endpoint (can be called by cron or manually)
+ */
 router.post('/auto-refresh', async (req, res) => {
   try {
-    const refreshService = new AwsCredentialRefreshService();
-    const refreshed = await refreshService.autoRefresh();
+    const status = await awsSsoRefreshService.getCredentialStatus();
     
-    res.json({
-      success: true,
-      refreshed,
-      message: refreshed ? 'Credentials refreshed' : 'No refresh needed'
-    });
+    if (status.status === 'expired' || status.status === 'expiring_soon') {
+      const result = await awsSsoRefreshService.manualRefresh();
+      res.json({
+        success: true,
+        refreshed: true,
+        message: 'Credentials refreshed successfully',
+        expiresAt: result.expiresAt
+      });
+    } else {
+      res.json({
+        success: true,
+        refreshed: false,
+        message: 'No refresh needed - credentials still valid',
+        timeRemaining: status.timeRemaining
+      });
+    }
   } catch (error) {
     console.error('Auto-refresh failed:', error);
     res.status(500).json({
       success: false,
+      refreshed: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/aws/start-monitoring
+ * Start automatic credential refresh monitoring
+ */
+router.post('/start-monitoring', async (req, res) => {
+  try {
+    await awsSsoRefreshService.startAutoRefresh();
+    res.json({
+      success: true,
+      message: 'AWS SSO auto-refresh monitoring started successfully'
+    });
+  } catch (error) {
+    console.error('Error starting auto-refresh:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to start auto-refresh monitoring',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/aws/stop-monitoring
+ * Stop automatic credential refresh monitoring
+ */
+router.post('/stop-monitoring', (req, res) => {
+  try {
+    awsSsoRefreshService.stopAutoRefresh();
+    res.json({
+      success: true,
+      message: 'AWS SSO auto-refresh monitoring stopped successfully'
+    });
+  } catch (error) {
+    console.error('Error stopping auto-refresh:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to stop auto-refresh monitoring',
       error: error.message
     });
   }
