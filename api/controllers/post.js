@@ -3,6 +3,42 @@ import jwt from "jsonwebtoken";
 import { getS3Client } from "./media.js";
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { getDefaultCategoryId } from "./category.js";
+
+// Helper function to get valid category ID
+async function getCategoryIdForPost(categoryInput) {
+  const pool = getDbPool();
+  
+  // If no category provided, use default
+  if (!categoryInput || categoryInput === '' || categoryInput === 'null') {
+    return await getDefaultCategoryId();
+  }
+  
+  // If category provided, validate it exists
+  try {
+    const categoryId = parseInt(categoryInput);
+    if (isNaN(categoryId)) {
+      console.warn('Invalid category ID provided:', categoryInput, 'Using default category');
+      return await getDefaultCategoryId();
+    }
+    
+    // Check if category exists and is active
+    const result = await pool.query(
+      'SELECT id FROM categories WHERE id = $1 AND is_active = true', 
+      [categoryId]
+    );
+    
+    if (result.rows.length === 0) {
+      console.warn('Category ID', categoryId, 'not found or inactive. Using default category');
+      return await getDefaultCategoryId();
+    }
+    
+    return categoryId;
+  } catch (error) {
+    console.error('Error validating category ID:', error);
+    return await getDefaultCategoryId();
+  }
+}
 
 // Helper function to resolve media ID to signed URL
 async function resolveMediaUrl(mediaId) {
@@ -245,6 +281,9 @@ export const addPost = async (req, res) => {
       }
     }
     
+    // Get valid category ID (with fallback to default)
+    const categoryId = await getCategoryIdForPost(req.body.cat);
+    
     const q = `
       INSERT INTO posts(title, slug, content, featured_image, category_id, author_id, status, published_at) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
@@ -256,7 +295,7 @@ export const addPost = async (req, res) => {
       slug,
       req.body.desc,  // This maps to content column
       req.body.img,   // This maps to featured_image column
-      req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null,   // This maps to category_id column
+      categoryId,     // Use validated category ID
       userInfo.id,    // This maps to author_id column
       req.body.status || 'draft',
       req.body.status === 'published' ? new Date() : null
@@ -377,6 +416,9 @@ export const updatePost = async (req, res) => {
       slug = newSlug;
     }
     
+    // Get valid category ID (with fallback to default)
+    const categoryId = await getCategoryIdForPost(req.body.cat);
+    
     // Allow super_admin to edit any post, others can only edit their own posts
     let q, values;
     if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
@@ -391,7 +433,7 @@ export const updatePost = async (req, res) => {
         slug, 
         req.body.content || req.body.desc, 
         req.body.img, 
-        req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null, 
+        categoryId,  // Use validated category ID
         req.body.status,
         postId
       ];
@@ -407,7 +449,7 @@ export const updatePost = async (req, res) => {
         slug, 
         req.body.content || req.body.desc, 
         req.body.img, 
-        req.body.cat && req.body.cat !== '' ? parseInt(req.body.cat) : null, 
+        categoryId,  // Use validated category ID
         req.body.status,
         postId, 
         userInfo.id

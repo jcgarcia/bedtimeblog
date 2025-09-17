@@ -1,6 +1,43 @@
 import { getDbPool } from "../db.js";
 import jwt from "jsonwebtoken";
 
+// Helper function to get or create default category
+export const getDefaultCategoryId = async () => {
+  const pool = getDbPool();
+  try {
+    // First, try to find existing default category
+    let result = await pool.query(
+      "SELECT id FROM categories WHERE slug = 'general' AND is_active = true ORDER BY id ASC LIMIT 1"
+    );
+    
+    if (result.rows.length > 0) {
+      return result.rows[0].id;
+    }
+    
+    // If no default category exists, create one
+    console.log('Creating default "General" category...');
+    const insertResult = await pool.query(`
+      INSERT INTO categories (name, slug, description, color, sort_order, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      RETURNING id
+    `, [
+      'General',
+      'general', 
+      'Default category for uncategorized posts',
+      '#6B7280', // Gray color
+      0 // Highest priority sort order
+    ]);
+    
+    console.log('Default category created with ID:', insertResult.rows[0].id);
+    return insertResult.rows[0].id;
+    
+  } catch (error) {
+    console.error('Error getting/creating default category:', error);
+    // If we can't create default category, return null and let the post be saved without category
+    return null;
+  }
+};
+
 export const getCategories = async (req, res) => {
   const pool = getDbPool();
   try {
