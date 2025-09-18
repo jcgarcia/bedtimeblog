@@ -457,98 +457,89 @@ class AWSCredentialManager {
   }
 
   /**
-   * Initialize AWS SSO session using device authorization flow
-   * This is needed when SSO session is invalid and needs to be established
+   * Initialize AWS SSO session using stored configuration
+   * This attempts to use the existing SSO configuration to establish a session
    */
   async initializeSSOSession() {
     try {
-      console.log('🔑 Initializing AWS SSO session using device authorization flow...');
+      console.log('🔑 Attempting to establish AWS SSO session...');
       
       const config = await this.getStoredAWSConfig();
-      if (!config || !config.ssoStartUrl || !config.ssoRegion) {
-        throw new Error('SSO configuration incomplete. Missing ssoStartUrl or ssoRegion.');
+      if (!config || !config.ssoStartUrl || !config.ssoRegion || !config.ssoAccountId || !config.ssoRoleName) {
+        throw new Error('SSO configuration incomplete. Missing required SSO parameters.');
       }
 
-      // Create SSO OIDC client for device authorization
-      const ssoOidcClient = new SSOOIDCClient({ 
-        region: config.ssoRegion 
+      console.log('✅ SSO configuration found:', {
+        startUrl: config.ssoStartUrl,
+        region: config.ssoRegion,
+        accountId: config.ssoAccountId,
+        roleName: config.ssoRoleName
       });
 
-      // Step 1: Start device authorization
-      console.log('📱 Starting device authorization...');
-      const startDeviceAuthCommand = new StartDeviceAuthorizationCommand({
-        clientId: 'bedtime-blog-media',
-        clientType: 'public',
-        startUrl: config.ssoStartUrl
-      });
-
-      const deviceAuthResponse = await ssoOidcClient.send(startDeviceAuthCommand);
+      // Try to initialize the credential provider with SSO
+      await this.initializeCredentialProvider();
       
-      // Return instructions for user to complete authorization
-      return {
-        success: true,
-        action: 'USER_AUTHORIZATION_REQUIRED',
-        deviceCode: deviceAuthResponse.deviceCode,
-        userCode: deviceAuthResponse.userCode,
-        verificationUri: deviceAuthResponse.verificationUri,
-        verificationUriComplete: deviceAuthResponse.verificationUriComplete,
-        expiresIn: deviceAuthResponse.expiresIn,
-        interval: deviceAuthResponse.interval,
-        instructions: [
-          `1. Open this URL in your browser: ${deviceAuthResponse.verificationUriComplete || deviceAuthResponse.verificationUri}`,
-          `2. Enter this code when prompted: ${deviceAuthResponse.userCode}`,
-          `3. Sign in with your AWS SSO credentials`,
-          `4. Return here and click "Complete SSO Setup" after authorization`
-        ]
-      };
+      // Test if credentials are working
+      const credentials = await this.credentialProvider();
+      if (credentials && credentials.accessKeyId) {
+        console.log('✅ SSO session established successfully');
+        return {
+          success: true,
+          message: 'SSO session established successfully',
+          action: 'SSO_SESSION_ACTIVE'
+        };
+      } else {
+        throw new Error('SSO session could not be established - credentials not available');
+      }
 
     } catch (error) {
-      console.error('❌ Failed to initialize SSO session:', error.message);
-      throw new Error(`SSO session initialization failed: ${error.message}`);
+      console.error('❌ SSO session establishment failed:', error.message);
+      
+      // Return user-friendly instructions for manual SSO setup
+      return {
+        success: false,
+        action: 'MANUAL_SSO_REQUIRED',
+        message: 'SSO session needs to be established manually on the server',
+        instructions: [
+          'The AWS SSO session needs to be established on the server side.',
+          'This typically requires server-side AWS CLI configuration:',
+          '1. Run: aws configure sso',
+          '2. Use SSO Start URL: https://ingasti.awsapps.com/start/#',
+          '3. Use SSO Region: eu-west-2', 
+          '4. Select account: 007041844937',
+          '5. Select role: BlogMediaLibraryAccess',
+          'Alternative: Use temporary credentials from AWS Identity Center portal'
+        ],
+        technicalError: error.message
+      };
     }
   }
 
   /**
-   * Complete SSO setup after user has authorized the device
+   * Force refresh of SSO credentials
+   * This reinitializes the credential provider to pick up any changes
    */
-  async completeSSOSetup(deviceCode) {
+  async refreshSSOCredentials() {
     try {
-      console.log('🔄 Completing SSO setup...');
+      console.log('🔄 Refreshing SSO credentials...');
       
-      const config = await this.getStoredAWSConfig();
-      if (!config || !config.ssoRegion) {
-        throw new Error('SSO configuration incomplete.');
-      }
-
-      const ssoOidcClient = new SSOOIDCClient({ 
-        region: config.ssoRegion 
-      });
-
-      // Create token using device code
-      const createTokenCommand = new CreateTokenCommand({
-        clientId: 'bedtime-blog-media',
-        clientSecret: '', // Public client doesn't need secret
-        deviceCode: deviceCode,
-        grantType: 'urn:ietf:params:oauth:grant-type:device_code'
-      });
-
-      const tokenResponse = await ssoOidcClient.send(createTokenCommand);
+      // Clear current credential provider
+      this.credentialProvider = null;
+      this.isInitialized = false;
       
-      // Now we can use this token to establish the SSO session
-      console.log('✅ SSO token obtained successfully');
-      
-      // Reinitialize credential provider with new SSO session
+      // Reinitialize
       await this.initializeCredentialProvider();
       
+      console.log('✅ SSO credentials refreshed successfully');
       return {
         success: true,
-        message: 'SSO session established successfully',
-        action: 'SSO_SESSION_ACTIVE'
+        message: 'SSO credentials refreshed successfully',
+        action: 'CREDENTIALS_REFRESHED'
       };
-
+      
     } catch (error) {
-      console.error('❌ Failed to complete SSO setup:', error.message);
-      throw new Error(`SSO setup completion failed: ${error.message}`);
+      console.error('❌ Failed to refresh SSO credentials:', error.message);
+      throw new Error(`SSO credential refresh failed: ${error.message}`);
     }
   }
 }

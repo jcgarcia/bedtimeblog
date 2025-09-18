@@ -1725,7 +1725,7 @@ export const getSignedUrlForKey = async (req, res) => {
 };
 
 /**
- * Start AWS SSO session using device authorization flow
+ * Start AWS SSO session using stored configuration
  */
 export const startSSOSession = async (req, res) => {
   try {
@@ -1734,9 +1734,11 @@ export const startSSOSession = async (req, res) => {
     const result = await credentialManager.initializeSSOSession();
     
     res.json({
-      success: true,
-      message: 'SSO device authorization started',
-      ...result
+      success: result.success || false,
+      message: result.message,
+      action: result.action,
+      instructions: result.instructions,
+      technicalError: result.technicalError
     });
     
   } catch (error) {
@@ -1750,34 +1752,26 @@ export const startSSOSession = async (req, res) => {
 };
 
 /**
- * Complete AWS SSO session setup after user authorization
+ * Refresh SSO credentials
  */
 export const completeSSOSession = async (req, res) => {
   try {
-    console.log('🔄 Completing SSO session setup...');
+    console.log('🔄 Refreshing SSO credentials...');
     
-    const { deviceCode } = req.body;
-    if (!deviceCode) {
-      return res.status(400).json({
-        success: false,
-        message: 'Device code is required'
-      });
-    }
-    
-    const result = await credentialManager.completeSSOSetup(deviceCode);
+    const result = await credentialManager.refreshSSOCredentials();
     
     res.json({
       success: true,
-      message: 'SSO session established successfully',
-      ...result
+      message: result.message,
+      action: result.action
     });
     
   } catch (error) {
-    console.error('❌ Error completing SSO session:', error);
+    console.error('❌ Error refreshing SSO credentials:', error);
     res.status(500).json({
       success: false,
       message: error.message,
-      action: 'SSO_COMPLETION_ERROR'
+      action: 'SSO_REFRESH_ERROR'
     });
   }
 };
