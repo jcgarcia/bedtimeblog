@@ -55,9 +55,15 @@ export default function MediaManagement() {
     const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region;
     const hasRoleAuth = cloudConfig.aws.roleArn && cloudConfig.aws.externalId;
     const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
+    const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.ssoAccountId && cloudConfig.aws.ssoRoleName;
     
-    // Both role and keys are required - keys for initial auth, role for assumption
-    return hasBasicConfig && hasRoleAuth && hasKeyAuth;
+    if (cloudConfig.aws.authMethod === 'sso') {
+      // For SSO: only need basic config, role info, and SSO config
+      return hasBasicConfig && hasRoleAuth && hasSsoConfig;
+    } else {
+      // For manual credentials: need basic config, role info, and access keys
+      return hasBasicConfig && hasRoleAuth && hasKeyAuth;
+    }
   };
 
   useEffect(() => {
@@ -206,7 +212,7 @@ export default function MediaManagement() {
 
       if (response.ok) {
         const hasAccessKeys = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-        const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.accountId && cloudConfig.aws.roleName;
+        const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.ssoAccountId && cloudConfig.aws.ssoRoleName;
         const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
         const refreshStatus = hasSsoConfig && cloudConfig.aws.autoRefreshEnabled ? '✅ Auto-refresh enabled' : '⚠️ Auto-refresh not configured';
         
@@ -1149,10 +1155,10 @@ export default function MediaManagement() {
                       <label>Account ID:</label>
                       <input
                         type="text"
-                        value={cloudConfig.aws.accountId || ''}
+                        value={cloudConfig.aws.ssoAccountId || ''}
                         onChange={e => setCloudConfig(prev => ({
                           ...prev,
-                          aws: { ...prev.aws, accountId: e.target.value.trim() }
+                          aws: { ...prev.aws, ssoAccountId: e.target.value.trim() }
                         }))}
                         placeholder="007041844937"
                         pattern="[0-9]{12}"
@@ -1164,10 +1170,10 @@ export default function MediaManagement() {
                       <label>Role Name:</label>
                       <input
                         type="text"
-                        value={cloudConfig.aws.roleName || ''}
+                        value={cloudConfig.aws.ssoRoleName || ''}
                         onChange={e => setCloudConfig(prev => ({
                           ...prev,
-                          aws: { ...prev.aws, roleName: e.target.value.trim() }
+                          aws: { ...prev.aws, ssoRoleName: e.target.value.trim() }
                         }))}
                         placeholder="BlogMediaLibraryAccess"
                       />
