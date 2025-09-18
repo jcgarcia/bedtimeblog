@@ -196,6 +196,7 @@ export default function MediaManagement() {
         body: JSON.stringify({
           bucketName: cloudConfig.aws.bucketName,
           region: cloudConfig.aws.region,
+          authMethod: cloudConfig.aws.authMethod,
           roleArn: cloudConfig.aws.roleArn,
           externalId: cloudConfig.aws.externalId,
           accessKey: cloudConfig.aws.accessKey,
@@ -204,8 +205,8 @@ export default function MediaManagement() {
           // SSO Configuration for auto-refresh
           ssoStartUrl: cloudConfig.aws.ssoStartUrl,
           ssoRegion: cloudConfig.aws.ssoRegion,
-          accountId: cloudConfig.aws.accountId,
-          roleName: cloudConfig.aws.roleName,
+          ssoAccountId: cloudConfig.aws.ssoAccountId,
+          ssoRoleName: cloudConfig.aws.ssoRoleName,
           autoRefreshEnabled: cloudConfig.aws.autoRefreshEnabled
         }),
       });
@@ -213,7 +214,7 @@ export default function MediaManagement() {
       if (response.ok) {
         const hasAccessKeys = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
         const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.ssoAccountId && cloudConfig.aws.ssoRoleName;
-        const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
+        const authMethod = cloudConfig.aws.authMethod === 'sso' ? 'AWS SSO (Identity Center)' : hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
         const refreshStatus = hasSsoConfig && cloudConfig.aws.autoRefreshEnabled ? '✅ Auto-refresh enabled' : '⚠️ Auto-refresh not configured';
         
         alert(`✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Auto-refresh: ${refreshStatus}\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality${hasAccessKeys ? '\n⚠️ Note: Credentials will auto-refresh before expiration' : ''}`);
