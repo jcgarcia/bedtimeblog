@@ -1190,14 +1190,15 @@ export default function MediaManagement() {
                   </div>
                 </div>
                 
-                {/* Identity Center Credentials - Full Width Section */}
-                <div className="identity-center-credentials-section">
-                  <div className="auth-section-header">
-                    <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
-                    <small style={{ color: '#1976d2', fontWeight: '600' }}>
-                      ℹ️ Obtain these credentials from AWS Identity Center portal - refreshed automatically by AWS SDK
-                    </small>
-                  </div>
+                {/* Identity Center Credentials - Only show when NOT using pure SSO */}
+                {cloudConfig.aws.authMethod !== 'sso' && (
+                  <div className="identity-center-credentials-section">
+                    <div className="auth-section-header">
+                      <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
+                      <small style={{ color: '#1976d2', fontWeight: '600' }}>
+                        ℹ️ Obtain these credentials from AWS Identity Center portal - refreshed automatically by AWS SDK
+                      </small>
+                    </div>
                   <div className="access-key-grid">
                     <div className="config-field">
                       <label>Access Key ID (Required):</label>
@@ -1246,6 +1247,7 @@ export default function MediaManagement() {
                     <strong>🔑 Identity Center Authentication:</strong> All credentials obtained from AWS Identity Center portal → App assumes role → Gets fresh S3 access → User refreshes credentials from portal when expired
                   </div>
                 </div>
+                )}
                 
                 <div className="aws-config-sidebar">
                   {/* Configuration Status and Save Button */}
@@ -1259,9 +1261,20 @@ export default function MediaManagement() {
                         • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
                         • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
                         • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                        • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'red'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
-                        • Secret Key: <span style={{color: cloudConfig.aws.secretKey ? 'green' : 'red'}}>{cloudConfig.aws.secretKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
-                        • Session Token: <span style={{color: cloudConfig.aws.sessionToken ? 'green' : 'red'}}>{cloudConfig.aws.sessionToken ? 'SET ✅' : 'REQUIRED ❌'}</span>
+                        {cloudConfig.aws.authMethod === 'sso' ? (
+                          <>
+                            • Auth Method: <span style={{color: 'blue'}}>AWS SSO (Identity Center) 🔐</span><br/>
+                            • SSO Start URL: <span style={{color: cloudConfig.aws.ssoStartUrl ? 'green' : 'red'}}>{cloudConfig.aws.ssoStartUrl ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                            • Account ID: <span style={{color: cloudConfig.aws.ssoAccountId ? 'green' : 'red'}}>{cloudConfig.aws.ssoAccountId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                            • Role Name: <span style={{color: cloudConfig.aws.ssoRoleName ? 'green' : 'red'}}>{cloudConfig.aws.ssoRoleName ? 'SET ✅' : 'MISSING ❌'}</span>
+                          </>
+                        ) : (
+                          <>
+                            • Access Key: <span style={{color: cloudConfig.aws.accessKey ? 'green' : 'red'}}>{cloudConfig.aws.accessKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
+                            • Secret Key: <span style={{color: cloudConfig.aws.secretKey ? 'green' : 'red'}}>{cloudConfig.aws.secretKey ? 'SET ✅' : 'REQUIRED ❌'}</span><br/>
+                            • Session Token: <span style={{color: cloudConfig.aws.sessionToken ? 'green' : 'red'}}>{cloudConfig.aws.sessionToken ? 'SET ✅' : 'REQUIRED ❌'}</span>
+                          </>
+                        )}
                       </div>
 
                       {/* Credential Status Card */}
