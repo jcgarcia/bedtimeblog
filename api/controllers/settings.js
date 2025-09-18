@@ -524,7 +524,12 @@ export const updateAwsConfig = async (req, res) => {
       ssoStartUrl,
       ssoRegion,
       ssoAccountId,
-      ssoRoleName
+      ssoRoleName,
+      // Temporary Identity Center credentials
+      tempAccessKey,
+      tempSecretKey,
+      tempSessionToken,
+      tempExpiresAt
     } = req.body;
     
     // Trim all string inputs to prevent whitespace issues
@@ -540,6 +545,11 @@ export const updateAwsConfig = async (req, res) => {
     const trimmedSsoRegion = ssoRegion?.trim();
     const trimmedSsoAccountId = ssoAccountId?.trim();
     const trimmedSsoRoleName = ssoRoleName?.trim();
+    // Temporary credentials
+    const trimmedTempAccessKey = tempAccessKey?.trim();
+    const trimmedTempSecretKey = tempSecretKey?.trim();
+    const trimmedTempSessionToken = tempSessionToken?.trim();
+    const trimmedTempExpiresAt = tempExpiresAt?.trim();
     
     console.log('🔧 Trimmed values:', { 
       trimmedBucketName, 
@@ -553,13 +563,18 @@ export const updateAwsConfig = async (req, res) => {
       trimmedSsoStartUrl: trimmedSsoStartUrl ? 'SET' : 'MISSING',
       trimmedSsoRegion,
       trimmedSsoAccountId,
-      trimmedSsoRoleName: trimmedSsoRoleName ? 'SET' : 'MISSING'
+      trimmedSsoRoleName: trimmedSsoRoleName ? 'SET' : 'MISSING',
+      trimmedTempAccessKey: trimmedTempAccessKey ? 'SET' : 'MISSING',
+      trimmedTempSecretKey: trimmedTempSecretKey ? 'SET' : 'MISSING',
+      trimmedTempSessionToken: trimmedTempSessionToken ? 'SET' : 'MISSING',
+      trimmedTempExpiresAt
     });
     
     // Validate required fields based on authentication method
     const hasRoleAuth = trimmedRoleArn && trimmedExternalId;
     const hasKeyAuth = trimmedAccessKey && trimmedSecretKey;
     const hasSsoConfig = trimmedSsoStartUrl && trimmedSsoRegion && trimmedSsoAccountId && trimmedSsoRoleName;
+    const hasTempCredentials = trimmedTempAccessKey && trimmedTempSecretKey && trimmedTempSessionToken;
     
     if (!trimmedBucketName || !trimmedRegion) {
       return res.status(400).json({ 
@@ -570,14 +585,14 @@ export const updateAwsConfig = async (req, res) => {
     
     // Validate authentication method
     if (trimmedAuthMethod === 'sso') {
-      // For SSO authentication, we need SSO configuration
-      if (!hasSsoConfig) {
+      // For SSO authentication, we need either SSO configuration or temporary credentials
+      if (!hasSsoConfig && !hasTempCredentials) {
         return res.status(400).json({ 
           success: false, 
-          message: 'SSO configuration is incomplete. Required: SSO Start URL, SSO Region, Account ID, and Role Name' 
+          message: 'SSO configuration incomplete. Either provide SSO settings (Start URL, Region, Account ID, Role Name) or temporary Identity Center credentials' 
         });
       }
-      console.log('✅ Using AWS SSO authentication (no access keys required)');
+      console.log('✅ Using AWS SSO authentication:', hasTempCredentials ? 'with temporary credentials' : 'with SSO configuration');
     } else {
       // For other authentication methods, require role and access keys
       if (!hasRoleAuth) {
@@ -605,12 +620,24 @@ export const updateAwsConfig = async (req, res) => {
     };
     
     // Add SSO configuration if using SSO auth
-    if (trimmedAuthMethod === 'sso' && hasSsoConfig) {
-      awsConfig.ssoStartUrl = trimmedSsoStartUrl;
-      awsConfig.ssoRegion = trimmedSsoRegion;
-      awsConfig.ssoAccountId = trimmedSsoAccountId;
-      awsConfig.ssoRoleName = trimmedSsoRoleName;
-      console.log('✅ SSO configuration added to AWS config');
+    if (trimmedAuthMethod === 'sso') {
+      if (hasSsoConfig) {
+        awsConfig.ssoStartUrl = trimmedSsoStartUrl;
+        awsConfig.ssoRegion = trimmedSsoRegion;
+        awsConfig.ssoAccountId = trimmedSsoAccountId;
+        awsConfig.ssoRoleName = trimmedSsoRoleName;
+        console.log('✅ SSO configuration added to AWS config');
+      }
+      
+      if (hasTempCredentials) {
+        awsConfig.tempAccessKey = trimmedTempAccessKey;
+        awsConfig.tempSecretKey = trimmedTempSecretKey;
+        awsConfig.tempSessionToken = trimmedTempSessionToken;
+        if (trimmedTempExpiresAt) {
+          awsConfig.tempExpiresAt = trimmedTempExpiresAt;
+        }
+        console.log('✅ Temporary Identity Center credentials added to AWS config');
+      }
     }
     
     // Add role-based auth if provided

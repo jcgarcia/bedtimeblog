@@ -46,7 +46,12 @@ export default function MediaManagement() {
       ssoRegion: '',
       accountId: '',
       roleName: '',
-      autoRefreshEnabled: true
+      autoRefreshEnabled: true,
+      // Temporary Identity Center credentials
+      tempAccessKey: '',
+      tempSecretKey: '',
+      tempSessionToken: '',
+      tempExpiresAt: ''
     }
   });
 
@@ -56,10 +61,11 @@ export default function MediaManagement() {
     const hasRoleAuth = cloudConfig.aws.roleArn && cloudConfig.aws.externalId;
     const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
     const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.ssoAccountId && cloudConfig.aws.ssoRoleName;
+    const hasTempCredentials = cloudConfig.aws.tempAccessKey && cloudConfig.aws.tempSecretKey && cloudConfig.aws.tempSessionToken;
     
     if (cloudConfig.aws.authMethod === 'sso') {
-      // For SSO: only need basic config, role info, and SSO config
-      return hasBasicConfig && hasRoleAuth && hasSsoConfig;
+      // For SSO: need basic config, role info, and either SSO config or temporary credentials
+      return hasBasicConfig && hasRoleAuth && (hasSsoConfig || hasTempCredentials);
     } else {
       // For manual credentials: need basic config, role info, and access keys
       return hasBasicConfig && hasRoleAuth && hasKeyAuth;
@@ -207,7 +213,12 @@ export default function MediaManagement() {
           ssoRegion: cloudConfig.aws.ssoRegion,
           ssoAccountId: cloudConfig.aws.ssoAccountId,
           ssoRoleName: cloudConfig.aws.ssoRoleName,
-          autoRefreshEnabled: cloudConfig.aws.autoRefreshEnabled
+          autoRefreshEnabled: cloudConfig.aws.autoRefreshEnabled,
+          // Temporary Identity Center credentials
+          tempAccessKey: cloudConfig.aws.tempAccessKey,
+          tempSecretKey: cloudConfig.aws.tempSecretKey,
+          tempSessionToken: cloudConfig.aws.tempSessionToken,
+          tempExpiresAt: cloudConfig.aws.tempExpiresAt
         }),
       });
 
@@ -1197,6 +1208,74 @@ export default function MediaManagement() {
                   </div>
                 </div>
                 
+                {/* Temporary Identity Center Credentials */}
+                <div className="config-section">
+                  <h3>🔑 Temporary Identity Center Credentials (Alternative)</h3>
+                  <p>If SSO session establishment fails, you can paste temporary credentials from AWS Identity Center portal:</p>
+                  <div className="config-grid">
+                    <div className="config-field">
+                      <label>Temporary Access Key:</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.tempAccessKey || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, tempAccessKey: e.target.value.trim() }
+                        }))}
+                        placeholder="ASIAXYZ..."
+                      />
+                      <small>From AWS Identity Center → Command line access</small>
+                    </div>
+                    <div className="config-field">
+                      <label>Temporary Secret Key:</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.tempSecretKey || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, tempSecretKey: e.target.value.trim() }
+                        }))}
+                        placeholder="xyz..."
+                      />
+                      <small>From AWS Identity Center portal</small>
+                    </div>
+                    <div className="config-field">
+                      <label>Temporary Session Token:</label>
+                      <input
+                        type="password"
+                        value={cloudConfig.aws.tempSessionToken || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, tempSessionToken: e.target.value.trim() }
+                        }))}
+                        placeholder="IQoJb3JpZ2luX2VjE..."
+                      />
+                      <small>From AWS Identity Center portal</small>
+                    </div>
+                    <div className="config-field">
+                      <label>Expiration Time:</label>
+                      <input
+                        type="datetime-local"
+                        value={cloudConfig.aws.tempExpiresAt || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, tempExpiresAt: e.target.value }
+                        }))}
+                      />
+                      <small>When these credentials expire (typically 12 hours)</small>
+                    </div>
+                  </div>
+                  <div className="sso-instructions">
+                    <strong>How to get temporary credentials:</strong>
+                    <ol>
+                      <li>Go to <a href="https://ingasti.awsapps.com/start/#" target="_blank" rel="noopener noreferrer">AWS Identity Center Portal</a></li>
+                      <li>Click "Command line or programmatic access"</li>
+                      <li>Copy the credentials from Option 1 (temporary credentials)</li>
+                      <li>Paste them in the fields above</li>
+                    </ol>
+                  </div>
+                </div>
+                
                 {/* Identity Center Credentials - Only show when NOT using pure SSO */}
                 {cloudConfig.aws.authMethod !== 'sso' && (
                   <div className="identity-center-credentials-section">
@@ -1271,9 +1350,18 @@ export default function MediaManagement() {
                         {cloudConfig.aws.authMethod === 'sso' ? (
                           <>
                             • Auth Method: <span style={{color: 'blue'}}>AWS SSO (Identity Center) 🔐</span><br/>
-                            • SSO Start URL: <span style={{color: cloudConfig.aws.ssoStartUrl ? 'green' : 'red'}}>{cloudConfig.aws.ssoStartUrl ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                            • Account ID: <span style={{color: cloudConfig.aws.ssoAccountId ? 'green' : 'red'}}>{cloudConfig.aws.ssoAccountId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                            • Role Name: <span style={{color: cloudConfig.aws.ssoRoleName ? 'green' : 'red'}}>{cloudConfig.aws.ssoRoleName ? 'SET ✅' : 'MISSING ❌'}</span>
+                            {cloudConfig.aws.tempAccessKey ? (
+                              <>
+                                • Temporary Credentials: <span style={{color: 'green'}}>SET ✅</span><br/>
+                                • Expires: <span style={{color: cloudConfig.aws.tempExpiresAt ? 'orange' : 'red'}}>{cloudConfig.aws.tempExpiresAt || 'NOT SET ❌'}</span>
+                              </>
+                            ) : (
+                              <>
+                                • SSO Start URL: <span style={{color: cloudConfig.aws.ssoStartUrl ? 'green' : 'red'}}>{cloudConfig.aws.ssoStartUrl ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                                • Account ID: <span style={{color: cloudConfig.aws.ssoAccountId ? 'green' : 'red'}}>{cloudConfig.aws.ssoAccountId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                                • Role Name: <span style={{color: cloudConfig.aws.ssoRoleName ? 'green' : 'red'}}>{cloudConfig.aws.ssoRoleName ? 'SET ✅' : 'MISSING ❌'}</span>
+                              </>
+                            )}
                           </>
                         ) : (
                           <>

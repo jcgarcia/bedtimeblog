@@ -28,8 +28,18 @@ class AWSCredentialManager {
 
       let credentialProvider;
 
-      // Method 1: Use SSO if configured
-      if (config.ssoStartUrl && config.ssoRegion && config.ssoAccountId && config.ssoRoleName) {
+      // Method 1: Use temporary Identity Center credentials if available
+      if (config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
+        console.log('🔑 Using temporary Identity Center credentials');
+        credentialProvider = async () => ({
+          accessKeyId: config.tempAccessKey,
+          secretAccessKey: config.tempSecretKey,
+          sessionToken: config.tempSessionToken,
+          expiration: config.tempExpiresAt ? new Date(config.tempExpiresAt) : new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours
+        });
+      }
+      // Method 2: Use SSO if configured and no temp credentials
+      else if (config.ssoStartUrl && config.ssoRegion && config.ssoAccountId && config.ssoRoleName) {
         console.log('🔑 Using AWS SSO credential provider (auto-refresh enabled)');
         credentialProvider = fromSSO({
           ssoStartUrl: config.ssoStartUrl,
@@ -287,7 +297,22 @@ class AWSCredentialManager {
 
       // Determine authentication method
       if (config) {
-        if (config.ssoStartUrl) {
+        if (config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
+          status.authMethod = 'Temporary Identity Center Credentials';
+          
+          // Check expiration for temp credentials
+          if (config.tempExpiresAt) {
+            const tempExpirationTime = new Date(config.tempExpiresAt);
+            const tempTimeUntilExpiry = tempExpirationTime.getTime() - Date.now();
+            status.tempTimeUntilExpiry = tempTimeUntilExpiry;
+            status.tempTimeUntilExpiryMinutes = Math.floor(tempTimeUntilExpiry / 60000);
+            status.isTempNearExpiry = tempTimeUntilExpiry <= 1800000; // Within 30 minutes
+            
+            if (tempTimeUntilExpiry <= 0) {
+              status.tempCredentialsExpired = true;
+            }
+          }
+        } else if (config.ssoStartUrl) {
           status.authMethod = 'AWS SSO (Identity Center)';
         } else if (config.roleArn) {
           status.authMethod = 'IAM Role Assumption';
