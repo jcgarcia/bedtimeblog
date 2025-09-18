@@ -1,4 +1,5 @@
 import { getDbPool } from "../db.js";
+import credentialManager from "../services/awsCredentialManager.js";
 
 const pool = getDbPool();
 
@@ -687,6 +688,15 @@ export const updateAwsConfig = async (req, res) => {
     );
 
     console.log('🔧 AWS configuration saved successfully:', awsConfig);
+    
+    // Reinitialize credential manager with new configuration
+    try {
+      await credentialManager.updateConfiguration(awsConfig);
+      console.log('✅ Credential manager reinitialized with new configuration');
+    } catch (credError) {
+      console.error('⚠️ Warning: Failed to reinitialize credential manager:', credError.message);
+      // Don't fail the request, just log the warning
+    }
     
     res.status(200).json({ 
       success: true, 
