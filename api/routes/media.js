@@ -17,6 +17,8 @@ import {
   updateAWSCredentials,
   initializeSSO,
   testSSOCredentials,
+  startSSOSession,
+  completeSSOSession,
   getSignedUrlForKey
 } from "../controllers/media.js";
 
@@ -53,6 +55,8 @@ router.put("/update-credentials", requireAdminAuth, updateAWSCredentials); // PU
 // AWS SSO management
 router.post("/initialize-sso", requireAdminAuth, initializeSSO); // POST /api/media/initialize-sso - Initialize SSO credentials
 router.post("/test-sso", requireAdminAuth, testSSOCredentials); // POST /api/media/test-sso - Test SSO credentials
+router.post("/start-sso-session", requireAdminAuth, startSSOSession); // POST /api/media/start-sso-session - Start SSO device authorization
+router.post("/complete-sso-session", requireAdminAuth, completeSSOSession); // POST /api/media/complete-sso-session - Complete SSO setup
 
 router.get("/debug-version", (req, res) => res.json({ version: "2.0", timestamp: new Date().toISOString() })); // Debug endpoint
 

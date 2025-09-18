@@ -1723,3 +1723,61 @@ export const getSignedUrlForKey = async (req, res) => {
     });
   }
 };
+
+/**
+ * Start AWS SSO session using device authorization flow
+ */
+export const startSSOSession = async (req, res) => {
+  try {
+    console.log('📱 Starting SSO session initialization...');
+    
+    const result = await credentialManager.initializeSSOSession();
+    
+    res.json({
+      success: true,
+      message: 'SSO device authorization started',
+      ...result
+    });
+    
+  } catch (error) {
+    console.error('❌ Error starting SSO session:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      action: 'SSO_INITIALIZATION_ERROR'
+    });
+  }
+};
+
+/**
+ * Complete AWS SSO session setup after user authorization
+ */
+export const completeSSOSession = async (req, res) => {
+  try {
+    console.log('🔄 Completing SSO session setup...');
+    
+    const { deviceCode } = req.body;
+    if (!deviceCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Device code is required'
+      });
+    }
+    
+    const result = await credentialManager.completeSSOSetup(deviceCode);
+    
+    res.json({
+      success: true,
+      message: 'SSO session established successfully',
+      ...result
+    });
+    
+  } catch (error) {
+    console.error('❌ Error completing SSO session:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      action: 'SSO_COMPLETION_ERROR'
+    });
+  }
+};

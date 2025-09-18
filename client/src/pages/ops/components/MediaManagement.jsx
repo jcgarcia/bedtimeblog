@@ -1302,8 +1302,8 @@ export default function MediaManagement() {
                         </div>
                       )}
 
-                      {/* Credentials Expired Warning */}
-                      {credentialStatus && !credentialStatus.credentialsValid && (
+                      {/* Credentials Expired Warning - Only show for non-SSO authentication */}
+                      {credentialStatus && !credentialStatus.credentialsValid && cloudConfig.aws.authMethod !== 'sso' && (
                         <div className="debug-info" style={{backgroundColor: '#ffebee', border: '2px solid #f44336', borderRadius: '8px', padding: '15px', margin: '10px 0'}}>
                           <strong style={{color: '#d32f2f'}}>⚠️ ACTION REQUIRED: Credentials Expired</strong><br/>
                           <p style={{margin: '10px 0', fontSize: '14px'}}>

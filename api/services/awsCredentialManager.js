@@ -455,6 +455,102 @@ class AWSCredentialManager {
     
     console.log('⏰ Proactive credential refresh timer started (15-minute intervals)');
   }
+
+  /**
+   * Initialize AWS SSO session using device authorization flow
+   * This is needed when SSO session is invalid and needs to be established
+   */
+  async initializeSSOSession() {
+    try {
+      console.log('🔑 Initializing AWS SSO session using device authorization flow...');
+      
+      const config = await this.getStoredAWSConfig();
+      if (!config || !config.ssoStartUrl || !config.ssoRegion) {
+        throw new Error('SSO configuration incomplete. Missing ssoStartUrl or ssoRegion.');
+      }
+
+      // Create SSO OIDC client for device authorization
+      const ssoOidcClient = new SSOOIDCClient({ 
+        region: config.ssoRegion 
+      });
+
+      // Step 1: Start device authorization
+      console.log('📱 Starting device authorization...');
+      const startDeviceAuthCommand = new StartDeviceAuthorizationCommand({
+        clientId: 'bedtime-blog-media',
+        clientType: 'public',
+        startUrl: config.ssoStartUrl
+      });
+
+      const deviceAuthResponse = await ssoOidcClient.send(startDeviceAuthCommand);
+      
+      // Return instructions for user to complete authorization
+      return {
+        success: true,
+        action: 'USER_AUTHORIZATION_REQUIRED',
+        deviceCode: deviceAuthResponse.deviceCode,
+        userCode: deviceAuthResponse.userCode,
+        verificationUri: deviceAuthResponse.verificationUri,
+        verificationUriComplete: deviceAuthResponse.verificationUriComplete,
+        expiresIn: deviceAuthResponse.expiresIn,
+        interval: deviceAuthResponse.interval,
+        instructions: [
+          `1. Open this URL in your browser: ${deviceAuthResponse.verificationUriComplete || deviceAuthResponse.verificationUri}`,
+          `2. Enter this code when prompted: ${deviceAuthResponse.userCode}`,
+          `3. Sign in with your AWS SSO credentials`,
+          `4. Return here and click "Complete SSO Setup" after authorization`
+        ]
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to initialize SSO session:', error.message);
+      throw new Error(`SSO session initialization failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Complete SSO setup after user has authorized the device
+   */
+  async completeSSOSetup(deviceCode) {
+    try {
+      console.log('🔄 Completing SSO setup...');
+      
+      const config = await this.getStoredAWSConfig();
+      if (!config || !config.ssoRegion) {
+        throw new Error('SSO configuration incomplete.');
+      }
+
+      const ssoOidcClient = new SSOOIDCClient({ 
+        region: config.ssoRegion 
+      });
+
+      // Create token using device code
+      const createTokenCommand = new CreateTokenCommand({
+        clientId: 'bedtime-blog-media',
+        clientSecret: '', // Public client doesn't need secret
+        deviceCode: deviceCode,
+        grantType: 'urn:ietf:params:oauth:grant-type:device_code'
+      });
+
+      const tokenResponse = await ssoOidcClient.send(createTokenCommand);
+      
+      // Now we can use this token to establish the SSO session
+      console.log('✅ SSO token obtained successfully');
+      
+      // Reinitialize credential provider with new SSO session
+      await this.initializeCredentialProvider();
+      
+      return {
+        success: true,
+        message: 'SSO session established successfully',
+        action: 'SSO_SESSION_ACTIVE'
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to complete SSO setup:', error.message);
+      throw new Error(`SSO setup completion failed: ${error.message}`);
+    }
+  }
 }
 
 // Singleton instance with automatic initialization
