@@ -50,8 +50,7 @@ export default function MediaManagement() {
       // Temporary Identity Center credentials
       tempAccessKey: '',
       tempSecretKey: '',
-      tempSessionToken: '',
-      tempExpiresAt: ''
+      tempSessionToken: ''
     }
   });
 
@@ -217,8 +216,7 @@ export default function MediaManagement() {
           // Temporary Identity Center credentials
           tempAccessKey: cloudConfig.aws.tempAccessKey,
           tempSecretKey: cloudConfig.aws.tempSecretKey,
-          tempSessionToken: cloudConfig.aws.tempSessionToken,
-          tempExpiresAt: cloudConfig.aws.tempExpiresAt
+          tempSessionToken: cloudConfig.aws.tempSessionToken
         }),
       });
 
@@ -259,15 +257,7 @@ export default function MediaManagement() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
         },
-        body: JSON.stringify({
-          bucketName: cloudConfig.aws.bucketName,
-          region: cloudConfig.aws.region,
-          roleArn: cloudConfig.aws.roleArn,
-          externalId: cloudConfig.aws.externalId,
-          accessKey: cloudConfig.aws.accessKey,
-          secretKey: cloudConfig.aws.secretKey,
-          sessionToken: cloudConfig.aws.sessionToken
-        }),
+        // No body needed - use stored configuration from credential manager
       });
 
       // Restore button state
@@ -1252,18 +1242,6 @@ export default function MediaManagement() {
                       />
                       <small>From AWS Identity Center portal</small>
                     </div>
-                    <div className="config-field">
-                      <label>Expiration Time:</label>
-                      <input
-                        type="datetime-local"
-                        value={cloudConfig.aws.tempExpiresAt || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, tempExpiresAt: e.target.value }
-                        }))}
-                      />
-                      <small>When these credentials expire (typically 12 hours)</small>
-                    </div>
                   </div>
                   <div className="sso-instructions">
                     <strong>How to get temporary credentials:</strong>
@@ -1352,8 +1330,7 @@ export default function MediaManagement() {
                             • Auth Method: <span style={{color: 'blue'}}>AWS SSO (Identity Center) 🔐</span><br/>
                             {cloudConfig.aws.tempAccessKey ? (
                               <>
-                                • Temporary Credentials: <span style={{color: 'green'}}>SET ✅</span><br/>
-                                • Expires: <span style={{color: cloudConfig.aws.tempExpiresAt ? 'orange' : 'red'}}>{cloudConfig.aws.tempExpiresAt || 'NOT SET ❌'}</span>
+                                • Temporary Credentials: <span style={{color: 'green'}}>SET ✅</span>
                               </>
                             ) : (
                               <>

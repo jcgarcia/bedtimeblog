@@ -528,8 +528,7 @@ export const updateAwsConfig = async (req, res) => {
       // Temporary Identity Center credentials
       tempAccessKey,
       tempSecretKey,
-      tempSessionToken,
-      tempExpiresAt
+      tempSessionToken
     } = req.body;
     
     // Trim all string inputs to prevent whitespace issues
@@ -549,7 +548,6 @@ export const updateAwsConfig = async (req, res) => {
     const trimmedTempAccessKey = tempAccessKey?.trim();
     const trimmedTempSecretKey = tempSecretKey?.trim();
     const trimmedTempSessionToken = tempSessionToken?.trim();
-    const trimmedTempExpiresAt = tempExpiresAt?.trim();
     
     console.log('🔧 Trimmed values:', { 
       trimmedBucketName, 
@@ -566,8 +564,7 @@ export const updateAwsConfig = async (req, res) => {
       trimmedSsoRoleName: trimmedSsoRoleName ? 'SET' : 'MISSING',
       trimmedTempAccessKey: trimmedTempAccessKey ? 'SET' : 'MISSING',
       trimmedTempSecretKey: trimmedTempSecretKey ? 'SET' : 'MISSING',
-      trimmedTempSessionToken: trimmedTempSessionToken ? 'SET' : 'MISSING',
-      trimmedTempExpiresAt
+      trimmedTempSessionToken: trimmedTempSessionToken ? 'SET' : 'MISSING'
     });
     
     // Validate required fields based on authentication method
@@ -633,9 +630,6 @@ export const updateAwsConfig = async (req, res) => {
         awsConfig.tempAccessKey = trimmedTempAccessKey;
         awsConfig.tempSecretKey = trimmedTempSecretKey;
         awsConfig.tempSessionToken = trimmedTempSessionToken;
-        if (trimmedTempExpiresAt) {
-          awsConfig.tempExpiresAt = trimmedTempExpiresAt;
-        }
         console.log('✅ Temporary Identity Center credentials added to AWS config');
       }
     }

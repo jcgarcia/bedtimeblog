@@ -10,6 +10,7 @@ import {
   getMediaFolders,
   createMediaFolder,
   testAwsConnection,
+  testAwsConnectionSimple,
   syncS3Files,
   clearMediaDatabase,
   getAWSCredentialStatus,
@@ -43,7 +44,7 @@ router.get("/folders", requireAdminAuth, getMediaFolders);         // GET /api/m
 router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/media/folders - Create new folder
 
 // AWS connection testing
-router.post("/test-aws-connection", requireAdminAuth, testAwsConnection); // POST /api/media/test-aws-connection - Test AWS S3 connection
+router.post("/test-aws-connection", requireAdminAuth, testAwsConnectionSimple); // POST /api/media/test-aws-connection - Test AWS S3 connection using credential manager
 router.post("/sync-s3", requireAdminAuth, syncS3Files);              // POST /api/media/sync-s3 - Sync S3 bucket with database
 router.post("/clear-database", requireAdminAuth, clearMediaDatabase); // POST /api/media/clear-database - Clear all media records
 

@@ -1775,3 +1775,37 @@ export const completeSSOSession = async (req, res) => {
     });
   }
 };
+
+// Simple test AWS connection using credential manager
+export const testAwsConnectionSimple = async (req, res) => {
+  try {
+    console.log('🧪 Testing AWS S3 connection using credential manager...');
+    
+    // Use the credential manager to test connection
+    const testResult = await credentialManager.testCredentials();
+    
+    if (testResult.success) {
+      console.log('✅ AWS S3 connection test successful');
+      res.json({
+        success: true,
+        message: 'AWS S3 connection successful!',
+        identity: testResult.identity
+      });
+    } else {
+      console.error('❌ AWS S3 connection test failed:', testResult.message);
+      res.status(400).json({
+        success: false,
+        message: testResult.message || 'AWS S3 connection failed',
+        error: testResult.error
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Error testing AWS S3 connection:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during connection test',
+      error: error.message
+    });
+  }
+};

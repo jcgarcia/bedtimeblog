@@ -35,7 +35,7 @@ class AWSCredentialManager {
           accessKeyId: config.tempAccessKey,
           secretAccessKey: config.tempSecretKey,
           sessionToken: config.tempSessionToken,
-          expiration: config.tempExpiresAt ? new Date(config.tempExpiresAt) : new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours
+          expiration: new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours from now
         });
       }
       // Method 2: Use SSO if configured and no temp credentials
@@ -299,19 +299,6 @@ class AWSCredentialManager {
       if (config) {
         if (config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
           status.authMethod = 'Temporary Identity Center Credentials';
-          
-          // Check expiration for temp credentials
-          if (config.tempExpiresAt) {
-            const tempExpirationTime = new Date(config.tempExpiresAt);
-            const tempTimeUntilExpiry = tempExpirationTime.getTime() - Date.now();
-            status.tempTimeUntilExpiry = tempTimeUntilExpiry;
-            status.tempTimeUntilExpiryMinutes = Math.floor(tempTimeUntilExpiry / 60000);
-            status.isTempNearExpiry = tempTimeUntilExpiry <= 1800000; // Within 30 minutes
-            
-            if (tempTimeUntilExpiry <= 0) {
-              status.tempCredentialsExpired = true;
-            }
-          }
         } else if (config.ssoStartUrl) {
           status.authMethod = 'AWS SSO (Identity Center)';
         } else if (config.roleArn) {
