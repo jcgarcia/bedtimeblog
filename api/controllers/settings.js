@@ -512,7 +512,20 @@ export const updateAwsConfig = async (req, res) => {
   try {
     console.log('🔧 updateAwsConfig called with:', req.body);
     
-    const { bucketName, region, roleArn, externalId, accessKey, secretKey, sessionToken } = req.body;
+    const { 
+      bucketName, 
+      region, 
+      roleArn, 
+      externalId, 
+      accessKey, 
+      secretKey, 
+      sessionToken,
+      authMethod,
+      ssoStartUrl,
+      ssoRegion,
+      ssoAccountId,
+      ssoRoleName
+    } = req.body;
     
     // Trim all string inputs to prevent whitespace issues
     const trimmedBucketName = bucketName?.trim();
@@ -522,6 +535,11 @@ export const updateAwsConfig = async (req, res) => {
     const trimmedAccessKey = accessKey?.trim();
     const trimmedSecretKey = secretKey?.trim();
     const trimmedSessionToken = sessionToken?.trim();
+    const trimmedAuthMethod = authMethod?.trim();
+    const trimmedSsoStartUrl = ssoStartUrl?.trim();
+    const trimmedSsoRegion = ssoRegion?.trim();
+    const trimmedSsoAccountId = ssoAccountId?.trim();
+    const trimmedSsoRoleName = ssoRoleName?.trim();
     
     console.log('🔧 Trimmed values:', { 
       trimmedBucketName, 
@@ -530,12 +548,18 @@ export const updateAwsConfig = async (req, res) => {
       trimmedExternalId: trimmedExternalId ? 'SET' : 'MISSING',
       trimmedAccessKey: trimmedAccessKey ? 'SET' : 'MISSING',
       trimmedSecretKey: trimmedSecretKey ? 'SET' : 'MISSING',
-      trimmedSessionToken: trimmedSessionToken ? 'SET' : 'MISSING'
+      trimmedSessionToken: trimmedSessionToken ? 'SET' : 'MISSING',
+      trimmedAuthMethod,
+      trimmedSsoStartUrl: trimmedSsoStartUrl ? 'SET' : 'MISSING',
+      trimmedSsoRegion,
+      trimmedSsoAccountId,
+      trimmedSsoRoleName: trimmedSsoRoleName ? 'SET' : 'MISSING'
     });
     
-    // Validate required fields - ALL are required for working authentication
+    // Validate required fields based on authentication method
     const hasRoleAuth = trimmedRoleArn && trimmedExternalId;
     const hasKeyAuth = trimmedAccessKey && trimmedSecretKey;
+    const hasSsoConfig = trimmedSsoStartUrl && trimmedSsoRegion && trimmedSsoAccountId && trimmedSsoRoleName;
     
     if (!trimmedBucketName || !trimmedRegion) {
       return res.status(400).json({ 
@@ -544,40 +568,67 @@ export const updateAwsConfig = async (req, res) => {
       });
     }
     
-    if (!hasRoleAuth) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Role ARN and External ID are required for role assumption' 
-      });
-    }
-    
-    if (!hasKeyAuth) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Access keys are required for initial authentication to assume roles. Get temporary credentials from AWS Identity Center.' 
-      });
+    // Validate authentication method
+    if (trimmedAuthMethod === 'sso') {
+      // For SSO authentication, we need SSO configuration
+      if (!hasSsoConfig) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'SSO configuration is incomplete. Required: SSO Start URL, SSO Region, Account ID, and Role Name' 
+        });
+      }
+      console.log('✅ Using AWS SSO authentication (no access keys required)');
+    } else {
+      // For other authentication methods, require role and access keys
+      if (!hasRoleAuth) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Role ARN and External ID are required for role assumption' 
+        });
+      }
+      
+      if (!hasKeyAuth) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Access keys are required for initial authentication to assume roles. Get temporary credentials from AWS Identity Center.' 
+        });
+      }
     }
     
     // Create consolidated AWS config object
     const awsConfig = {
       bucketName: trimmedBucketName,
       region: trimmedRegion,
+      authMethod: trimmedAuthMethod || 'hybrid',
       updatedAt: new Date().toISOString(),
       updatedBy: req.adminUser.id
     };
+    
+    // Add SSO configuration if using SSO auth
+    if (trimmedAuthMethod === 'sso' && hasSsoConfig) {
+      awsConfig.ssoStartUrl = trimmedSsoStartUrl;
+      awsConfig.ssoRegion = trimmedSsoRegion;
+      awsConfig.ssoAccountId = trimmedSsoAccountId;
+      awsConfig.ssoRoleName = trimmedSsoRoleName;
+      console.log('✅ SSO configuration added to AWS config');
+    }
     
     // Add role-based auth if provided
     if (hasRoleAuth) {
       awsConfig.roleArn = trimmedRoleArn;
       awsConfig.externalId = trimmedExternalId;
-      awsConfig.authMethod = 'role';
+      if (!trimmedAuthMethod || trimmedAuthMethod === 'hybrid') {
+        awsConfig.authMethod = 'role';
+      }
     }
     
     // Add key-based auth if provided  
     if (hasKeyAuth) {
       awsConfig.accessKey = trimmedAccessKey;
       awsConfig.secretKey = trimmedSecretKey;
-      awsConfig.authMethod = hasRoleAuth ? 'hybrid' : 'keys';
+      if (!trimmedAuthMethod) {
+        awsConfig.authMethod = hasRoleAuth ? 'hybrid' : 'keys';
+      }
       
       // Add session token if provided (for temporary credentials)
       if (trimmedSessionToken) {
