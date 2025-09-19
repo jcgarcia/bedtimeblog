@@ -18,14 +18,14 @@ export async function getS3Client(config) {
     console.log('🔑 Getting S3 client with configuration:', config ? 'Config provided' : 'No config');
     
     // If config is provided and has temporary credentials, use them directly
-    if (config && config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
+    if (config && (config.tempAccessKey || config.accessKey) && (config.tempSecretKey || config.secretKey) && (config.tempSessionToken || config.sessionToken)) {
       console.log('🔑 Using temporary credentials from config');
       const s3Client = new S3Client({
         region: config.region || 'eu-west-2',
         credentials: {
-          accessKeyId: config.tempAccessKey,
-          secretAccessKey: config.tempSecretKey,
-          sessionToken: config.tempSessionToken
+          accessKeyId: config.tempAccessKey || config.accessKey,
+          secretAccessKey: config.tempSecretKey || config.secretKey,
+          sessionToken: config.tempSessionToken || config.sessionToken
         }
       });
       return s3Client;
