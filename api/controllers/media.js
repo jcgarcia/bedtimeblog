@@ -15,9 +15,45 @@ import { existsSync } from 'fs';
 // Helper: Get S3 Client with automatic credential management
 export async function getS3Client(config) {
   try {
-    console.log('🔑 Getting S3 client with automatic credential management');
+    console.log('🔑 Getting S3 client with configuration:', config ? 'Config provided' : 'No config');
     
-    // Use the credential manager's S3 client (with automatic refresh)
+    // If config is provided and has temporary credentials, use them directly
+    if (config && config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
+      console.log('🔑 Using temporary credentials from config');
+      const s3Client = new S3Client({
+        region: config.region || 'eu-west-2',
+        credentials: {
+          accessKeyId: config.tempAccessKey,
+          secretAccessKey: config.tempSecretKey,
+          sessionToken: config.tempSessionToken
+        }
+      });
+      return s3Client;
+    }
+    
+    // If config specifies role-based auth, use assume role
+    if (config && config.authMethod === 'role' && config.roleArn && config.externalId) {
+      console.log('🔑 Using role-based authentication');
+      const stsClient = new STSClient({ region: config.region || 'eu-west-2' });
+      const assumeRoleCommand = new AssumeRoleCommand({
+        RoleArn: config.roleArn,
+        RoleSessionName: 'BedtimeBlog-MediaManager',
+        ExternalId: config.externalId
+      });
+      
+      const roleCredentials = await stsClient.send(assumeRoleCommand);
+      return new S3Client({
+        region: config.region || 'eu-west-2',
+        credentials: {
+          accessKeyId: roleCredentials.Credentials.AccessKeyId,
+          secretAccessKey: roleCredentials.Credentials.SecretAccessKey,
+          sessionToken: roleCredentials.Credentials.SessionToken
+        }
+      });
+    }
+    
+    // Fallback to credential manager
+    console.log('🔑 Falling back to credential manager');
     return await credentialManager.getS3Client();
     
   } catch (error) {
