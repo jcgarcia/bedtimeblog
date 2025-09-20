@@ -54,15 +54,18 @@ async function resolveMediaUrl(mediaId) {
       const s3Key = url.pathname.substring(1); // Remove leading slash
       
       if (s3Key.startsWith('uploads/')) {
+        console.log(`🔍 Processing S3 key: ${s3Key}`);
         const pool = getDbPool();
         const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
         if (settingsRes.rows.length === 0) {
-          console.warn('AWS configuration not found');
+          console.warn('❌ AWS configuration not found');
           return mediaId; // Return original URL as fallback
         }
         
         const awsConfig = JSON.parse(settingsRes.rows[0].value);
+        console.log(`🔧 AWS Config loaded - Bucket: ${awsConfig.bucketName}, Region: ${awsConfig.region}`);
         const s3Client = await getS3Client(awsConfig);
+        console.log(`🔗 S3 Client created successfully`);
         
         const command = new GetObjectCommand({
           Bucket: awsConfig.bucketName,
@@ -70,6 +73,7 @@ async function resolveMediaUrl(mediaId) {
         });
         
         const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        console.log(`✅ Fresh signed URL generated: ${signedUrl.substring(0, 100)}...`);
         return signedUrl;
       }
     } catch (error) {
