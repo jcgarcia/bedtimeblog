@@ -41,12 +41,6 @@ export default function MediaManagement() {
       accessKey: '',
       secretKey: '',
       sessionToken: '',
-      // SSO Configuration for auto-refresh
-      ssoStartUrl: '',
-      ssoRegion: '',
-      accountId: '',
-      roleName: '',
-      autoRefreshEnabled: true,
       // Temporary Identity Center credentials
       tempAccessKey: '',
       tempSecretKey: '',
@@ -59,16 +53,10 @@ export default function MediaManagement() {
     const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region;
     const hasRoleAuth = cloudConfig.aws.roleArn && cloudConfig.aws.externalId;
     const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-    const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.ssoAccountId && cloudConfig.aws.ssoRoleName;
     const hasTempCredentials = cloudConfig.aws.tempAccessKey && cloudConfig.aws.tempSecretKey && cloudConfig.aws.tempSessionToken;
     
-    if (cloudConfig.aws.authMethod === 'sso') {
-      // For SSO: need basic config, role info, and either SSO config or temporary credentials
-      return hasBasicConfig && hasRoleAuth && (hasSsoConfig || hasTempCredentials);
-    } else {
-      // For manual credentials: need basic config, role info, and access keys
-      return hasBasicConfig && hasRoleAuth && hasKeyAuth;
-    }
+    // Need basic config, role info, and either access keys or temporary credentials
+    return hasBasicConfig && hasRoleAuth && (hasKeyAuth || hasTempCredentials);
   };
 
   useEffect(() => {
@@ -207,12 +195,6 @@ export default function MediaManagement() {
           accessKey: cloudConfig.aws.accessKey,
           secretKey: cloudConfig.aws.secretKey,
           sessionToken: cloudConfig.aws.sessionToken,
-          // SSO Configuration for auto-refresh
-          ssoStartUrl: cloudConfig.aws.ssoStartUrl,
-          ssoRegion: cloudConfig.aws.ssoRegion,
-          ssoAccountId: cloudConfig.aws.ssoAccountId,
-          ssoRoleName: cloudConfig.aws.ssoRoleName,
-          autoRefreshEnabled: cloudConfig.aws.autoRefreshEnabled,
           // Temporary Identity Center credentials
           tempAccessKey: cloudConfig.aws.tempAccessKey,
           tempSecretKey: cloudConfig.aws.tempSecretKey,
@@ -222,11 +204,10 @@ export default function MediaManagement() {
 
       if (response.ok) {
         const hasAccessKeys = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-        const hasSsoConfig = cloudConfig.aws.ssoStartUrl && cloudConfig.aws.ssoAccountId && cloudConfig.aws.ssoRoleName;
-        const authMethod = cloudConfig.aws.authMethod === 'sso' ? 'AWS SSO (Identity Center)' : hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
-        const refreshStatus = hasSsoConfig && cloudConfig.aws.autoRefreshEnabled ? '✅ Auto-refresh enabled' : '⚠️ Auto-refresh not configured';
+        const hasTempCredentials = cloudConfig.aws.tempAccessKey && cloudConfig.aws.tempSecretKey;
+        const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : hasTempCredentials ? 'Temporary Identity Center credentials' : 'Role-based (recommended)';
         
-        alert(`✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Auto-refresh: ${refreshStatus}\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality${hasAccessKeys ? '\n⚠️ Note: Credentials will auto-refresh before expiration' : ''}`);
+        alert(`✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality`);
       } else {
         const error = await response.text();
         alert(`❌ Failed to save AWS configuration: ${error}`);
@@ -1110,93 +1091,6 @@ export default function MediaManagement() {
 
                   </div>
                 </div>
-
-                {/* AWS SSO Configuration Section */}
-                <div className="sso-config-section">
-                  <div className="auth-section-header">
-                    <h5><i className="fa-solid fa-rotate"></i> AWS SSO Auto-Refresh Configuration</h5>
-                    <small style={{ color: '#1976d2', fontWeight: '600' }}>
-                      ℹ️ Configure AWS Identity Center SSO for automatic credential refresh every 30 minutes before expiration
-                    </small>
-                  </div>
-                  <div className="config-grid">
-                    <div className="config-field">
-                      <label>SSO Start URL:</label>
-                      <input
-                        type="url"
-                        value={cloudConfig.aws.ssoStartUrl || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, ssoStartUrl: e.target.value.trim() }
-                        }))}
-                        placeholder="https://ingasti.awsapps.com/start/#"
-                      />
-                      <small>From AWS Identity Center portal</small>
-                    </div>
-                    <div className="config-field">
-                      <label>SSO Region:</label>
-                      <select
-                        value={cloudConfig.aws.ssoRegion || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, ssoRegion: e.target.value }
-                        }))}
-                      >
-                        <option value="">Select SSO Region</option>
-                        <option value="us-east-1">US East (N. Virginia)</option>
-                        <option value="us-west-2">US West (Oregon)</option>
-                        <option value="eu-west-1">Europe (Ireland)</option>
-                        <option value="eu-west-2">Europe (London)</option>
-                        <option value="eu-central-1">Europe (Frankfurt)</option>
-                        <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
-                        <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
-                      </select>
-                      <small>Region where SSO is configured</small>
-                    </div>
-                    <div className="config-field">
-                      <label>Account ID:</label>
-                      <input
-                        type="text"
-                        value={cloudConfig.aws.ssoAccountId || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, ssoAccountId: e.target.value.trim() }
-                        }))}
-                        placeholder="007041844937"
-                        pattern="[0-9]{12}"
-                        maxLength="12"
-                      />
-                      <small>12-digit AWS account ID</small>
-                    </div>
-                    <div className="config-field">
-                      <label>Role Name:</label>
-                      <input
-                        type="text"
-                        value={cloudConfig.aws.ssoRoleName || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, ssoRoleName: e.target.value.trim() }
-                        }))}
-                        placeholder="BlogMediaLibraryAccess"
-                      />
-                      <small>SSO permission set role name</small>
-                    </div>
-                    <div className="config-field auto-refresh-toggle">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={cloudConfig.aws.autoRefreshEnabled}
-                          onChange={e => setCloudConfig(prev => ({
-                            ...prev,
-                            aws: { ...prev.aws, autoRefreshEnabled: e.target.checked }
-                          }))}
-                        />
-                        Enable Automatic Credential Refresh
-                      </label>
-                      <small>Automatically refresh credentials 30 minutes before expiration</small>
-                    </div>
-                  </div>
-                </div>
                 
                 {/* Temporary Identity Center Credentials */}
                 <div className="config-section">
@@ -1334,9 +1228,7 @@ export default function MediaManagement() {
                               </>
                             ) : (
                               <>
-                                • SSO Start URL: <span style={{color: cloudConfig.aws.ssoStartUrl ? 'green' : 'red'}}>{cloudConfig.aws.ssoStartUrl ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                                • Account ID: <span style={{color: cloudConfig.aws.ssoAccountId ? 'green' : 'red'}}>{cloudConfig.aws.ssoAccountId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                                • Role Name: <span style={{color: cloudConfig.aws.ssoRoleName ? 'green' : 'red'}}>{cloudConfig.aws.ssoRoleName ? 'SET ✅' : 'MISSING ❌'}</span>
+                                • Manual Credentials: <span style={{color: 'red'}}>MISSING ❌</span>
                               </>
                             )}
                           </>
