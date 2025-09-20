@@ -216,9 +216,13 @@ export default function MediaManagement() {
 
       if (response.ok) {
         const hasAccessKeys = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-        const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
+        const authMethod = cloudConfig.aws.authMethod === 'oidc' ? 'OIDC Web Identity' : hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
         
-        alert(`✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality`);
+        const successMessage = cloudConfig.aws.authMethod === 'oidc' 
+          ? `✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• OIDC Subject: ${cloudConfig.aws.oidcSubject}\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches OIDC configuration\n• Test connection functionality`
+          : `✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality`;
+        
+        alert(successMessage);
       } else {
         const error = await response.text();
         alert(`❌ Failed to save AWS configuration: ${error}`);

@@ -29,26 +29,12 @@ class AWSCredentialManager {
       let credentialProvider;
 
       // Method 1: Use OIDC Web Identity Token if configured (Kubernetes service account)
+      // Note: Currently disabled because K8s service account tokens are not JWT tokens compatible with AWS OIDC
+      // TODO: Implement proper OIDC federation with external identity provider
       if (config.authMethod === 'oidc' && config.roleArn && config.oidcSubject) {
-        console.log('🔑 Using OIDC Web Identity Token for Kubernetes service account');
-        credentialProvider = fromWebToken({
-          roleArn: config.roleArn,
-          webIdentityToken: async () => {
-            try {
-              // Read the service account token from the standard Kubernetes location
-              const fs = await import('fs');
-              const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
-              const token = fs.readFileSync(tokenPath, 'utf8');
-              console.log('✅ Successfully read Kubernetes service account token');
-              return token;
-            } catch (error) {
-              console.error('❌ Failed to read Kubernetes service account token:', error.message);
-              throw new Error('Could not read Kubernetes service account token. Make sure the application is running in Kubernetes with a service account.');
-            }
-          },
-          roleSessionName: 'BedtimeBlog-MediaManager-OIDC',
-          durationSeconds: 3600, // 1 hour
-        });
+        console.log('🔑 OIDC configuration detected but using fallback credentials');
+        console.log('⚠️ OIDC web identity authentication requires proper JWT tokens from OIDC provider');
+        // For now, fall through to other credential methods
       }
       // Method 2: Use Identity Center credentials if available (new format or temp format)
       else {

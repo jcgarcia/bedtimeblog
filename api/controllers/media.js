@@ -1410,15 +1410,22 @@ export const testOidcConnection = async (req, res) => {
     let tokenAvailable = false;
     let tokenDetails = null;
     
+    // Check multiple Kubernetes indicators
+    const k8sIndicators = {
+      serviceAccountToken: false,
+      namespaceFile: false,
+      envVars: false
+    };
+    
     try {
       const fs = require('fs');
-      const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
       
+      // Check for service account token
+      const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
       if (fs.existsSync(tokenPath)) {
         const token = fs.readFileSync(tokenPath, 'utf8');
         if (token && token.length > 0) {
-          tokenAvailable = true;
-          // Don't log the actual token for security
+          k8sIndicators.serviceAccountToken = true;
           console.log('✅ Kubernetes service account token found');
           
           // Try to decode the JWT header and payload (not signature verification)
@@ -1432,17 +1439,31 @@ export const testOidcConnection = async (req, res) => {
                 audience: payload.aud,
                 expiresAt: payload.exp ? new Date(payload.exp * 1000).toISOString() : null
               };
-              console.log('🔍 Token details:', tokenDetails);
             }
-          } catch (parseError) {
-            console.log('⚠️ Could not parse token details (this is normal)');
+          } catch (decodeError) {
+            console.log('⚠️ Could not decode service account token as JWT:', decodeError.message);
           }
         }
-      } else {
-        console.log('⚠️ Not running in Kubernetes - service account token not available');
       }
+      
+      // Check for namespace file
+      const namespacePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
+      if (fs.existsSync(namespacePath)) {
+        k8sIndicators.namespaceFile = true;
+      }
+      
+      // Check for Kubernetes environment variables
+      if (process.env.KUBERNETES_SERVICE_HOST || process.env.KUBERNETES_SERVICE_PORT) {
+        k8sIndicators.envVars = true;
+      }
+      
+      // Consider running in Kubernetes if any indicator is present
+      tokenAvailable = k8sIndicators.serviceAccountToken || k8sIndicators.namespaceFile || k8sIndicators.envVars;
+      
+      console.log('🔍 Kubernetes environment check:', k8sIndicators);
+      
     } catch (error) {
-      console.log('⚠️ Could not read service account token:', error.message);
+      console.error('❌ Error checking Kubernetes environment:', error.message);
     }
     
     // Build comprehensive response
@@ -1462,7 +1483,8 @@ export const testOidcConnection = async (req, res) => {
       kubernetes: {
         tokenAvailable,
         tokenDetails,
-        environment: tokenAvailable ? 'Kubernetes Pod' : 'Development/Local'
+        environment: tokenAvailable ? 'Kubernetes Pod' : 'Local Development',
+        indicators: k8sIndicators
       },
       nextSteps: tokenAvailable 
         ? 'Configuration is ready for production use in Kubernetes'
