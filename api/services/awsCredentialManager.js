@@ -28,56 +28,80 @@ class AWSCredentialManager {
 
       let credentialProvider;
 
-      // Method 1: Use Identity Center credentials if available (new format or temp format)
-      const accessKey = config.accessKeyId || config.tempAccessKey;
-      const secretKey = config.secretKey || config.tempSecretKey;
-      const sessionToken = config.sessionToken || config.tempSessionToken;
-      
-      if (accessKey && secretKey && sessionToken) {
-        console.log('🔑 Using Identity Center credentials');
-        credentialProvider = async () => ({
-          accessKeyId: accessKey,
-          secretAccessKey: secretKey,
-          sessionToken: sessionToken,
-          expiration: new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours from now
-        });
-      }
-      // Method 2: Use SSO if configured and no temp credentials
-      else if (config.ssoStartUrl && config.ssoRegion && config.ssoAccountId && config.ssoRoleName) {
-        console.log('🔑 Using AWS SSO credential provider (auto-refresh enabled)');
-        credentialProvider = fromSSO({
-          ssoStartUrl: config.ssoStartUrl,
-          ssoRegion: config.ssoRegion,
-          ssoAccountId: config.ssoAccountId,
-          ssoRoleName: config.ssoRoleName,
-          clientName: 'BedtimeBlog-MediaManager'
-        });
-      }
-      // Method 2: Use role assumption with auto-refresh
-      else if (config.roleArn && config.accessKey && config.secretKey) {
-        console.log('🔑 Using role assumption with auto-refresh');
-        credentialProvider = fromTemporaryCredentials({
-          masterCredentials: {
-            accessKeyId: config.accessKey,
-            secretAccessKey: config.secretKey,
-            ...(config.sessionToken && { sessionToken: config.sessionToken })
+      // Method 1: Use OIDC Web Identity Token if configured (Kubernetes service account)
+      if (config.authMethod === 'oidc' && config.roleArn && config.oidcSubject) {
+        console.log('🔑 Using OIDC Web Identity Token for Kubernetes service account');
+        credentialProvider = fromWebToken({
+          roleArn: config.roleArn,
+          webIdentityToken: async () => {
+            try {
+              // Read the service account token from the standard Kubernetes location
+              const fs = await import('fs');
+              const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
+              const token = fs.readFileSync(tokenPath, 'utf8');
+              console.log('✅ Successfully read Kubernetes service account token');
+              return token;
+            } catch (error) {
+              console.error('❌ Failed to read Kubernetes service account token:', error.message);
+              throw new Error('Could not read Kubernetes service account token. Make sure the application is running in Kubernetes with a service account.');
+            }
           },
-          params: {
-            RoleArn: config.roleArn,
-            RoleSessionName: 'BedtimeBlog-MediaManager',
-            DurationSeconds: 3600, // 1 hour
-            ...(config.externalId && { ExternalId: config.externalId })
-          },
-          // The SDK will automatically refresh 5 minutes before expiration
+          roleSessionName: 'BedtimeBlog-MediaManager-OIDC',
+          durationSeconds: 3600, // 1 hour
         });
       }
-      // Method 3: Use direct credentials with custom refresh logic
-      else if (config.accessKey && config.secretKey) {
-        console.log('🔑 Using direct credentials with custom refresh wrapper');
-        credentialProvider = this.createRefreshableCredentialProvider(config);
-      }
+      // Method 2: Use Identity Center credentials if available (new format or temp format)
       else {
-        throw new Error('Insufficient AWS configuration for automatic credential provider');
+        const accessKey = config.accessKeyId || config.tempAccessKey;
+        const secretKey = config.secretKey || config.tempSecretKey;
+        const sessionToken = config.sessionToken || config.tempSessionToken;
+        
+        if (accessKey && secretKey && sessionToken) {
+          console.log('🔑 Using Identity Center credentials');
+          credentialProvider = async () => ({
+            accessKeyId: accessKey,
+            secretAccessKey: secretKey,
+            sessionToken: sessionToken,
+            expiration: new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours from now
+          });
+        }
+        // Method 3: Use SSO if configured and no temp credentials
+        else if (config.ssoStartUrl && config.ssoRegion && config.ssoAccountId && config.ssoRoleName) {
+          console.log('🔑 Using AWS SSO credential provider (auto-refresh enabled)');
+          credentialProvider = fromSSO({
+            ssoStartUrl: config.ssoStartUrl,
+            ssoRegion: config.ssoRegion,
+            ssoAccountId: config.ssoAccountId,
+            ssoRoleName: config.ssoRoleName,
+            clientName: 'BedtimeBlog-MediaManager'
+          });
+        }
+        // Method 4: Use role assumption with auto-refresh
+        else if (config.roleArn && config.accessKey && config.secretKey) {
+          console.log('🔑 Using role assumption with auto-refresh');
+          credentialProvider = fromTemporaryCredentials({
+            masterCredentials: {
+              accessKeyId: config.accessKey,
+              secretAccessKey: config.secretKey,
+              ...(config.sessionToken && { sessionToken: config.sessionToken })
+            },
+            params: {
+              RoleArn: config.roleArn,
+              RoleSessionName: 'BedtimeBlog-MediaManager',
+              DurationSeconds: 3600, // 1 hour
+              ...(config.externalId && { ExternalId: config.externalId })
+            },
+            // The SDK will automatically refresh 5 minutes before expiration
+          });
+        }
+        // Method 5: Use direct credentials with custom refresh logic
+        else if (config.accessKey && config.secretKey) {
+          console.log('🔑 Using direct credentials with custom refresh wrapper');
+          credentialProvider = this.createRefreshableCredentialProvider(config);
+        }
+        else {
+          throw new Error('Insufficient AWS configuration for automatic credential provider');
+        }
       }
 
       // Create S3 client with the credential provider

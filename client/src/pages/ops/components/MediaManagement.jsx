@@ -1403,8 +1403,8 @@ export default function MediaManagement() {
                         )}
                       </div>
 
-                      {/* Credential Status Card */}
-                      {credentialStatus && (
+                      {/* Credential Status Card - Only for Identity Center */}
+                      {credentialStatus && cloudConfig.aws?.authMethod !== 'oidc' && (
                         <div className="debug-info" style={{backgroundColor: !credentialStatus.credentialsValid ? '#ffe6e6' : credentialStatus.statusLevel === 'WARNING' ? '#fff3cd' : '#e6ffe6'}}>
                           <strong>🔑 Credential Status:</strong><br/>
                           • Status: <span style={{color: !credentialStatus.credentialsValid ? 'red' : credentialStatus.statusLevel === 'WARNING' ? 'orange' : 'green'}}>
@@ -1421,8 +1421,8 @@ export default function MediaManagement() {
                         </div>
                       )}
 
-                      {/* Credentials Expired Warning - Only show for non-SSO authentication */}
-                      {credentialStatus && !credentialStatus.credentialsValid && cloudConfig.aws.authMethod !== 'sso' && (
+                      {/* Credentials Expired Warning - Only show for Identity Center authentication */}
+                      {credentialStatus && !credentialStatus.credentialsValid && cloudConfig.aws.authMethod !== 'oidc' && cloudConfig.aws.authMethod !== 'sso' && (
                         <div className="debug-info" style={{backgroundColor: '#ffebee', border: '2px solid #f44336', borderRadius: '8px', padding: '15px', margin: '10px 0'}}>
                           <strong style={{color: '#d32f2f'}}>⚠️ ACTION REQUIRED: Credentials Expired</strong><br/>
                           <p style={{margin: '10px 0', fontSize: '14px'}}>
@@ -1538,27 +1538,30 @@ export default function MediaManagement() {
                         <i className="fa-solid fa-save"></i> Save Configuration
                       </button>
                       
-                      <button 
-                        className="btn-sync-s3"
-                        onClick={syncS3WithDatabase}
-                        disabled={mediaServerType !== 'aws'}
-                        style={{
-                          backgroundColor: '#17a2b8',
-                          color: 'white',
-                          border: '2px solid #138496',
-                          fontSize: '14px',
-                          padding: '10px 20px',
-                          borderRadius: '6px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          width: '100%',
-                          opacity: mediaServerType !== 'aws' ? 0.5 : 1,
-                          marginTop: '10px'
-                        }}
-                        title="Sync S3 bucket files with database records"
-                      >
-                        <i className="fa-solid fa-sync"></i> Sync S3 to Database
-                      </button>
+                      {/* Sync S3 Button - Only for Identity Center authentication */}
+                      {cloudConfig.aws?.authMethod !== 'oidc' && (
+                        <button 
+                          className="btn-sync-s3"
+                          onClick={syncS3WithDatabase}
+                          disabled={mediaServerType !== 'aws'}
+                          style={{
+                            backgroundColor: '#17a2b8',
+                            color: 'white',
+                            border: '2px solid #138496',
+                            fontSize: '14px',
+                            padding: '10px 20px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%',
+                            opacity: mediaServerType !== 'aws' ? 0.5 : 1,
+                            marginTop: '10px'
+                          }}
+                          title="Sync S3 bucket files with database records"
+                        >
+                          <i className="fa-solid fa-sync"></i> Sync S3 to Database
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
