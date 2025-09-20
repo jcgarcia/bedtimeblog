@@ -32,9 +32,26 @@ class AWSCredentialManager {
       // Note: Currently disabled because K8s service account tokens are not JWT tokens compatible with AWS OIDC
       // TODO: Implement proper OIDC federation with external identity provider
       if (config.authMethod === 'oidc' && config.roleArn && config.oidcSubject) {
-        console.log('🔑 OIDC configuration detected but using fallback credentials');
+        console.log('🔑 OIDC configuration detected');
         console.log('⚠️ OIDC web identity authentication requires proper JWT tokens from OIDC provider');
-        // For now, fall through to other credential methods
+        console.log('🔄 Falling back to temporary credential authentication for now');
+        
+        // For now, check if we have any temporary credentials to use as fallback
+        const accessKey = config.accessKeyId || config.tempAccessKey;
+        const secretKey = config.secretKey || config.tempSecretKey;
+        const sessionToken = config.sessionToken || config.tempSessionToken;
+        
+        if (accessKey && secretKey && sessionToken) {
+          console.log('🔑 Using temporary Identity Center credentials as fallback for OIDC');
+          credentialProvider = async () => ({
+            accessKeyId: accessKey,
+            secretAccessKey: secretKey,
+            sessionToken: sessionToken,
+            expiration: new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours from now
+          });
+        } else {
+          throw new Error('OIDC authentication is configured but no fallback credentials are available. Please configure temporary Identity Center credentials or implement proper OIDC provider integration.');
+        }
       }
       // Method 2: Use Identity Center credentials if available (new format or temp format)
       else {
