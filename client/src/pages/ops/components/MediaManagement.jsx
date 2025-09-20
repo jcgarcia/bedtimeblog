@@ -40,11 +40,7 @@ export default function MediaManagement() {
       externalId: '',
       accessKey: '',
       secretKey: '',
-      sessionToken: '',
-      // Temporary Identity Center credentials
-      tempAccessKey: '',
-      tempSecretKey: '',
-      tempSessionToken: ''
+      sessionToken: ''
     }
   });
 
@@ -53,10 +49,9 @@ export default function MediaManagement() {
     const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region;
     const hasRoleAuth = cloudConfig.aws.roleArn && cloudConfig.aws.externalId;
     const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-    const hasTempCredentials = cloudConfig.aws.tempAccessKey && cloudConfig.aws.tempSecretKey && cloudConfig.aws.tempSessionToken;
-    
-    // Need basic config, role info, and either access keys or temporary credentials
-    return hasBasicConfig && hasRoleAuth && (hasKeyAuth || hasTempCredentials);
+
+    // Need basic config, role info, and access keys  
+    return hasBasicConfig && hasRoleAuth && hasKeyAuth;
   };
 
   useEffect(() => {
@@ -204,8 +199,7 @@ export default function MediaManagement() {
 
       if (response.ok) {
         const hasAccessKeys = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-        const hasTempCredentials = cloudConfig.aws.tempAccessKey && cloudConfig.aws.tempSecretKey;
-        const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : hasTempCredentials ? 'Temporary Identity Center credentials' : 'Role-based (recommended)';
+        const authMethod = hasAccessKeys ? 'Role-based + Access Keys (hybrid)' : 'Role-based (recommended)';
         
         alert(`✅ AWS S3 Configuration Saved Successfully!\n\n🔐 Security Status:\n• Authentication: ${authMethod}\n• Bucket configured: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n• Role ARN: ${cloudConfig.aws.roleArn}\n• External ID: Configured\n• Ready for secure S3 operations\n\n📋 Next Steps:\n• Verify AWS IAM role trust policy matches External ID\n• Test upload functionality`);
       } else {
@@ -1092,62 +1086,6 @@ export default function MediaManagement() {
                   </div>
                 </div>
                 
-                {/* Temporary Identity Center Credentials */}
-                <div className="config-section">
-                  <h3>🔑 Temporary Identity Center Credentials (Alternative)</h3>
-                  <p>If SSO session establishment fails, you can paste temporary credentials from AWS Identity Center portal:</p>
-                  <div className="config-grid">
-                    <div className="config-field">
-                      <label>Temporary Access Key:</label>
-                      <input
-                        type="password"
-                        value={cloudConfig.aws.tempAccessKey || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, tempAccessKey: e.target.value.trim() }
-                        }))}
-                        placeholder="ASIAXYZ..."
-                      />
-                      <small>From AWS Identity Center → Command line access</small>
-                    </div>
-                    <div className="config-field">
-                      <label>Temporary Secret Key:</label>
-                      <input
-                        type="password"
-                        value={cloudConfig.aws.tempSecretKey || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, tempSecretKey: e.target.value.trim() }
-                        }))}
-                        placeholder="xyz..."
-                      />
-                      <small>From AWS Identity Center portal</small>
-                    </div>
-                    <div className="config-field">
-                      <label>Temporary Session Token:</label>
-                      <input
-                        type="password"
-                        value={cloudConfig.aws.tempSessionToken || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, tempSessionToken: e.target.value.trim() }
-                        }))}
-                        placeholder="IQoJb3JpZ2luX2VjE..."
-                      />
-                      <small>From AWS Identity Center portal</small>
-                    </div>
-                  </div>
-                  <div className="sso-instructions">
-                    <strong>How to get temporary credentials:</strong>
-                    <ol>
-                      <li>Go to <a href="https://ingasti.awsapps.com/start/#" target="_blank" rel="noopener noreferrer">AWS Identity Center Portal</a></li>
-                      <li>Click "Command line or programmatic access"</li>
-                      <li>Copy the credentials from Option 1 (temporary credentials)</li>
-                      <li>Paste them in the fields above</li>
-                    </ol>
-                  </div>
-                </div>
-                
                 {/* Identity Center Credentials - Only show when NOT using pure SSO */}
                 {cloudConfig.aws.authMethod !== 'sso' && (
                   <div className="identity-center-credentials-section">
@@ -1222,11 +1160,7 @@ export default function MediaManagement() {
                         {cloudConfig.aws.authMethod === 'sso' ? (
                           <>
                             • Auth Method: <span style={{color: 'blue'}}>AWS SSO (Identity Center) 🔐</span><br/>
-                            {cloudConfig.aws.tempAccessKey ? (
-                              <>
-                                • Temporary Credentials: <span style={{color: 'green'}}>SET ✅</span>
-                              </>
-                            ) : (
+
                               <>
                                 • Manual Credentials: <span style={{color: 'red'}}>MISSING ❌</span>
                               </>
