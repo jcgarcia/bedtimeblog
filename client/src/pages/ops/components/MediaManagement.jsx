@@ -41,9 +41,9 @@ export default function MediaManagement() {
       accessKey: '',
       secretKey: '',
       sessionToken: '',
-      authMethod: 'manual', // 'manual', 'sso', 'oidc'
+      authMethod: 'identity-center', // 'identity-center', 'oidc'
       // OIDC Configuration
-      oidcEnabled: false,
+      accountId: '',
       oidcIssuerUrl: '',
       oidcAudience: 'sts.amazonaws.com',
       oidcSubject: ''
@@ -298,6 +298,7 @@ export default function MediaManagement() {
         body: JSON.stringify({
           oidcIssuerUrl: cloudConfig.aws.oidcIssuerUrl,
           oidcAudience: cloudConfig.aws.oidcAudience || 'sts.amazonaws.com',
+          oidcSubject: cloudConfig.aws.oidcSubject,
           accountId: cloudConfig.aws.accountId,
           bucketName: cloudConfig.aws.bucketName,
           region: cloudConfig.aws.region,
@@ -311,7 +312,25 @@ export default function MediaManagement() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`✅ OIDC Configuration Valid!\n\n🌐 Configuration Details:\n• OIDC Issuer: ${cloudConfig.aws.oidcIssuerUrl}\n• AWS Account: ${cloudConfig.aws.accountId}\n• AWS Role: ${cloudConfig.aws.roleArn}\n• S3 Bucket: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n\n📋 Status: Ready for Kubernetes deployment with OIDC authentication`);
+        const config = result.configuration;
+        const k8s = result.kubernetes;
+        
+        let alertMessage = `✅ OIDC Configuration Valid!\n\n🌐 Configuration Details:\n• OIDC Issuer: ${config.oidcIssuerUrl}\n• AWS Account: ${config.accountId}\n• AWS Role: ${config.roleArn}\n• S3 Bucket: ${config.bucketName}\n• Region: ${config.region}\n• Subject: ${config.oidcSubject}\n\n📋 Environment: ${k8s.environment}`;
+        
+        if (k8s.tokenAvailable) {
+          alertMessage += `\n\n🔑 Kubernetes Token: ✅ Available`;
+          if (k8s.tokenDetails) {
+            alertMessage += `\n• Issuer: ${k8s.tokenDetails.issuer}\n• Subject: ${k8s.tokenDetails.subject}`;
+            if (k8s.tokenDetails.expiresAt) {
+              alertMessage += `\n• Expires: ${new Date(k8s.tokenDetails.expiresAt).toLocaleString()}`;
+            }
+          }
+          alertMessage += `\n\n🚀 Status: ${result.nextSteps}`;
+        } else {
+          alertMessage += `\n\n⚠️  Kubernetes Token: Not available (running outside Kubernetes)\n\n🚀 Status: ${result.nextSteps}`;
+        }
+        
+        alert(alertMessage);
       } else {
         const errorData = await response.json();
         alert(`❌ OIDC Configuration Invalid\n\n🔍 Error Details:\n${errorData.message}\n\n💡 Common Issues:\n• Check OIDC Issuer URL is accessible\n• Verify AWS Account ID is correct\n• Ensure IAM role ARN is correct\n• Confirm AWS OIDC Identity Provider is configured\n• Check role trust policy allows web identity`);
@@ -962,10 +981,19 @@ export default function MediaManagement() {
           
           <div className="media-server-config">
           <label>Media Server:</label>
-          <select value={mediaServerType} onChange={e => setMediaServerType(e.target.value)}>
+          <select value={mediaServerType} onChange={e => {
+            setMediaServerType(e.target.value);
+            // Clear existing credential status when changing server type
+            setCredentialStatus(null);
+          }}>
             <option value="internal">Internal (Blog Server)</option>
             <option value="oci">Oracle Cloud Infrastructure (OCI)</option>
-            <option value="aws">Amazon Web Services (AWS)</option>
+            <option value="aws">
+              {cloudConfig.aws?.authMethod === 'oidc' 
+                ? 'Amazon Web Services (AWS) - OIDC Federation'
+                : 'Amazon Web Services (AWS) - Identity Center'
+              }
+            </option>
             <option value="external">External Media Server</option>
           </select>
           
@@ -1172,8 +1200,10 @@ export default function MediaManagement() {
                           authMethod: e.target.value,
                           // Clear method-specific fields when switching
                           ...(e.target.value === 'identity-center' ? {
+                            accountId: '',
                             oidcIssuerUrl: '',
-                            oidcAudience: ''
+                            oidcAudience: 'sts.amazonaws.com',
+                            oidcSubject: ''
                           } : {}),
                           ...(e.target.value === 'oidc' ? {
                             accessKey: '',
@@ -1305,6 +1335,19 @@ export default function MediaManagement() {
                           placeholder="sts.amazonaws.com"
                         />
                         <small style={{ color: '#28a745' }}>Token audience (usually sts.amazonaws.com)</small>
+                      </div>
+                      <div className="config-field">
+                        <label>OIDC Subject:</label>
+                        <input
+                          type="text"
+                          value={cloudConfig.aws?.oidcSubject || ''}
+                          onChange={e => setCloudConfig(prev => ({
+                            ...prev,
+                            aws: { ...prev.aws, oidcSubject: e.target.value.trim() }
+                          }))}
+                          placeholder="system:serviceaccount:default:media-access-sa"
+                        />
+                        <small style={{ color: '#28a745' }}>Service account subject (format: system:serviceaccount:namespace:service-account-name)</small>
                       </div>
                     </div>
                     <div className="auth-method-note">
