@@ -1157,8 +1157,48 @@ export default function MediaManagement() {
                   </div>
                 </div>
                 
-                {/* Identity Center Credentials - Only show when NOT using pure SSO */}
-                {cloudConfig.aws.authMethod !== 'sso' && (
+                {/* Authentication Method Selection */}
+                <div className="auth-method-selection">
+                  <div className="auth-section-header">
+                    <h5><i className="fa-solid fa-shield-alt"></i> Authentication Method</h5>
+                  </div>
+                  <div className="config-field">
+                    <label>Select Authentication Method:</label>
+                    <select 
+                      value={cloudConfig.aws?.authMethod || 'identity-center'} 
+                      onChange={(e) => setCloudConfig(prev => ({
+                        ...prev,
+                        aws: {
+                          ...prev.aws,
+                          authMethod: e.target.value,
+                          // Clear method-specific fields when switching
+                          ...(e.target.value === 'identity-center' ? {
+                            oidcIssuerUrl: '',
+                            oidcAudience: ''
+                          } : {}),
+                          ...(e.target.value === 'oidc' ? {
+                            accessKey: '',
+                            secretKey: '',
+                            sessionToken: ''
+                          } : {})
+                        }
+                      }))}
+                      className="form-control"
+                    >
+                      <option value="identity-center">AWS Identity Center (SSO)</option>
+                      <option value="oidc">OIDC Federation (Kubernetes)</option>
+                    </select>
+                    <small className="form-text text-muted">
+                      {cloudConfig.aws?.authMethod === 'identity-center' 
+                        ? 'Use temporary credentials from AWS Identity Center portal'
+                        : 'Use OIDC federation with Kubernetes service account tokens'
+                      }
+                    </small>
+                  </div>
+                </div>
+                
+                {/* Identity Center Credentials - Only show when using Identity Center */}
+                {cloudConfig.aws?.authMethod !== 'oidc' && (
                   <div className="identity-center-credentials-section">
                     <div className="auth-section-header">
                       <h5><i className="fa-solid fa-key"></i> Identity Center Credentials (Required)</h5>
@@ -1216,83 +1256,63 @@ export default function MediaManagement() {
                 </div>
                 )}
 
-                {/* OIDC Web Identity Configuration */}
-                <div className="auth-method-section">
-                  <div className="auth-method-header">
-                    <h4>
-                      <input
-                        type="checkbox"
-                        checked={cloudConfig.aws.oidcEnabled || false}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { 
-                            ...prev.aws, 
-                            oidcEnabled: e.target.checked,
-                            authMethod: e.target.checked ? 'oidc' : 'manual'
-                          }
-                        }))}
-                        style={{ marginRight: '8px' }}
-                      />
-                      🌐 OIDC Web Identity (Kubernetes/EKS)
-                    </h4>
-                    <small>Use Kubernetes service account tokens for federated AWS access</small>
-                  </div>
-                  
-                  {cloudConfig.aws.oidcEnabled && (
-                  <div className="auth-fields">
-                    <div className="config-field">
-                      <label>OIDC Issuer URL:</label>
-                      <input
-                        type="url"
-                        value={cloudConfig.aws.oidcIssuerUrl || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, oidcIssuerUrl: e.target.value.trim() }
-                        }))}
-                        placeholder="https://k8soci.ingasti.com"
-                        required
-                      />
-                      <small>The Kubernetes OIDC issuer URL (without /.well-known/openid_configuration)</small>
+                {/* OIDC Federation Configuration - Only show when using OIDC */}
+                {cloudConfig.aws?.authMethod === 'oidc' && (
+                  <div className="oidc-credentials-section">
+                    <div className="auth-section-header">
+                      <h5><i className="fa-solid fa-link"></i> OIDC Federation Configuration</h5>
+                      <small style={{ color: '#1976d2', fontWeight: '600' }}>
+                        ℹ️ Configure OIDC federation for Kubernetes service account authentication
+                      </small>
                     </div>
-
-                    <div className="config-field">
-                      <label>OIDC Audience:</label>
-                      <input
-                        type="text"
-                        value={cloudConfig.aws.oidcAudience || 'sts.amazonaws.com'}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, oidcAudience: e.target.value.trim() }
-                        }))}
-                        placeholder="sts.amazonaws.com"
-                        required
-                      />
-                      <small>The intended audience for the OIDC token (usually sts.amazonaws.com)</small>
+                    <div className="access-key-grid">
+                      <div className="config-field">
+                        <label>AWS Account ID (Required):</label>
+                        <input
+                          type="text"
+                          value={cloudConfig.aws?.accountId || ''}
+                          onChange={e => setCloudConfig(prev => ({
+                            ...prev,
+                            aws: { ...prev.aws, accountId: e.target.value.trim() }
+                          }))}
+                          placeholder="123456789012"
+                          required
+                        />
+                        <small style={{ color: '#28a745' }}>Your AWS account ID (12 digits)</small>
+                      </div>
+                      <div className="config-field">
+                        <label>OIDC Issuer URL (Required):</label>
+                        <input
+                          type="url"
+                          value={cloudConfig.aws?.oidcIssuerUrl || ''}
+                          onChange={e => setCloudConfig(prev => ({
+                            ...prev,
+                            aws: { ...prev.aws, oidcIssuerUrl: e.target.value.trim() }
+                          }))}
+                          placeholder="https://k8soci.ingasti.com"
+                          required
+                        />
+                        <small style={{ color: '#28a745' }}>Kubernetes OIDC issuer URL</small>
+                      </div>
+                      <div className="config-field">
+                        <label>OIDC Audience:</label>
+                        <input
+                          type="text"
+                          value={cloudConfig.aws?.oidcAudience || 'sts.amazonaws.com'}
+                          onChange={e => setCloudConfig(prev => ({
+                            ...prev,
+                            aws: { ...prev.aws, oidcAudience: e.target.value.trim() }
+                          }))}
+                          placeholder="sts.amazonaws.com"
+                        />
+                        <small style={{ color: '#28a745' }}>Token audience (usually sts.amazonaws.com)</small>
+                      </div>
                     </div>
-
-                    <div className="config-field">
-                      <label>OIDC Subject (Kubernetes Service Account):</label>
-                      <input
-                        type="text"
-                        value={cloudConfig.aws.oidcSubject || ''}
-                        onChange={e => setCloudConfig(prev => ({
-                          ...prev,
-                          aws: { ...prev.aws, oidcSubject: e.target.value.trim() }
-                        }))}
-                        placeholder="system:serviceaccount:blog:media-access-sa"
-                        required
-                      />
-                      <small>The Kubernetes service account in format: system:serviceaccount:namespace:service-account-name</small>
+                    <div className="auth-method-note">
+                      <strong>🌐 OIDC Federation:</strong> Uses Kubernetes service account tokens → AWS STS AssumeRoleWithWebIdentity → Automatic credential refresh via Kubernetes
                     </div>
                   </div>
-                  )}
-
-                  {cloudConfig.aws.oidcEnabled && (
-                  <div className="auth-method-note">
-                    <strong>🌐 OIDC Web Identity Authentication:</strong> Uses Kubernetes service account tokens → AWS STS AssumeRoleWithWebIdentity → Automatic credential refresh via Kubernetes token rotation
-                  </div>
-                  )}
-                </div>
+                )}
                 
                 <div className="aws-config-sidebar">
                   {/* Configuration Status and Save Button */}
