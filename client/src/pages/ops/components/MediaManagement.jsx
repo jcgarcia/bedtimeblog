@@ -205,7 +205,12 @@ export default function MediaManagement() {
           // Temporary Identity Center credentials
           tempAccessKey: cloudConfig.aws.tempAccessKey,
           tempSecretKey: cloudConfig.aws.tempSecretKey,
-          tempSessionToken: cloudConfig.aws.tempSessionToken
+          tempSessionToken: cloudConfig.aws.tempSessionToken,
+          // OIDC federation credentials
+          accountId: cloudConfig.aws.accountId,
+          oidcIssuerUrl: cloudConfig.aws.oidcIssuerUrl,
+          oidcAudience: cloudConfig.aws.oidcAudience,
+          oidcSubject: cloudConfig.aws.oidcSubject
         }),
       });
 
@@ -1440,7 +1445,7 @@ export default function MediaManagement() {
                     {/* Action Buttons */}
                     <div className="action-buttons">
                       {/* Test Connection Button - Regular AWS or OIDC */}
-                      {!cloudConfig.aws.oidcEnabled ? (
+                      {cloudConfig.aws.authMethod !== 'oidc' ? (
                         <button 
                           className="btn-test-connection"
                           onClick={testAwsConnection}
@@ -1465,9 +1470,7 @@ export default function MediaManagement() {
                         <button 
                           className="btn-test-oidc-connection"
                           onClick={testOidcConnection}
-                          disabled={!cloudConfig.aws.bucketName || !cloudConfig.aws.region || 
-                                   !cloudConfig.aws.roleArn || !cloudConfig.aws.oidcIssuerUrl || 
-                                   !cloudConfig.aws.oidcSubject}
+                          disabled={!isAwsAuthValid()}
                           style={{
                             backgroundColor: '#8B5CF6',
                             color: 'white',
@@ -1479,34 +1482,35 @@ export default function MediaManagement() {
                             cursor: 'pointer',
                             width: '100%',
                             marginBottom: '10px',
-                            opacity: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || 
-                                     !cloudConfig.aws.roleArn || !cloudConfig.aws.oidcIssuerUrl || 
-                                     !cloudConfig.aws.oidcSubject) ? 0.5 : 1
+                            opacity: !isAwsAuthValid() ? 0.5 : 1
                           }}
                         >
                           <i className="fa-solid fa-globe"></i> Test OIDC Configuration
                         </button>
                       )}
 
-                      <button 
-                        className="btn-refresh-credentials"
-                        onClick={refreshAwsCredentials}
-                        disabled={loading}
-                        style={{
-                          backgroundColor: '#fd7e14',
-                          color: 'white',
-                          border: '2px solid #e55100',
-                          fontSize: '14px',
-                          padding: '10px 20px',
-                          borderRadius: '6px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          width: '100%',
-                          marginBottom: '10px'
-                        }}
-                      >
-                        <i className="fa-solid fa-refresh"></i> Refresh Credentials
-                      </button>
+                      {/* Only show Refresh Credentials for Identity Center authentication */}
+                      {cloudConfig.aws.authMethod !== 'oidc' && (
+                        <button 
+                          className="btn-refresh-credentials"
+                          onClick={refreshAwsCredentials}
+                          disabled={loading}
+                          style={{
+                            backgroundColor: '#fd7e14',
+                            color: 'white',
+                            border: '2px solid #e55100',
+                            fontSize: '14px',
+                            padding: '10px 20px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%',
+                            marginBottom: '10px'
+                          }}
+                        >
+                          <i className="fa-solid fa-refresh"></i> Refresh Credentials
+                        </button>
+                      )}
                       
                       <button 
                         className="btn-save-config"

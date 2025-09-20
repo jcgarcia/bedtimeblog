@@ -529,7 +529,12 @@ export const updateAwsConfig = async (req, res) => {
       // Temporary Identity Center credentials
       tempAccessKey,
       tempSecretKey,
-      tempSessionToken
+      tempSessionToken,
+      // OIDC federation credentials
+      accountId,
+      oidcIssuerUrl,
+      oidcAudience,
+      oidcSubject
     } = req.body;
     
     // Trim all string inputs to prevent whitespace issues
@@ -549,6 +554,11 @@ export const updateAwsConfig = async (req, res) => {
     const trimmedTempAccessKey = tempAccessKey?.trim();
     const trimmedTempSecretKey = tempSecretKey?.trim();
     const trimmedTempSessionToken = tempSessionToken?.trim();
+    // OIDC credentials
+    const trimmedAccountId = accountId?.trim();
+    const trimmedOidcIssuerUrl = oidcIssuerUrl?.trim();
+    const trimmedOidcAudience = oidcAudience?.trim();
+    const trimmedOidcSubject = oidcSubject?.trim();
     
     console.log('🔧 Trimmed values:', { 
       trimmedBucketName, 
@@ -573,6 +583,7 @@ export const updateAwsConfig = async (req, res) => {
     const hasKeyAuth = trimmedAccessKey && trimmedSecretKey;
     const hasSsoConfig = trimmedSsoStartUrl && trimmedSsoRegion && trimmedSsoAccountId && trimmedSsoRoleName;
     const hasTempCredentials = trimmedTempAccessKey && trimmedTempSecretKey && trimmedTempSessionToken;
+    const hasOidcConfig = trimmedAccountId && trimmedOidcIssuerUrl && trimmedRoleArn;
     
     if (!trimmedBucketName || !trimmedRegion) {
       return res.status(400).json({ 
@@ -591,6 +602,15 @@ export const updateAwsConfig = async (req, res) => {
         });
       }
       console.log('✅ Using AWS SSO authentication:', hasTempCredentials ? 'with temporary credentials' : 'with SSO configuration');
+    } else if (trimmedAuthMethod === 'oidc') {
+      // For OIDC authentication, we need OIDC configuration
+      if (!hasOidcConfig) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'OIDC configuration incomplete. Required fields: AWS Account ID, OIDC Issuer URL, and Role ARN' 
+        });
+      }
+      console.log('✅ Using OIDC federation authentication');
     } else {
       // For other authentication methods, require role and access keys
       if (!hasRoleAuth) {
@@ -633,6 +653,16 @@ export const updateAwsConfig = async (req, res) => {
         awsConfig.tempSessionToken = trimmedTempSessionToken;
         console.log('✅ Temporary Identity Center credentials added to AWS config');
       }
+    }
+    
+    // Add OIDC configuration if using OIDC auth
+    if (trimmedAuthMethod === 'oidc') {
+      awsConfig.accountId = trimmedAccountId;
+      awsConfig.oidcIssuerUrl = trimmedOidcIssuerUrl;
+      awsConfig.oidcAudience = trimmedOidcAudience;
+      awsConfig.oidcSubject = trimmedOidcSubject;
+      awsConfig.roleArn = trimmedRoleArn;
+      console.log('✅ OIDC federation configuration added to AWS config');
     }
     
     // Add role-based auth if provided
