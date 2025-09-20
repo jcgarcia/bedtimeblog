@@ -289,7 +289,7 @@ export default function MediaManagement() {
 
     try {
       // Show loading state
-      const testButton = document.querySelector('.btn-test-connection');
+      const testButton = document.querySelector('.btn-test-oidc-connection');
       const originalText = testButton.innerHTML;
       testButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing OIDC...';
       testButton.disabled = true;
@@ -344,9 +344,9 @@ export default function MediaManagement() {
       console.error('Error testing OIDC connection:', error);
       
       // Restore button state
-      const testButton = document.querySelector('.btn-test-connection');
+      const testButton = document.querySelector('.btn-test-oidc-connection');
       if (testButton) {
-        testButton.innerHTML = '<i class="fa-solid fa-plug"></i> Test OIDC Connection';
+        testButton.innerHTML = '<i class="fa-solid fa-globe"></i> Test OIDC Configuration';
         testButton.disabled = false;
       }
       
