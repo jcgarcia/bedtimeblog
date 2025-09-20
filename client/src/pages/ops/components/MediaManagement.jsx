@@ -1123,6 +1123,8 @@ export default function MediaManagement() {
                       />
                       <small>Cross-account IAM role for secure access</small>
                     </div>
+                {/* External ID - Only show for Identity Center authentication */}
+                {cloudConfig.aws?.authMethod !== 'oidc' && (
                 <div className="config-field">
                   <label>External ID (Required):</label>
                   <div className="external-id-input-group">
@@ -1185,6 +1187,7 @@ export default function MediaManagement() {
                     )}
                   </div>
                 </div>
+                )}
 
                   </div>
                 </div>
@@ -1372,7 +1375,10 @@ export default function MediaManagement() {
                         • Bucket: <span style={{color: cloudConfig.aws.bucketName ? 'green' : 'red'}}>{cloudConfig.aws.bucketName || 'MISSING'}</span><br/>
                         • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
                         • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                        • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                        {/* Only show External ID for non-OIDC authentication */}
+                        {cloudConfig.aws.authMethod !== 'oidc' && (
+                          <>• External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/></>
+                        )}
                         {cloudConfig.aws.authMethod === 'oidc' ? (
                           <>
                             • Auth Method: <span style={{color: 'purple'}}>OIDC Web Identity 🌐</span><br/>
