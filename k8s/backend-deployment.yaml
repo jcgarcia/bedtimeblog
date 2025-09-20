@@ -22,6 +22,7 @@ spec:
         app: blog-backend
         version: v1
     spec:
+      serviceAccountName: media-access-sa
       containers:
       - name: blog-backend
         image: localhost:5000/blog-backend:latest
@@ -78,6 +79,10 @@ spec:
             configMapKeyRef:
               name: blog-config
               key: node-env
+        - name: AWS_ROLE_ARN
+          value: "arn:aws:iam::007041844937:role/BedtimeBlogMediaRole"
+        - name: AWS_REGION
+          value: "eu-west-2"
         - name: GOOGLE_CLIENT_ID
           valueFrom:
             secretKeyRef:
