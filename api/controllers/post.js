@@ -46,7 +46,39 @@ async function resolveMediaUrl(mediaId) {
     return null;
   }
   
-  // If it's already a URL, return it as is
+  // If it's an S3 pre-signed URL, extract the S3 key and generate fresh signed URL
+  if (typeof mediaId === 'string' && mediaId.startsWith('http') && mediaId.includes('amazonaws.com')) {
+    try {
+      // Extract S3 key from pre-signed URL
+      const url = new URL(mediaId);
+      const s3Key = url.pathname.substring(1); // Remove leading slash
+      
+      if (s3Key.startsWith('uploads/')) {
+        const pool = getDbPool();
+        const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+        if (settingsRes.rows.length === 0) {
+          console.warn('AWS configuration not found');
+          return mediaId; // Return original URL as fallback
+        }
+        
+        const awsConfig = JSON.parse(settingsRes.rows[0].value);
+        const s3Client = await getS3Client(awsConfig);
+        
+        const command = new GetObjectCommand({
+          Bucket: awsConfig.bucketName,
+          Key: s3Key,
+        });
+        
+        const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        return signedUrl;
+      }
+    } catch (error) {
+      console.error('Error generating fresh signed URL from pre-signed URL:', error);
+      return mediaId; // Return original URL as fallback
+    }
+  }
+  
+  // If it's a regular URL (non-S3), return it as is
   if (typeof mediaId === 'string' && (mediaId.startsWith('http') || mediaId.startsWith('/'))) {
     return mediaId;
   }
