@@ -28,13 +28,17 @@ class AWSCredentialManager {
 
       let credentialProvider;
 
-      // Method 1: Use temporary Identity Center credentials if available
-      if (config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
-        console.log('🔑 Using temporary Identity Center credentials');
+      // Method 1: Use Identity Center credentials if available (new format or temp format)
+      const accessKey = config.accessKeyId || config.tempAccessKey;
+      const secretKey = config.secretKey || config.tempSecretKey;
+      const sessionToken = config.sessionToken || config.tempSessionToken;
+      
+      if (accessKey && secretKey && sessionToken) {
+        console.log('🔑 Using Identity Center credentials');
         credentialProvider = async () => ({
-          accessKeyId: config.tempAccessKey,
-          secretAccessKey: config.tempSecretKey,
-          sessionToken: config.tempSessionToken,
+          accessKeyId: accessKey,
+          secretAccessKey: secretKey,
+          sessionToken: sessionToken,
           expiration: new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours from now
         });
       }
@@ -297,8 +301,12 @@ class AWSCredentialManager {
 
       // Determine authentication method
       if (config) {
-        if (config.tempAccessKey && config.tempSecretKey && config.tempSessionToken) {
-          status.authMethod = 'Temporary Identity Center Credentials';
+        const hasAccessKey = config.accessKeyId || config.tempAccessKey;
+        const hasSecretKey = config.secretKey || config.tempSecretKey;
+        const hasSessionToken = config.sessionToken || config.tempSessionToken;
+        
+        if (hasAccessKey && hasSecretKey && hasSessionToken) {
+          status.authMethod = 'Identity Center Credentials';
         } else if (config.ssoStartUrl) {
           status.authMethod = 'AWS SSO (Identity Center)';
         } else if (config.roleArn) {
