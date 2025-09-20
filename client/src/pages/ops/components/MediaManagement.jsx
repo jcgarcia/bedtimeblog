@@ -52,18 +52,17 @@ export default function MediaManagement() {
 
   // Helper function to check if AWS authentication is configured
   const isAwsAuthValid = () => {
-    const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region;
-    const hasRoleAuth = cloudConfig.aws.roleArn;
+    const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region && cloudConfig.aws.roleArn;
 
     if (cloudConfig.aws.authMethod === 'oidc') {
-      // For OIDC: need basic config, role ARN, and OIDC settings
-      const hasOidcConfig = cloudConfig.aws.oidcIssuerUrl && cloudConfig.aws.oidcSubject;
-      return hasBasicConfig && hasRoleAuth && hasOidcConfig;
+      // For OIDC: need basic config, AWS account ID, and OIDC issuer URL
+      const hasOidcConfig = cloudConfig.aws.accountId && cloudConfig.aws.oidcIssuerUrl;
+      return hasBasicConfig && hasOidcConfig;
     } else {
-      // For manual/SSO: need basic config, role info, external ID, and access keys
+      // For Identity Center: need basic config, external ID, and access keys
       const hasExternalId = cloudConfig.aws.externalId;
-      const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
-      return hasBasicConfig && hasRoleAuth && hasExternalId && hasKeyAuth;
+      const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey && cloudConfig.aws.sessionToken;
+      return hasBasicConfig && hasExternalId && hasKeyAuth;
     }
   };
 
@@ -278,16 +277,16 @@ export default function MediaManagement() {
     // Validate OIDC configuration
     if (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || 
         !cloudConfig.aws.roleArn || !cloudConfig.aws.oidcIssuerUrl || 
-        !cloudConfig.aws.oidcSubject) {
+        !cloudConfig.aws.accountId) {
       alert('❌ Please configure all required OIDC settings before testing connection.');
       return;
     }
 
     try {
       // Show loading state
-      const testButton = document.querySelector('.btn-test-oidc-connection');
+      const testButton = document.querySelector('.btn-test-connection');
       const originalText = testButton.innerHTML;
-      testButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+      testButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing OIDC...';
       testButton.disabled = true;
 
       const response = await fetch(`${API_ENDPOINTS.MEDIA.BASE}/test-oidc-connection`, {
@@ -298,8 +297,8 @@ export default function MediaManagement() {
         },
         body: JSON.stringify({
           oidcIssuerUrl: cloudConfig.aws.oidcIssuerUrl,
-          oidcSubject: cloudConfig.aws.oidcSubject,
-          oidcAudience: cloudConfig.aws.oidcAudience,
+          oidcAudience: cloudConfig.aws.oidcAudience || 'sts.amazonaws.com',
+          accountId: cloudConfig.aws.accountId,
           bucketName: cloudConfig.aws.bucketName,
           region: cloudConfig.aws.region,
           roleArn: cloudConfig.aws.roleArn
@@ -312,18 +311,18 @@ export default function MediaManagement() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`✅ OIDC Configuration Valid!\n\n🌐 Configuration Details:\n• OIDC Issuer: ${result.details.oidcIssuerUrl}\n• Service Account: ${result.details.oidcSubject}\n• AWS Role: ${result.details.roleArn}\n• S3 Bucket: ${result.details.bucketName}\n• Region: ${result.details.region}\n\n📋 Status: Ready for Kubernetes deployment with OIDC authentication`);
+        alert(`✅ OIDC Configuration Valid!\n\n🌐 Configuration Details:\n• OIDC Issuer: ${cloudConfig.aws.oidcIssuerUrl}\n• AWS Account: ${cloudConfig.aws.accountId}\n• AWS Role: ${cloudConfig.aws.roleArn}\n• S3 Bucket: ${cloudConfig.aws.bucketName}\n• Region: ${cloudConfig.aws.region}\n\n📋 Status: Ready for Kubernetes deployment with OIDC authentication`);
       } else {
         const errorData = await response.json();
-        alert(`❌ OIDC Configuration Invalid\n\n🔍 Error Details:\n${errorData.message}\n\n💡 Common Issues:\n• Check OIDC Issuer URL is accessible\n• Verify service account format: system:serviceaccount:namespace:name\n• Ensure IAM role ARN is correct\n• Confirm AWS OIDC Identity Provider is configured`);
+        alert(`❌ OIDC Configuration Invalid\n\n🔍 Error Details:\n${errorData.message}\n\n💡 Common Issues:\n• Check OIDC Issuer URL is accessible\n• Verify AWS Account ID is correct\n• Ensure IAM role ARN is correct\n• Confirm AWS OIDC Identity Provider is configured\n• Check role trust policy allows web identity`);
       }
     } catch (error) {
       console.error('Error testing OIDC connection:', error);
       
       // Restore button state
-      const testButton = document.querySelector('.btn-test-oidc-connection');
+      const testButton = document.querySelector('.btn-test-connection');
       if (testButton) {
-        testButton.innerHTML = '<i class="fa-solid fa-globe"></i> Test OIDC Configuration';
+        testButton.innerHTML = '<i class="fa-solid fa-plug"></i> Test OIDC Connection';
         testButton.disabled = false;
       }
       
