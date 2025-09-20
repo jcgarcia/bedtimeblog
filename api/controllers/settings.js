@@ -583,7 +583,7 @@ export const updateAwsConfig = async (req, res) => {
     const hasKeyAuth = trimmedAccessKey && trimmedSecretKey;
     const hasSsoConfig = trimmedSsoStartUrl && trimmedSsoRegion && trimmedSsoAccountId && trimmedSsoRoleName;
     const hasTempCredentials = trimmedTempAccessKey && trimmedTempSecretKey && trimmedTempSessionToken;
-    const hasOidcConfig = trimmedAccountId && trimmedOidcIssuerUrl && trimmedRoleArn;
+    const hasOidcConfig = trimmedAccountId && trimmedOidcIssuerUrl && trimmedRoleArn && trimmedOidcSubject;
     
     if (!trimmedBucketName || !trimmedRegion) {
       return res.status(400).json({ 
@@ -607,7 +607,7 @@ export const updateAwsConfig = async (req, res) => {
       if (!hasOidcConfig) {
         return res.status(400).json({ 
           success: false, 
-          message: 'OIDC configuration incomplete. Required fields: AWS Account ID, OIDC Issuer URL, and Role ARN' 
+          message: 'OIDC configuration incomplete. Required fields: AWS Account ID, OIDC Issuer URL, OIDC Subject, and Role ARN' 
         });
       }
       console.log('✅ Using OIDC federation authentication');

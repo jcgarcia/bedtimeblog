@@ -55,8 +55,8 @@ export default function MediaManagement() {
     const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region && cloudConfig.aws.roleArn;
 
     if (cloudConfig.aws.authMethod === 'oidc') {
-      // For OIDC: need basic config, AWS account ID, and OIDC issuer URL
-      const hasOidcConfig = cloudConfig.aws.accountId && cloudConfig.aws.oidcIssuerUrl;
+      // For OIDC: need basic config, AWS account ID, OIDC issuer URL, and subject
+      const hasOidcConfig = cloudConfig.aws.accountId && cloudConfig.aws.oidcIssuerUrl && cloudConfig.aws.oidcSubject;
       return hasBasicConfig && hasOidcConfig;
     } else {
       // For Identity Center: need basic config, external ID, and access keys
@@ -294,7 +294,7 @@ export default function MediaManagement() {
       testButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing OIDC...';
       testButton.disabled = true;
 
-      const response = await fetch(`${API_ENDPOINTS.MEDIA.BASE}/test-oidc-connection`, {
+      const response = await fetch(API_ENDPOINTS.MEDIA.TEST_OIDC_CONNECTION, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

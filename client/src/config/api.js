@@ -76,11 +76,13 @@ export const API_ENDPOINTS = {
   // Media management
   MEDIA: {
     BASE_URL: API_URL,
+    BASE: `${API_URL}/api/media`,
     FILES: `${API_URL}/api/media/files`,
     FOLDERS: `${API_URL}/api/media/folders`,
     UPLOAD: `${API_URL}/api/media/upload`,
     DELETE: (id) => `${API_URL}/api/media/files/${id}`,
     TEST_AWS_CONNECTION: `${API_URL}/api/media/test-aws-connection`,
+    TEST_OIDC_CONNECTION: `${API_URL}/api/media/test-oidc-connection`,
     SYNC_S3: `${API_URL}/api/media/sync-s3`,
     CREDENTIAL_STATUS: `${API_URL}/api/media/credential-status`,
     REFRESH_CREDENTIALS: `${API_URL}/api/media/refresh-credentials`,
