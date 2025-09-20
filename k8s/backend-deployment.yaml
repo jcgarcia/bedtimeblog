@@ -79,10 +79,6 @@ spec:
             configMapKeyRef:
               name: blog-config
               key: node-env
-        - name: AWS_ROLE_ARN
-          value: "arn:aws:iam::007041844937:role/BedtimeBlogMediaRole"
-        - name: AWS_REGION
-          value: "eu-west-2"
         - name: GOOGLE_CLIENT_ID
           valueFrom:
             secretKeyRef:

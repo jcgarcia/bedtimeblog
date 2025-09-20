@@ -2,11 +2,9 @@ import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { SSOClient, GetRoleCredentialsCommand } from '@aws-sdk/client-sso';
 import { SSOOIDCClient, CreateTokenCommand, StartDeviceAuthorizationCommand } from '@aws-sdk/client-sso-oidc';
 import { S3Client } from '@aws-sdk/client-s3';
-import { fromSSO, fromWebToken, fromTemporaryCredentials, fromWebIdentityToken } from '@aws-sdk/credential-providers';
+import { fromSSO, fromWebToken, fromTemporaryCredentials } from '@aws-sdk/credential-providers';
 import { getDbPool } from '../db.js';
 import crypto from 'crypto';
-import fs from 'fs/promises';
-import { existsSync } from 'fs';
 
 class AWSCredentialManager {
   constructor() {
@@ -17,93 +15,15 @@ class AWSCredentialManager {
   }
 
   /**
-   * Check if OIDC web identity authentication is available (Kubernetes service account)
-   */
-  async tryWebIdentityAuthentication() {
-    try {
-      // Check if we're running in Kubernetes with a service account token
-      const tokenFile = '/var/run/secrets/eks.amazonaws.com/serviceaccount/token';
-      const awsRoleArn = process.env.AWS_ROLE_ARN;
-      
-      // Also check for standard Kubernetes service account token path
-      const k8sTokenFile = '/var/run/secrets/kubernetes.io/serviceaccount/token';
-      
-      console.log('🔍 Checking for OIDC web identity authentication...');
-      console.log('  AWS_ROLE_ARN:', awsRoleArn ? 'Present' : 'Not set');
-      console.log('  EKS token file exists:', existsSync(tokenFile));
-      console.log('  K8s token file exists:', existsSync(k8sTokenFile));
-      
-      // Try to get role ARN from environment or annotations
-      let roleArn = awsRoleArn;
-      
-      // If no environment variable, try to get it from service account annotations
-      if (!roleArn) {
-        try {
-          // In a real Kubernetes environment, we could read the service account
-          // For now, use the known role ARN from our configuration
-          roleArn = 'arn:aws:iam::007041844937:role/BedtimeBlogMediaRole';
-          console.log('📝 Using configured role ARN:', roleArn);
-        } catch (error) {
-          console.log('⚠️ Could not determine role ARN from environment');
-        }
-      }
-      
-      // Check if we have the required components for OIDC
-      const hasOIDCSupport = roleArn && (existsSync(tokenFile) || existsSync(k8sTokenFile));
-      
-      if (hasOIDCSupport) {
-        // Prefer EKS token file if available, otherwise use standard K8s token
-        const selectedTokenFile = existsSync(tokenFile) ? tokenFile : k8sTokenFile;
-        
-        console.log('✅ OIDC web identity authentication available');
-        console.log('  Role ARN:', roleArn);
-        console.log('  Token file:', selectedTokenFile);
-        
-        return {
-          available: true,
-          roleArn: roleArn,
-          tokenFile: selectedTokenFile,
-          method: 'OIDC_WEB_IDENTITY'
-        };
-      } else {
-        console.log('❌ OIDC web identity authentication not available');
-        if (!roleArn) console.log('  Missing: AWS_ROLE_ARN environment variable');
-        if (!existsSync(tokenFile) && !existsSync(k8sTokenFile)) {
-          console.log('  Missing: Service account token file');
-        }
-        
-        return {
-          available: false,
-          reason: 'Missing role ARN or service account token'
-        };
-      }
-      
-    } catch (error) {
-      console.error('❌ Error checking OIDC web identity authentication:', error.message);
-      return {
-        available: false,
-        reason: `Error checking OIDC: ${error.message}`
-      };
-    }
-  }
-
-  /**
    * Initialize automatic credential provider using AWS SDK's built-in refresh
    */
   async initializeCredentialProvider() {
     try {
       console.log('🔄 Initializing AWS SDK automatic credential provider...');
       
-      // First check for OIDC web identity token availability
-      const webIdentityResult = await this.tryWebIdentityAuthentication();
-      console.log('🔍 OIDC availability check:', webIdentityResult.available ? 'Available' : 'Not available');
-      
       const config = await this.getStoredAWSConfig();
-      console.log('🔍 Stored AWS config:', config ? 'Found' : 'Not found');
-      
-      // If neither OIDC nor config available, fail early
-      if (!webIdentityResult.available && !config) {
-        throw new Error('No AWS configuration found in database and OIDC not available');
+      if (!config) {
+        throw new Error('No AWS configuration found in database');
       }
 
       let credentialProvider;
@@ -162,7 +82,7 @@ class AWSCredentialManager {
 
       // Create S3 client with the credential provider
       this.s3Client = new S3Client({
-        region: config?.region || process.env.AWS_REGION || 'eu-west-2',
+        region: config.region || 'eu-west-2',
         credentials: credentialProvider
       });
 
@@ -381,24 +301,18 @@ class AWSCredentialManager {
 
       // Determine authentication method
       if (config) {
-        // Check if OIDC is available first
-        const webIdentityResult = await this.tryWebIdentityAuthentication();
-        if (webIdentityResult.available) {
-          status.authMethod = 'OIDC Web Identity (Kubernetes Service Account)';
+        const hasAccessKey = config.accessKeyId || config.tempAccessKey;
+        const hasSecretKey = config.secretKey || config.tempSecretKey;
+        const hasSessionToken = config.sessionToken || config.tempSessionToken;
+        
+        if (hasAccessKey && hasSecretKey && hasSessionToken) {
+          status.authMethod = 'Identity Center Credentials';
+        } else if (config.ssoStartUrl) {
+          status.authMethod = 'AWS SSO (Identity Center)';
+        } else if (config.roleArn) {
+          status.authMethod = 'IAM Role Assumption';
         } else {
-          const hasAccessKey = config.accessKeyId || config.tempAccessKey;
-          const hasSecretKey = config.secretKey || config.tempSecretKey;
-          const hasSessionToken = config.sessionToken || config.tempSessionToken;
-          
-          if (hasAccessKey && hasSecretKey && hasSessionToken) {
-            status.authMethod = 'Identity Center Credentials';
-          } else if (config.ssoStartUrl) {
-            status.authMethod = 'AWS SSO (Identity Center)';
-          } else if (config.roleArn) {
-            status.authMethod = 'IAM Role Assumption';
-          } else {
-            status.authMethod = 'Direct IAM Credentials';
-          }
+          status.authMethod = 'Direct IAM Credentials';
         }
       }
 
