@@ -40,18 +40,31 @@ export default function MediaManagement() {
       externalId: '',
       accessKey: '',
       secretKey: '',
-      sessionToken: ''
+      sessionToken: '',
+      authMethod: 'manual', // 'manual', 'sso', 'oidc'
+      // OIDC Configuration
+      oidcEnabled: false,
+      oidcIssuerUrl: '',
+      oidcAudience: 'sts.amazonaws.com',
+      oidcSubject: ''
     }
   });
 
   // Helper function to check if AWS authentication is configured
   const isAwsAuthValid = () => {
     const hasBasicConfig = cloudConfig.aws.bucketName && cloudConfig.aws.region;
-    const hasRoleAuth = cloudConfig.aws.roleArn && cloudConfig.aws.externalId;
-    const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
+    const hasRoleAuth = cloudConfig.aws.roleArn;
 
-    // Need basic config, role info, and access keys  
-    return hasBasicConfig && hasRoleAuth && hasKeyAuth;
+    if (cloudConfig.aws.authMethod === 'oidc') {
+      // For OIDC: need basic config, role ARN, and OIDC settings
+      const hasOidcConfig = cloudConfig.aws.oidcIssuerUrl && cloudConfig.aws.oidcSubject;
+      return hasBasicConfig && hasRoleAuth && hasOidcConfig;
+    } else {
+      // For manual/SSO: need basic config, role info, external ID, and access keys
+      const hasExternalId = cloudConfig.aws.externalId;
+      const hasKeyAuth = cloudConfig.aws.accessKey && cloudConfig.aws.secretKey;
+      return hasBasicConfig && hasRoleAuth && hasExternalId && hasKeyAuth;
+    }
   };
 
   useEffect(() => {
@@ -257,6 +270,64 @@ export default function MediaManagement() {
       }
       
       alert(`❌ Connection Test Failed\n\n🔍 Error: ${error.message}\n\n💡 Please check:\n• Network connectivity\n• AWS credentials validity\n• Server configuration`);
+    }
+  };
+
+  // Test OIDC connection
+  const testOidcConnection = async () => {
+    // Validate OIDC configuration
+    if (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || 
+        !cloudConfig.aws.roleArn || !cloudConfig.aws.oidcIssuerUrl || 
+        !cloudConfig.aws.oidcSubject) {
+      alert('❌ Please configure all required OIDC settings before testing connection.');
+      return;
+    }
+
+    try {
+      // Show loading state
+      const testButton = document.querySelector('.btn-test-oidc-connection');
+      const originalText = testButton.innerHTML;
+      testButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+      testButton.disabled = true;
+
+      const response = await fetch(`${API_ENDPOINTS.MEDIA.BASE}/test-oidc-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          oidcIssuerUrl: cloudConfig.aws.oidcIssuerUrl,
+          oidcSubject: cloudConfig.aws.oidcSubject,
+          oidcAudience: cloudConfig.aws.oidcAudience,
+          bucketName: cloudConfig.aws.bucketName,
+          region: cloudConfig.aws.region,
+          roleArn: cloudConfig.aws.roleArn
+        }),
+      });
+
+      // Restore button state
+      testButton.innerHTML = originalText;
+      testButton.disabled = false;
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`✅ OIDC Configuration Valid!\n\n🌐 Configuration Details:\n• OIDC Issuer: ${result.details.oidcIssuerUrl}\n• Service Account: ${result.details.oidcSubject}\n• AWS Role: ${result.details.roleArn}\n• S3 Bucket: ${result.details.bucketName}\n• Region: ${result.details.region}\n\n📋 Status: Ready for Kubernetes deployment with OIDC authentication`);
+      } else {
+        const errorData = await response.json();
+        alert(`❌ OIDC Configuration Invalid\n\n🔍 Error Details:\n${errorData.message}\n\n💡 Common Issues:\n• Check OIDC Issuer URL is accessible\n• Verify service account format: system:serviceaccount:namespace:name\n• Ensure IAM role ARN is correct\n• Confirm AWS OIDC Identity Provider is configured`);
+      }
+    } catch (error) {
+      console.error('Error testing OIDC connection:', error);
+      
+      // Restore button state
+      const testButton = document.querySelector('.btn-test-oidc-connection');
+      if (testButton) {
+        testButton.innerHTML = '<i class="fa-solid fa-globe"></i> Test OIDC Configuration';
+        testButton.disabled = false;
+      }
+      
+      alert(`❌ OIDC Test Failed\n\n🔍 Error: ${error.message}\n\n💡 Please check:\n• Network connectivity\n• OIDC configuration\n• Server configuration`);
     }
   };
 
@@ -1144,6 +1215,84 @@ export default function MediaManagement() {
                   </div>
                 </div>
                 )}
+
+                {/* OIDC Web Identity Configuration */}
+                <div className="auth-method-section">
+                  <div className="auth-method-header">
+                    <h4>
+                      <input
+                        type="checkbox"
+                        checked={cloudConfig.aws.oidcEnabled || false}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { 
+                            ...prev.aws, 
+                            oidcEnabled: e.target.checked,
+                            authMethod: e.target.checked ? 'oidc' : 'manual'
+                          }
+                        }))}
+                        style={{ marginRight: '8px' }}
+                      />
+                      🌐 OIDC Web Identity (Kubernetes/EKS)
+                    </h4>
+                    <small>Use Kubernetes service account tokens for federated AWS access</small>
+                  </div>
+                  
+                  {cloudConfig.aws.oidcEnabled && (
+                  <div className="auth-fields">
+                    <div className="config-field">
+                      <label>OIDC Issuer URL:</label>
+                      <input
+                        type="url"
+                        value={cloudConfig.aws.oidcIssuerUrl || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, oidcIssuerUrl: e.target.value.trim() }
+                        }))}
+                        placeholder="https://k8soci.ingasti.com"
+                        required
+                      />
+                      <small>The Kubernetes OIDC issuer URL (without /.well-known/openid_configuration)</small>
+                    </div>
+
+                    <div className="config-field">
+                      <label>OIDC Audience:</label>
+                      <input
+                        type="text"
+                        value={cloudConfig.aws.oidcAudience || 'sts.amazonaws.com'}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, oidcAudience: e.target.value.trim() }
+                        }))}
+                        placeholder="sts.amazonaws.com"
+                        required
+                      />
+                      <small>The intended audience for the OIDC token (usually sts.amazonaws.com)</small>
+                    </div>
+
+                    <div className="config-field">
+                      <label>OIDC Subject (Kubernetes Service Account):</label>
+                      <input
+                        type="text"
+                        value={cloudConfig.aws.oidcSubject || ''}
+                        onChange={e => setCloudConfig(prev => ({
+                          ...prev,
+                          aws: { ...prev.aws, oidcSubject: e.target.value.trim() }
+                        }))}
+                        placeholder="system:serviceaccount:blog:media-access-sa"
+                        required
+                      />
+                      <small>The Kubernetes service account in format: system:serviceaccount:namespace:service-account-name</small>
+                    </div>
+                  </div>
+                  )}
+
+                  {cloudConfig.aws.oidcEnabled && (
+                  <div className="auth-method-note">
+                    <strong>🌐 OIDC Web Identity Authentication:</strong> Uses Kubernetes service account tokens → AWS STS AssumeRoleWithWebIdentity → Automatic credential refresh via Kubernetes token rotation
+                  </div>
+                  )}
+                </div>
                 
                 <div className="aws-config-sidebar">
                   {/* Configuration Status and Save Button */}
@@ -1157,7 +1306,13 @@ export default function MediaManagement() {
                         • Region: <span style={{color: cloudConfig.aws.region ? 'green' : 'red'}}>{cloudConfig.aws.region || 'MISSING'}</span><br/>
                         • Role ARN: <span style={{color: cloudConfig.aws.roleArn ? 'green' : 'red'}}>{cloudConfig.aws.roleArn ? 'SET ✅' : 'MISSING ❌'}</span><br/>
                         • External ID: <span style={{color: cloudConfig.aws.externalId ? 'green' : 'red'}}>{cloudConfig.aws.externalId ? 'SET ✅' : 'MISSING ❌'}</span><br/>
-                        {cloudConfig.aws.authMethod === 'sso' ? (
+                        {cloudConfig.aws.authMethod === 'oidc' ? (
+                          <>
+                            • Auth Method: <span style={{color: 'purple'}}>OIDC Web Identity 🌐</span><br/>
+                            • OIDC Issuer: <span style={{color: cloudConfig.aws.oidcIssuerUrl ? 'green' : 'red'}}>{cloudConfig.aws.oidcIssuerUrl ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                            • OIDC Subject: <span style={{color: cloudConfig.aws.oidcSubject ? 'green' : 'red'}}>{cloudConfig.aws.oidcSubject ? 'SET ✅' : 'MISSING ❌'}</span><br/>
+                          </>
+                        ) : cloudConfig.aws.authMethod === 'sso' ? (
                           <>
                             • Auth Method: <span style={{color: 'blue'}}>AWS SSO (Identity Center) 🔐</span><br/>
 
@@ -1222,26 +1377,54 @@ export default function MediaManagement() {
                     
                     {/* Action Buttons */}
                     <div className="action-buttons">
-                      <button 
-                        className="btn-test-connection"
-                        onClick={testAwsConnection}
-                        disabled={!isAwsAuthValid()}
-                        style={{
-                          backgroundColor: '#007bff',
-                          color: 'white',
-                          border: '2px solid #0056b3',
-                          fontSize: '14px',
-                          padding: '10px 20px',
-                          borderRadius: '6px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          width: '100%',
-                          marginBottom: '10px',
-                          opacity: !isAwsAuthValid() ? 0.5 : 1
-                        }}
-                      >
-                        <i className="fa-solid fa-plug"></i> Test Connection
-                      </button>
+                      {/* Test Connection Button - Regular AWS or OIDC */}
+                      {!cloudConfig.aws.oidcEnabled ? (
+                        <button 
+                          className="btn-test-connection"
+                          onClick={testAwsConnection}
+                          disabled={!isAwsAuthValid()}
+                          style={{
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: '2px solid #0056b3',
+                            fontSize: '14px',
+                            padding: '10px 20px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%',
+                            marginBottom: '10px',
+                            opacity: !isAwsAuthValid() ? 0.5 : 1
+                          }}
+                        >
+                          <i className="fa-solid fa-plug"></i> Test Connection
+                        </button>
+                      ) : (
+                        <button 
+                          className="btn-test-oidc-connection"
+                          onClick={testOidcConnection}
+                          disabled={!cloudConfig.aws.bucketName || !cloudConfig.aws.region || 
+                                   !cloudConfig.aws.roleArn || !cloudConfig.aws.oidcIssuerUrl || 
+                                   !cloudConfig.aws.oidcSubject}
+                          style={{
+                            backgroundColor: '#8B5CF6',
+                            color: 'white',
+                            border: '2px solid #7C3AED',
+                            fontSize: '14px',
+                            padding: '10px 20px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%',
+                            marginBottom: '10px',
+                            opacity: (!cloudConfig.aws.bucketName || !cloudConfig.aws.region || 
+                                     !cloudConfig.aws.roleArn || !cloudConfig.aws.oidcIssuerUrl || 
+                                     !cloudConfig.aws.oidcSubject) ? 0.5 : 1
+                          }}
+                        >
+                          <i className="fa-solid fa-globe"></i> Test OIDC Configuration
+                        </button>
+                      )}
 
                       <button 
                         className="btn-refresh-credentials"

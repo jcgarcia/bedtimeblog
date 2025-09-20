@@ -11,6 +11,7 @@ import {
   createMediaFolder,
   testAwsConnection,
   testAwsConnectionSimple,
+  testOidcConnection,
   syncS3Files,
   clearMediaDatabase,
   getAWSCredentialStatus,
@@ -45,6 +46,7 @@ router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/
 
 // AWS connection testing
 router.post("/test-aws-connection", requireAdminAuth, testAwsConnectionSimple); // POST /api/media/test-aws-connection - Test AWS S3 connection using credential manager
+router.post("/test-oidc-connection", requireAdminAuth, testOidcConnection); // POST /api/media/test-oidc-connection - Test OIDC configuration
 router.post("/sync-s3", requireAdminAuth, syncS3Files);              // POST /api/media/sync-s3 - Sync S3 bucket with database
 router.post("/clear-database", requireAdminAuth, clearMediaDatabase); // POST /api/media/clear-database - Clear all media records
 

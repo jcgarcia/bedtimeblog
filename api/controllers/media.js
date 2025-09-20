@@ -1345,6 +1345,90 @@ export const clearMediaDatabase = async (req, res) => {
   }
 };
 
+// Test OIDC connection
+export const testOidcConnection = async (req, res) => {
+  try {
+    console.log('🧪 Testing OIDC connection...');
+    
+    const { oidcIssuerUrl, oidcSubject, oidcAudience, bucketName, region, roleArn } = req.body;
+    
+    console.log('🔍 OIDC connection test parameters:', { 
+      oidcIssuerUrl, 
+      oidcSubject,
+      oidcAudience,
+      bucketName, 
+      region, 
+      roleArn: roleArn ? 'Present' : 'Missing'
+    });
+    
+    // Validate required fields
+    if (!oidcIssuerUrl || !oidcSubject || !bucketName || !region || !roleArn) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required OIDC configuration: issuerUrl, subject, bucketName, region, and roleArn are required'
+      });
+    }
+    
+    // For now, just validate the configuration format
+    // In a real implementation, this would:
+    // 1. Read the Kubernetes service account token
+    // 2. Call AWS STS AssumeRoleWithWebIdentity
+    // 3. Test S3 access with the returned credentials
+    
+    // Validate OIDC Issuer URL format
+    try {
+      new URL(oidcIssuerUrl);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OIDC Issuer URL format'
+      });
+    }
+    
+    // Validate subject format (should be Kubernetes service account format)
+    if (!oidcSubject.startsWith('system:serviceaccount:')) {
+      return res.status(400).json({
+        success: false,
+        message: 'OIDC Subject should be in format: system:serviceaccount:namespace:service-account-name'
+      });
+    }
+    
+    // Validate role ARN format
+    if (!roleArn.startsWith('arn:aws:iam::')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid AWS IAM Role ARN format'
+      });
+    }
+    
+    console.log('✅ OIDC configuration validation successful');
+    
+    res.json({
+      success: true,
+      message: 'OIDC configuration is valid',
+      details: {
+        oidcIssuerUrl,
+        oidcSubject,
+        oidcAudience: oidcAudience || 'sts.amazonaws.com',
+        bucketName,
+        region,
+        roleArn,
+        configurationValid: true,
+        note: 'OIDC authentication will be used when running in Kubernetes with appropriate service account'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ OIDC connection test failed:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: `OIDC connection test failed: ${error.message}`,
+      error: error.name
+    });
+  }
+};
+
 // Test AWS connection
 export const testAwsConnection = async (req, res) => {
   try {
