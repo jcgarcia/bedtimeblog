@@ -1418,18 +1418,18 @@ export const testOidcConnection = async (req, res) => {
     };
     
     try {
-      const fs = require('fs');
+      const { existsSync, readFileSync } = await import('fs');
       
       console.log('🔍 Starting Kubernetes environment detection...');
       
       // Check for service account token
       const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
       console.log(`🔍 Checking token path: ${tokenPath}`);
-      console.log(`🔍 Token path exists: ${fs.existsSync(tokenPath)}`);
+      console.log(`🔍 Token path exists: ${existsSync(tokenPath)}`);
       
-      if (fs.existsSync(tokenPath)) {
+      if (existsSync(tokenPath)) {
         try {
-          const token = fs.readFileSync(tokenPath, 'utf8');
+          const token = readFileSync(tokenPath, 'utf8');
           console.log(`🔍 Token length: ${token ? token.length : 0}`);
           if (token && token.length > 0) {
             k8sIndicators.serviceAccountToken = true;
@@ -1464,11 +1464,11 @@ export const testOidcConnection = async (req, res) => {
       // Check for namespace file
       const namespacePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
       console.log(`🔍 Checking namespace path: ${namespacePath}`);
-      console.log(`🔍 Namespace path exists: ${fs.existsSync(namespacePath)}`);
+      console.log(`🔍 Namespace path exists: ${existsSync(namespacePath)}`);
       
-      if (fs.existsSync(namespacePath)) {
+      if (existsSync(namespacePath)) {
         try {
-          const namespace = fs.readFileSync(namespacePath, 'utf8');
+          const namespace = readFileSync(namespacePath, 'utf8');
           console.log(`🔍 Namespace content: "${namespace}"`);
           k8sIndicators.namespaceFile = true;
           console.log('✅ Kubernetes namespace file found and readable');
