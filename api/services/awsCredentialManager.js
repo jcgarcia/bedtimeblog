@@ -1,4 +1,4 @@
-import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
+import { STSClient, AssumeRoleCommand, AssumeRoleWithWebIdentityCommand } from '@aws-sdk/client-sts';
 import { SSOClient, GetRoleCredentialsCommand } from '@aws-sdk/client-sso';
 import { SSOOIDCClient, CreateTokenCommand, StartDeviceAuthorizationCommand } from '@aws-sdk/client-sso-oidc';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -29,28 +29,39 @@ class AWSCredentialManager {
       let credentialProvider;
 
       // Method 1: Use OIDC Web Identity Token if configured (Kubernetes service account)
-      // Note: Currently disabled because K8s service account tokens are not JWT tokens compatible with AWS OIDC
-      // TODO: Implement proper OIDC federation with external identity provider
       if (config.authMethod === 'oidc' && config.roleArn && config.oidcSubject) {
-        console.log('🔑 OIDC configuration detected');
-        console.log('⚠️ OIDC web identity authentication requires proper JWT tokens from OIDC provider');
-        console.log('🔄 Falling back to temporary credential authentication for now');
+        console.log('🔑 OIDC configuration detected - implementing native OIDC authentication');
         
-        // For now, check if we have any temporary credentials to use as fallback
-        const accessKey = config.accessKeyId || config.tempAccessKey;
-        const secretKey = config.secretKey || config.tempSecretKey;
-        const sessionToken = config.sessionToken || config.tempSessionToken;
-        
-        if (accessKey && secretKey && sessionToken) {
-          console.log('🔑 Using temporary Identity Center credentials as fallback for OIDC');
-          credentialProvider = async () => ({
-            accessKeyId: accessKey,
-            secretAccessKey: secretKey,
-            sessionToken: sessionToken,
-            expiration: new Date(Date.now() + 12 * 60 * 60 * 1000) // Default 12 hours from now
+        // Try to read Kubernetes service account token
+        try {
+          const { readFileSync } = await import('fs');
+          const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
+          const serviceAccountToken = readFileSync(tokenPath, 'utf8');
+          
+          console.log('✅ Kubernetes service account token found, using for OIDC authentication');
+          console.log('🎯 This provides permanent authentication without credential refresh');
+          
+          // Use the service account token with AWS Web Identity Token credentials
+          credentialProvider = fromWebToken({
+            roleArn: config.roleArn,
+            webIdentityToken: serviceAccountToken,
+            roleSessionName: 'BedtimeBlog-OIDC-Session',
+            durationSeconds: 3600, // 1 hour, will auto-refresh
+            roleAssumerWithWebIdentity: async (params) => {
+              const stsClient = new STSClient({ region: config.region || 'eu-west-2' });
+              return stsClient.send(new AssumeRoleWithWebIdentityCommand(params));
+            }
           });
-        } else {
-          throw new Error('OIDC authentication is configured but no fallback credentials are available. Please configure temporary Identity Center credentials or implement proper OIDC provider integration.');
+          
+          console.log('🚀 Native OIDC authentication initialized - no manual refresh required');
+          
+        } catch (tokenError) {
+          // If we can't read the service account token, we're probably not in Kubernetes
+          console.log('⚠️ Cannot read Kubernetes service account token:', tokenError.message);
+          console.log('📍 This likely means we are not running in a Kubernetes environment');
+          
+          // In non-Kubernetes environments, OIDC cannot work without proper token
+          throw new Error(`OIDC authentication requires Kubernetes service account token. Current environment: ${tokenError.message}. Deploy to Kubernetes cluster with proper service account configuration.`);
         }
       }
       // Method 2: Use Identity Center credentials if available (new format or temp format)
