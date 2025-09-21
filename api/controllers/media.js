@@ -1420,47 +1420,85 @@ export const testOidcConnection = async (req, res) => {
     try {
       const fs = require('fs');
       
+      console.log('🔍 Starting Kubernetes environment detection...');
+      
       // Check for service account token
       const tokenPath = '/var/run/secrets/kubernetes.io/serviceaccount/token';
+      console.log(`🔍 Checking token path: ${tokenPath}`);
+      console.log(`🔍 Token path exists: ${fs.existsSync(tokenPath)}`);
+      
       if (fs.existsSync(tokenPath)) {
-        const token = fs.readFileSync(tokenPath, 'utf8');
-        if (token && token.length > 0) {
-          k8sIndicators.serviceAccountToken = true;
-          console.log('✅ Kubernetes service account token found');
-          
-          // Try to decode the JWT header and payload (not signature verification)
-          try {
-            const parts = token.split('.');
-            if (parts.length === 3) {
-              const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-              tokenDetails = {
-                issuer: payload.iss,
-                subject: payload.sub,
-                audience: payload.aud,
-                expiresAt: payload.exp ? new Date(payload.exp * 1000).toISOString() : null
-              };
+        try {
+          const token = fs.readFileSync(tokenPath, 'utf8');
+          console.log(`🔍 Token length: ${token ? token.length : 0}`);
+          if (token && token.length > 0) {
+            k8sIndicators.serviceAccountToken = true;
+            console.log('✅ Kubernetes service account token found and readable');
+            
+            // Try to decode the JWT header and payload (not signature verification)
+            try {
+              const parts = token.split('.');
+              if (parts.length === 3) {
+                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+                tokenDetails = {
+                  issuer: payload.iss,
+                  subject: payload.sub,
+                  audience: payload.aud,
+                  expiresAt: payload.exp ? new Date(payload.exp * 1000).toISOString() : null
+                };
+                console.log('✅ Successfully decoded JWT token details');
+              }
+            } catch (decodeError) {
+              console.log('⚠️ Could not decode service account token as JWT:', decodeError.message);
             }
-          } catch (decodeError) {
-            console.log('⚠️ Could not decode service account token as JWT:', decodeError.message);
+          } else {
+            console.log('❌ Token file exists but is empty');
           }
+        } catch (readError) {
+          console.error('❌ Error reading token file:', readError.message);
         }
+      } else {
+        console.log('❌ Token path does not exist');
       }
       
       // Check for namespace file
       const namespacePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
+      console.log(`🔍 Checking namespace path: ${namespacePath}`);
+      console.log(`🔍 Namespace path exists: ${fs.existsSync(namespacePath)}`);
+      
       if (fs.existsSync(namespacePath)) {
-        k8sIndicators.namespaceFile = true;
+        try {
+          const namespace = fs.readFileSync(namespacePath, 'utf8');
+          console.log(`🔍 Namespace content: "${namespace}"`);
+          k8sIndicators.namespaceFile = true;
+          console.log('✅ Kubernetes namespace file found and readable');
+        } catch (readError) {
+          console.error('❌ Error reading namespace file:', readError.message);
+        }
+      } else {
+        console.log('❌ Namespace path does not exist');
       }
       
       // Check for Kubernetes environment variables
+      console.log('🔍 Checking Kubernetes environment variables...');
+      console.log(`🔍 KUBERNETES_SERVICE_HOST: ${process.env.KUBERNETES_SERVICE_HOST || 'NOT SET'}`);
+      console.log(`🔍 KUBERNETES_SERVICE_PORT: ${process.env.KUBERNETES_SERVICE_PORT || 'NOT SET'}`);
+      
       if (process.env.KUBERNETES_SERVICE_HOST || process.env.KUBERNETES_SERVICE_PORT) {
         k8sIndicators.envVars = true;
+        console.log('✅ Kubernetes environment variables found');
+      } else {
+        console.log('❌ No Kubernetes environment variables found');
       }
       
       // Consider running in Kubernetes if any indicator is present
       tokenAvailable = k8sIndicators.serviceAccountToken || k8sIndicators.namespaceFile || k8sIndicators.envVars;
       
-      console.log('🔍 Kubernetes environment check:', k8sIndicators);
+      console.log('🔍 Final Kubernetes environment check result:', {
+        ...k8sIndicators,
+        tokenAvailable,
+        finalEnvironment: tokenAvailable ? 'Kubernetes Pod' : 'Local Development'
+      });
       
     } catch (error) {
       console.error('❌ Error checking Kubernetes environment:', error.message);
