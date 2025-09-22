@@ -1511,7 +1511,7 @@ export const testOidcConnection = async (req, res) => {
       configuration: {
         oidcIssuerUrl,
         oidcSubject,
-        oidcAudience: oidcAudience || 'sts.amazonaws.com',
+        oidcAudience: oidcAudience || 'https://k8soci.ingasti.com',
         bucketName,
         region,
         roleArn,
