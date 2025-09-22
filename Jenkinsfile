@@ -203,30 +203,41 @@ pipeline {
                     
                     // Update deployment files with current image tags
                     sh """
-                    sh """
-                        # Start backend container for testing
-                        docker run -d -p 5001:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e PGHOST=\"${PGHOST}\" \
-                            -e PGPORT=\"${PGPORT}\" \
-                            -e PGUSER=\"${PGUSER}\" \
-                            -e PGPASSWORD=\"${PGPASSWORD}\" \
-                            -e PGDATABASE=\"${PGDATABASE}\" \
-                            -e PGSSLMODE=\"${PGSSLMODE}\" \
-                            -e JWT_SECRET=\"${JWT_SECRET}\" \
-                            -e CORS_ORIGIN=\"${CORS_ORIGIN}\" \
-                            -e NODE_ENV=production \
-                            ${env.BACKEND_IMAGE}
+                        cd k8s
                         
-                        # Wait for container to start
-                        sleep 15
+                        # Backup original files
+                        cp frontend-deployment.yaml frontend-deployment.yaml.bak
+                        cp backend-deployment.yaml backend-deployment.yaml.bak
                         
-                        # Test health endpoint
-                        curl -f http://localhost:5001/health || (echo "Backend health check failed" && exit 1)
+                        # Update image tags in deployment files
+                        sed -i 's|image: localhost:5000/blog-frontend:.*|image: ${env.FRONTEND_IMAGE}|g' frontend-deployment.yaml
+                        sed -i 's|image: localhost:5000/blog-backend:.*|image: ${env.BACKEND_IMAGE}|g' backend-deployment.yaml
                         
-                        echo "✅ Backend container test passed"
-                    """
+                        # Apply all Kubernetes resources in the correct order
+                        echo "📋 Applying namespace..."
+                        kubectl apply -f namespace.yaml
+                        
+                        echo "🔐 Applying service account and RBAC..."
+                        kubectl apply -f service-account.yaml
+                        
+                        echo "🗝️ Applying OIDC discovery service..."
+                        kubectl apply -f oidc-configmap.yaml
+                        kubectl apply -f oidc-discovery-service.yaml
+                        
+                        echo "🚀 Applying main application deployments..."
+                        kubectl apply -f backend-deployment.yaml
+                        kubectl apply -f frontend-deployment.yaml
+                        
+                        echo "🌐 Applying services and ingress..."
+                        kubectl apply -f backend-service.yaml
+                        kubectl apply -f frontend-service.yaml
+                        kubectl apply -f ingress.yaml
+                        
+                        # Wait for deployments to be ready
+                        echo "⏳ Waiting for deployments to be ready..."
                         kubectl wait --for=condition=available --timeout=300s deployment/blog-backend -n blog
                         kubectl wait --for=condition=available --timeout=300s deployment/blog-frontend -n blog
+                        kubectl wait --for=condition=available --timeout=300s deployment/oidc-discovery -n kube-system
                         
                         # Restore original deployment files
                         mv frontend-deployment.yaml.bak frontend-deployment.yaml
