@@ -240,17 +240,25 @@ pipeline {
                         sed -i.bak "s|localhost:5000/blog-frontend:latest|${env.FRONTEND_IMAGE}|g" frontend-deployment.yaml
                         sed -i.bak "s|localhost:5000/blog-backend:latest|${env.BACKEND_IMAGE}|g" backend-deployment.yaml
                         
-                        # Apply namespace and secrets
+                        # Apply namespace first
                         kubectl apply -f namespace.yaml
                         
                         # Apply persistent volumes
                         kubectl apply -f storage.yaml
                         
-                        # Deploy backend
-                        kubectl apply -f backend-deployment.yaml
+                        # Apply OIDC service account and configuration
+                        kubectl apply -f service-account.yaml
+                        kubectl apply -f oidc-configmap.yaml
+                        kubectl apply -f oidc-discovery-service.yaml
                         
-                        # Deploy frontend  
+                        # Deploy backend and frontend
+                        kubectl apply -f backend-deployment.yaml
                         kubectl apply -f frontend-deployment.yaml
+                        
+                        # Apply services and ingress
+                        kubectl apply -f backend-service.yaml
+                        kubectl apply -f frontend-service.yaml
+                        kubectl apply -f ingress.yaml
                         
                         # Wait for deployments to be ready
                         echo "⏳ Waiting for deployments to be ready..."
