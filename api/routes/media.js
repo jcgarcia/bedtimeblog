@@ -31,6 +31,60 @@ router.options("*", (req, res) => {
   res.status(200).end();
 });
 
+// Media serving route - serve files by filename with signed URLs
+router.get("/:filename", async (req, res) => {
+  try {
+    const { filename } = req.params;
+    console.log(`📁 Media request for filename: ${filename}`);
+    
+    // Look up the file in the database
+    const { getDbPool } = await import("../db.js");
+    const pool = getDbPool();
+    const result = await pool.query(
+      "SELECT s3_key, s3_bucket FROM media WHERE filename = $1",
+      [filename]
+    );
+    
+    if (result.rows.length === 0) {
+      console.log(`❌ File not found in database: ${filename}`);
+      return res.status(404).json({ error: "File not found" });
+    }
+    
+    const { s3_key, s3_bucket } = result.rows[0];
+    console.log(`🔍 Found file: ${s3_key} in bucket: ${s3_bucket}`);
+    
+    // Generate signed URL directly
+    const { getS3Client } = await import("../controllers/media.js");
+    const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+    
+    // Get AWS config from database
+    const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
+    if (settingsRes.rows.length === 0) {
+      console.error('❌ AWS configuration not found');
+      return res.status(500).json({ error: "AWS configuration not found" });
+    }
+    
+    const awsConfig = JSON.parse(settingsRes.rows[0].value);
+    const s3Client = await getS3Client(awsConfig);
+    
+    const command = new GetObjectCommand({
+      Bucket: awsConfig.bucketName,
+      Key: s3_key,
+    });
+    
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    console.log(`✅ Generated signed URL for: ${filename}`);
+    
+    // Redirect to the signed URL
+    res.redirect(302, signedUrl);
+    
+  } catch (error) {
+    console.error(`❌ Error serving media file ${req.params.filename}:`, error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Media file management routes
 router.post("/upload", requireAdminAuth, uploadToS3);              // POST /api/media/upload - Upload file to S3
 router.get("/files", requireAdminAuth, getMediaFiles);             // GET /api/media/files - Get all media files with pagination
