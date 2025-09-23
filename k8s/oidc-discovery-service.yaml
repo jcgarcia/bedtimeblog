@@ -92,15 +92,15 @@ spec:
             port: 3002
           initialDelaySeconds: 5
           periodSeconds: 10
-  volumes:
-  - name: app-code
-    configMap:
-      name: secure-oidc-code-auth
-      defaultMode: 0644
-  - name: k3s-keys
-    hostPath:
-      path: /var/lib/rancher/k3s/server/tls
-      type: Directory
+      volumes:
+      - name: app-code
+        configMap:
+          name: secure-oidc-code-auth
+          defaultMode: 0644
+      - name: k3s-keys
+        hostPath:
+          path: /var/lib/rancher/k3s/server/tls
+          type: Directory
 ---
 apiVersion: v1
 kind: ConfigMap
