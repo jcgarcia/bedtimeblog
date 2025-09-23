@@ -91,25 +91,33 @@ async function resolveMediaUrl(mediaId) {
   // If it's an S3 key (string starting with uploads/), generate signed URL
   if (typeof mediaId === 'string' && mediaId.startsWith('uploads/')) {
     try {
+      console.log(`🔑 Attempting to generate signed URL for S3 key: ${mediaId}`);
       const pool = getDbPool();
       const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
       if (settingsRes.rows.length === 0) {
-        console.warn('AWS configuration not found');
+        console.warn('❌ AWS configuration not found in database');
         return mediaId; // Return S3 key as fallback
       }
       
       const awsConfig = JSON.parse(settingsRes.rows[0].value);
+      console.log(`🔧 AWS Config loaded - Auth: ${awsConfig.authMethod}, Bucket: ${awsConfig.bucketName}`);
+      
       const s3Client = await getS3Client(awsConfig);
+      console.log(`🔗 S3 Client created successfully with OIDC`);
       
       const command = new GetObjectCommand({
         Bucket: awsConfig.bucketName,
         Key: mediaId,
       });
       
+      console.log(`📝 Attempting getSignedUrl for bucket: ${awsConfig.bucketName}, key: ${mediaId}`);
       const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      console.log(`✅ Successfully generated signed URL: ${signedUrl.substring(0, 100)}...`);
       return signedUrl;
     } catch (error) {
-      console.error('Error generating signed URL for S3 key:', error);
+      console.error(`❌ CRITICAL: Error generating signed URL for S3 key ${mediaId}:`, error);
+      console.error(`❌ Error name: ${error.name}, message: ${error.message}`);
+      console.error(`❌ Full error stack:`, error.stack);
       return mediaId; // Return S3 key as fallback
     }
   }
