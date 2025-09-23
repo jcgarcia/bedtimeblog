@@ -1,6 +1,9 @@
 const express = require('express');
 const fs = require('fs');
-const jwt = require('jsonwebtoken');
+const jwt = require('json  const issuer = 'https://oidc.ingasti.com';
+  const config = {
+    issuer: issuer,
+    jwks_uri: `${issuer}/.well-known/jwks.json`,oken');
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -88,7 +91,7 @@ app.get('/.well-known/openid-configuration', (req, res) => {
   const issuer = 'https://k8soci.ingasti.com';
   const config = {
     issuer: issuer,
-    jwks_uri: `${issuer}/.well-known/jwks.json`,
+    jwks_uri: 'https://oidc.ingasti.com/.well-known/jwks.json',
     authorization_endpoint: `${issuer}/auth`,
     token_endpoint: `${issuer}/token`,
     userinfo_endpoint: `${issuer}/userinfo`,
