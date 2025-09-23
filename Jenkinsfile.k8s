@@ -81,6 +81,19 @@ pipeline {
             }
         }
         
+        stage('Build OIDC Provider Image') {
+            steps {
+                script {
+                    echo "🔨 Building OIDC provider Docker image..."
+                    env.OIDC_IMAGE = "${REGISTRY_URL}/oidc-provider:${BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
+                    sh """
+                        docker build -f oidc-provider/Dockerfile -t ${env.OIDC_IMAGE} oidc-provider/
+                        docker tag ${env.OIDC_IMAGE} ${REGISTRY_URL}/oidc-provider:latest
+                    """
+                }
+            }
+        }
+        
         stage('Push Images to Registry') {
             steps {
                 script {
@@ -93,6 +106,10 @@ pipeline {
                         echo "Pushing frontend image..."
                         docker push ${env.FRONTEND_IMAGE}
                         docker push ${REGISTRY_URL}/blog-frontend:latest
+                        
+                        echo "Pushing OIDC provider image..."
+                        docker push ${env.OIDC_IMAGE}
+                        docker push ${REGISTRY_URL}/oidc-provider:latest
                     """
                 }
             }
@@ -248,8 +265,7 @@ pipeline {
                         
                         # Apply OIDC service account and configuration
                         kubectl apply -f service-account.yaml
-                        kubectl apply -f oidc-configmap.yaml
-                        kubectl apply -f oidc-discovery-service.yaml
+                        kubectl apply -f oidc-provider.yaml
                         
                         # Deploy backend and frontend
                         kubectl apply -f backend-deployment.yaml
