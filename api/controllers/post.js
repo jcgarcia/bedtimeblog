@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { getS3Client } from "./media.js";
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import credentialManager from '../services/awsCredentialManager.js';
 import { getDefaultCategoryId } from "./category.js";
 
 // Helper function to get valid category ID
@@ -92,6 +93,12 @@ async function resolveMediaUrl(mediaId) {
   if (typeof mediaId === 'string' && mediaId.startsWith('uploads/')) {
     try {
       console.log(`🔑 Attempting to generate signed URL for S3 key: ${mediaId}`);
+      
+      // Use the credential manager that's already configured with OIDC
+      const s3Client = await credentialManager.getS3Client();
+      console.log(`🔗 S3 Client obtained from OIDC credential manager`);
+      
+      // Get bucket name from database config
       const pool = getDbPool();
       const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
       if (settingsRes.rows.length === 0) {
@@ -100,10 +107,7 @@ async function resolveMediaUrl(mediaId) {
       }
       
       const awsConfig = JSON.parse(settingsRes.rows[0].value);
-      console.log(`🔧 AWS Config loaded - Auth: ${awsConfig.authMethod}, Bucket: ${awsConfig.bucketName}`);
-      
-      const s3Client = await getS3Client(awsConfig);
-      console.log(`🔗 S3 Client created successfully with OIDC`);
+      console.log(`🔧 Using bucket: ${awsConfig.bucketName} with OIDC authentication`);
       
       const command = new GetObjectCommand({
         Bucket: awsConfig.bucketName,
@@ -111,13 +115,8 @@ async function resolveMediaUrl(mediaId) {
       });
       
       console.log(`📝 Attempting getSignedUrl for bucket: ${awsConfig.bucketName}, key: ${mediaId}`);
-      const signedUrl = await getSignedUrl(s3Client, command, { 
-        expiresIn: 3600,
-        // Explicitly prevent S3 Express signing
-        signingName: 's3',
-        signingRegion: awsConfig.region || 'eu-west-2'
-      });
-      console.log(`✅ Successfully generated signed URL: ${signedUrl.substring(0, 100)}...`);
+      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      console.log(`✅ Successfully generated signed URL with OIDC: ${signedUrl.substring(0, 100)}...`);
       return signedUrl;
     } catch (error) {
       console.error(`❌ CRITICAL: Error generating signed URL for S3 key ${mediaId}:`, error);
