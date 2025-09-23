@@ -1,23 +1,26 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: oidc-discovery-service
+  name: oidc-provider
   namespace: kube-system
   labels:
-    app: oidc-discovery-service
+    app: oidc-provider
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: oidc-discovery-service
+      app: oidc-provider
   template:
     metadata:
       labels:
-        app: oidc-discovery-service
+        app: oidc-provider
     spec:
+      serviceAccount: oidc-provider-sa
       containers:
-      - name: oidc-discovery
-        image: localhost:5000/oidc-discovery-service:latest
+      - name: oidc-provider
+        image: localhost:5000/oidc-provider:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:
@@ -42,19 +45,39 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
+        volumeMounts:
+        - name: service-account-token
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+      volumes:
+      - name: service-account-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              audience: https://oidc.ingasti.com
+              expirationSeconds: 3600
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: oidc-discovery-service
+  name: oidc-provider-service
   namespace: kube-system
   labels:
-    app: oidc-discovery-service
+    app: oidc-provider
 spec:
   selector:
-    app: oidc-discovery-service
+    app: oidc-provider
   ports:
   - port: 80
     targetPort: 8080
     protocol: TCP
   type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oidc-provider-sa
+  namespace: kube-system
+  labels:
+    app: oidc-provider

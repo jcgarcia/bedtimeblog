@@ -1,0 +1,104 @@
+# Caddy configuration for blog infrastructure with OIDC provider
+
+# Main blog frontend
+blog.ingasti.com {
+    reverse_proxy blog-frontend-service.blog.svc.cluster.local:80
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    
+    # Enable compression
+    encode gzip
+    
+    # Cache static assets
+    @static {
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "public, max-age=31536000"
+    
+    log {
+        output file /var/log/caddy/blog-frontend.log
+        format json
+    }
+}
+
+# Blog API backend
+bapi.ingasti.com {
+    reverse_proxy blog-backend-service.blog.svc.cluster.local:80
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    
+    # Enable compression
+    encode gzip
+    
+    log {
+        output file /var/log/caddy/blog-backend.log
+        format json
+    }
+}
+
+# OIDC Provider for AWS STS
+oidc.ingasti.com {
+    reverse_proxy oidc-provider-service.kube-system.svc.cluster.local:80
+    
+    # Security headers for OIDC
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+    
+    # Allow caching for AWS STS
+    header /.well-known/* Cache-Control "public, max-age=3600"
+    
+    log {
+        output file /var/log/caddy/oidc-provider.log
+        format json
+    }
+}
+
+# Jenkins CI/CD
+jenkins.ingasti.com {
+    reverse_proxy localhost:8080
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        X-XSS-Protection "1; mode=block"
+    }
+    
+    log {
+        output file /var/log/caddy/jenkins.log
+        format json
+    }
+}
+
+# Docker registry
+registry.ingasti.com {
+    reverse_proxy localhost:5000
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+    }
+    
+    log {
+        output file /var/log/caddy/registry.log
+        format json
+    }
+}
