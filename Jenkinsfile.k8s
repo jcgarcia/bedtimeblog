@@ -266,6 +266,7 @@ pipeline {
                         # Apply OIDC service account and configuration
                         kubectl apply -f service-account.yaml
                         kubectl apply -f oidc-provider.yaml
+                        kubectl apply -f oidc-discovery-service.yaml
                         
                         # Deploy backend and frontend
                         kubectl apply -f backend-deployment.yaml

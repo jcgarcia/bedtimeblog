@@ -1330,7 +1330,7 @@ export default function MediaManagement() {
                             ...prev,
                             aws: { ...prev.aws, oidcIssuerUrl: e.target.value.trim() }
                           }))}
-                          placeholder="https://k8soci.ingasti.com"
+                          placeholder="https://oidc.ingasti.com"
                           required
                         />
                         <small style={{ color: '#28a745' }}>Kubernetes OIDC issuer URL</small>

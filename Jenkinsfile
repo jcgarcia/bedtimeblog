@@ -237,7 +237,7 @@ pipeline {
                         echo "⏳ Waiting for deployments to be ready..."
                         kubectl wait --for=condition=available --timeout=300s deployment/blog-backend -n blog
                         kubectl wait --for=condition=available --timeout=300s deployment/blog-frontend -n blog
-                        kubectl wait --for=condition=available --timeout=300s deployment/oidc-discovery -n kube-system
+                        kubectl wait --for=condition=available --timeout=300s deployment/secure-oidc-discovery -n kube-system
                         
                         # Restore original deployment files
                         mv frontend-deployment.yaml.bak frontend-deployment.yaml
