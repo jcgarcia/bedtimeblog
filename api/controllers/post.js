@@ -42,6 +42,7 @@ async function getCategoryIdForPost(categoryInput) {
 
 // Helper function to resolve media ID to signed URL
 async function resolveMediaUrl(mediaId) {
+  console.log(`🔍 resolveMediaUrl called with: ${mediaId}`);
   if (!mediaId || mediaId === '' || mediaId === 'null') {
     return null;
   }
