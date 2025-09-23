@@ -26,7 +26,13 @@ export async function getS3Client(config) {
           accessKeyId: config.tempAccessKey || config.accessKey,
           secretAccessKey: config.tempSecretKey || config.secretKey,
           sessionToken: config.tempSessionToken || config.sessionToken
-        }
+        },
+        // Explicitly disable S3 Express One Zone signing for standard S3 buckets
+        useAccelerateEndpoint: false,
+        forcePathStyle: false,
+        // Ensure we use standard S3 signing, not S3 Express
+        signingName: 's3',
+        signingRegion: config.region || 'eu-west-2'
       });
       return s3Client;
     }
@@ -48,7 +54,13 @@ export async function getS3Client(config) {
           accessKeyId: roleCredentials.Credentials.AccessKeyId,
           secretAccessKey: roleCredentials.Credentials.SecretAccessKey,
           sessionToken: roleCredentials.Credentials.SessionToken
-        }
+        },
+        // Explicitly disable S3 Express One Zone signing for standard S3 buckets
+        useAccelerateEndpoint: false,
+        forcePathStyle: false,
+        // Ensure we use standard S3 signing, not S3 Express
+        signingName: 's3',
+        signingRegion: config.region || 'eu-west-2'
       });
     }
     

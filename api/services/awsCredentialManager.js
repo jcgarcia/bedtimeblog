@@ -121,7 +121,13 @@ class AWSCredentialManager {
       // Create S3 client with the credential provider
       this.s3Client = new S3Client({
         region: config.region || 'eu-west-2',
-        credentials: credentialProvider
+        credentials: credentialProvider,
+        // Explicitly disable S3 Express One Zone signing for standard S3 buckets
+        useAccelerateEndpoint: false,
+        forcePathStyle: false,
+        // Ensure we use standard S3 signing, not S3 Express
+        signingName: 's3',
+        signingRegion: config.region || 'eu-west-2'
       });
 
       this.credentialProvider = credentialProvider;
