@@ -118,7 +118,7 @@ data:
     const PORT = 3002; // Changed to avoid conflict with Jenkins testing (uses 3001)
 
     // OIDC Discovery Configuration - WORKING ISSUER URL
-    const ISSUER = 'https://k8soci.ingasti.com';
+    const ISSUER = 'https://oidc.ingasti.com';
 
     // Cache for K3s JWKS - refresh every 5 minutes
     let cachedJWKS = null;
