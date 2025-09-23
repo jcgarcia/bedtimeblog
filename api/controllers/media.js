@@ -87,17 +87,37 @@ export async function getS3Client(config) {
 // Helper: Generate signed URL for private S3 objects
 async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
-    // Use the credential manager's S3 client
+    console.log('🔑 Attempting to generate signed URL for S3 key:', s3Key);
+    
+    // Use the credential manager's S3 client which is properly configured for OIDC
     const s3Client = await credentialManager.getS3Client();
+    console.log('🔗 S3 Client obtained from OIDC credential manager');
+    
+    console.log('🔧 Using bucket:', bucketName, 'with OIDC authentication');
     
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: s3Key
     });
     
-    return await getSignedUrl(s3Client, command, { expiresIn });
+    console.log('📝 Attempting getSignedUrl for bucket:', bucketName, ', key:', s3Key);
+    
+    // Add additional signing options to prevent S3 Express detection
+    const signedUrl = await getSignedUrl(s3Client, command, { 
+      expiresIn,
+      // Force standard S3 signing by explicitly setting signing options
+      signableHeaders: new Set(['host']),
+      unhoistableHeaders: new Set(),
+      signingName: 's3',
+      signingRegion: s3Client.config.region || 'eu-west-2'
+    });
+    
+    console.log('✅ Successfully generated signed URL for S3 key:', s3Key);
+    return signedUrl;
   } catch (error) {
-    console.error('❌ Failed to generate signed URL:', error.message);
+    console.error('❌ CRITICAL: Error generating signed URL for S3 key', s3Key + ':', error.message);
+    console.error('❌ Error name:', error.name + ', message:', error.message);
+    console.error('❌ Full error stack:', error.stack);
     throw error;
   }
 }

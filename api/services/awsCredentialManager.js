@@ -125,9 +125,17 @@ class AWSCredentialManager {
         // Explicitly disable S3 Express One Zone signing for standard S3 buckets
         useAccelerateEndpoint: false,
         forcePathStyle: false,
-        // Ensure we use standard S3 signing, not S3 Express
+        // Force standard S3 signing and prevent Express detection
         signingName: 's3',
-        signingRegion: config.region || 'eu-west-2'
+        signingRegion: config.region || 'eu-west-2',
+        // Additional Express prevention
+        disableS3ExpressSessionAuth: true,
+        // Force standard endpoint format
+        tls: true,
+        // Prevent Express One Zone detection by bucket name pattern
+        bucketEndpoint: false,
+        // Use virtual-hosted-style URLs (not path-style) to avoid Express confusion
+        forcePathStyle: false
       });
 
       this.credentialProvider = credentialProvider;
