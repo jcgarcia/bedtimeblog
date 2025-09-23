@@ -111,7 +111,12 @@ async function resolveMediaUrl(mediaId) {
       });
       
       console.log(`📝 Attempting getSignedUrl for bucket: ${awsConfig.bucketName}, key: ${mediaId}`);
-      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      const signedUrl = await getSignedUrl(s3Client, command, { 
+        expiresIn: 3600,
+        // Explicitly prevent S3 Express signing
+        signingName: 's3',
+        signingRegion: awsConfig.region || 'eu-west-2'
+      });
       console.log(`✅ Successfully generated signed URL: ${signedUrl.substring(0, 100)}...`);
       return signedUrl;
     } catch (error) {
