@@ -383,7 +383,10 @@ class AWSCredentialManager {
         const hasSecretKey = config.secretKey || config.tempSecretKey;
         const hasSessionToken = config.sessionToken || config.tempSessionToken;
         
-        if (hasAccessKey && hasSecretKey && hasSessionToken) {
+        // CRITICAL: Check for OIDC first before other role-based methods
+        if (config.authMethod === 'oidc' && config.roleArn && config.oidcSubject) {
+          status.authMethod = 'OIDC Web Identity (Kubernetes)';
+        } else if (hasAccessKey && hasSecretKey && hasSessionToken) {
           status.authMethod = 'Identity Center Credentials';
         } else if (config.ssoStartUrl) {
           status.authMethod = 'AWS SSO (Identity Center)';
