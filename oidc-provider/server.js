@@ -85,7 +85,7 @@ app.get('/health', (req, res) => {
 app.get('/.well-known/openid-configuration', (req, res) => {
   console.log('📋 OIDC Discovery requested');
   
-  const issuer = 'https://oidc.ingasti.com';
+  const issuer = 'https://k8soci.ingasti.com';
   const config = {
     issuer: issuer,
     jwks_uri: `${issuer}/.well-known/jwks.json`,
