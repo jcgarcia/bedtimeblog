@@ -20,8 +20,6 @@ import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
 import { closeDbPool } from "./db.js";
 import { createHealthCheckEndpoint, createConnectionInfoEndpoint } from "./utils/dbHealthCheck.js";
-import awsCredentialManager from './services/awsCredentialManager.js';
-import awsSsoRefreshService from './services/awsSsoRefreshService.js';
 
 // Load environment variables for database connection only
 dotenv.config({ path: '.env.local' });
@@ -171,50 +169,8 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, async () => {
   console.log(`Connected! Server running on port ${PORT}`);
   
-  // Initialize AWS SSO credential auto-refresh
-  try {
-    console.log('🔄 Initializing AWS SSO credential auto-refresh...');
-    
-    // Check current status
-    const status = await awsSsoRefreshService.getCredentialStatus();
-    console.log(`📊 AWS Credential Status: ${status.status || 'unknown'}`);
-    
-    if (status.status === 'expired' || status.status === 'expiring_soon') {
-      console.log('🔄 Credentials need refresh, attempting refresh...');
-      try {
-        const refreshResult = await awsSsoRefreshService.manualRefresh();
-        console.log('✅ AWS credentials refreshed successfully');
-      } catch (refreshError) {
-        console.warn('⚠️ AWS credential refresh failed:', refreshError.message);
-      }
-    } else if (status.status === 'valid') {
-      console.log(`✅ AWS credentials are valid (${status.timeRemaining} minutes remaining)`);
-    }
-    
-    // Start automatic monitoring
-    if (status.configured && status.ssoConfigured && status.autoRefreshEnabled !== false) {
-      await awsSsoRefreshService.startAutoRefresh();
-      console.log('🔍 AWS SSO auto-refresh monitoring started');
-    } else {
-      console.log('ℹ️ AWS SSO auto-refresh not started - configuration incomplete or disabled');
-    }
-    
-  } catch (error) {
-    console.warn('⚠️ AWS SSO credential setup failed:', error.message);
-    console.warn('⚠️ Media uploads may not work until AWS SSO is configured');
-    console.warn('💡 Run "aws sso login" and then call /api/aws/refresh-credentials');
-  }
-  
-  // Keep old credential manager as fallback
-  try {
-    console.log('🔄 Checking legacy credential manager...');
-    const legacyStatus = await credentialManager.getStatus();
-    if (legacyStatus.hasCachedCredentials) {
-      console.log('📋 Legacy credentials found, will use as fallback if needed');
-    }
-  } catch (error) {
-    console.log('📋 Legacy credential manager not available');
-  }
+  // OIDC authentication is handled automatically when needed
+  // No manual initialization required for OIDC-based AWS access
 });
 
 // Graceful shutdown handling
