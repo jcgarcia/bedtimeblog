@@ -95,30 +95,88 @@ async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     
     console.log('🔧 Using bucket:', bucketName, 'with OIDC authentication');
     
+    // CRITICAL FIX: Create a new S3Client with explicit standard S3 configuration
+    // to bypass any Express middleware that might be attached
+    const region = s3Client.config.region || 'eu-west-2';
+    const credentials = s3Client.config.credentials;
+    
+    console.log('🛠️ Creating bypass S3 client to prevent Express signing');
+    
+    // Create a clean S3Client specifically for signing to avoid Express detection
+    const cleanS3Client = new S3Client({
+      region: region,
+      credentials: credentials,
+      // Force standard S3 configuration without any Express features
+      forcePathStyle: false,
+      useAccelerateEndpoint: false,
+      signingName: 's3',
+      signingRegion: region,
+      // Explicitly disable any Express features
+      disableS3ExpressSessionAuth: true,
+      // Force standard S3 endpoint pattern
+      endpoint: `https://s3.${region}.amazonaws.com`,
+      // Override service configuration
+      serviceId: 'S3',
+      signatureVersion: 'v4'
+    });
+    
     const command = new GetObjectCommand({
       Bucket: bucketName,
       Key: s3Key
     });
     
-    console.log('📝 Attempting getSignedUrl for bucket:', bucketName, ', key:', s3Key);
+    console.log('📝 Using clean S3 client for signing. Bucket:', bucketName, ', Key:', s3Key);
     
-    // Add additional signing options to prevent S3 Express detection
-    const signedUrl = await getSignedUrl(s3Client, command, { 
+    // Use the clean client for signing with explicit standard S3 options
+    const signedUrl = await getSignedUrl(cleanS3Client, command, { 
       expiresIn,
-      // Force standard S3 signing by explicitly setting signing options
-      signableHeaders: new Set(['host']),
-      unhoistableHeaders: new Set(),
+      // Force standard S3 signing parameters
       signingName: 's3',
-      signingRegion: s3Client.config.region || 'eu-west-2'
+      signingRegion: region,
+      // Ensure standard headers only
+      signableHeaders: new Set(['host']),
+      unhoistableHeaders: new Set()
     });
     
-    console.log('✅ Successfully generated signed URL for S3 key:', s3Key);
+    console.log('✅ Successfully generated signed URL using clean S3 client for key:', s3Key);
     return signedUrl;
+    
   } catch (error) {
     console.error('❌ CRITICAL: Error generating signed URL for S3 key', s3Key + ':', error.message);
     console.error('❌ Error name:', error.name + ', message:', error.message);
     console.error('❌ Full error stack:', error.stack);
-    throw error;
+    
+    // If clean client approach fails, try one more fallback approach
+    try {
+      console.log('🔄 Attempting fallback signing approach...');
+      
+      // Get fresh credentials from credential manager
+      const freshCredentials = await credentialManager.getCredentials();
+      
+      // Create minimal S3Client with direct credentials
+      const fallbackS3Client = new S3Client({
+        region: 'eu-west-2',
+        credentials: freshCredentials,
+        forcePathStyle: false,
+        endpoint: 'https://s3.eu-west-2.amazonaws.com'
+      });
+      
+      const fallbackCommand = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: s3Key
+      });
+      
+      const fallbackUrl = await getSignedUrl(fallbackS3Client, fallbackCommand, { 
+        expiresIn 
+      });
+      
+      console.log('✅ Fallback signing successful for key:', s3Key);
+      return fallbackUrl;
+      
+    } catch (fallbackError) {
+      console.error('❌ Fallback signing also failed:', fallbackError.message);
+      throw error; // Throw original error
+    }
   }
 }
 

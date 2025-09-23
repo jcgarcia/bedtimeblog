@@ -119,6 +119,7 @@ class AWSCredentialManager {
       }
 
       // Create S3 client with the credential provider
+      // CRITICAL: Force standard S3 signing by removing S3 Express middleware
       this.s3Client = new S3Client({
         region: config.region || 'eu-west-2',
         credentials: credentialProvider,
@@ -128,15 +129,40 @@ class AWSCredentialManager {
         // Force standard S3 signing and prevent Express detection
         signingName: 's3',
         signingRegion: config.region || 'eu-west-2',
-        // Additional Express prevention
+        // Additional Express prevention options
         disableS3ExpressSessionAuth: true,
         // Force standard endpoint format
         tls: true,
         // Prevent Express One Zone detection by bucket name pattern
         bucketEndpoint: false,
-        // Use virtual-hosted-style URLs (not path-style) to avoid Express confusion
-        forcePathStyle: false
+        // Critical: Override service ID to prevent Express middleware loading
+        serviceId: 'S3',
+        // Force signature version to prevent Express detection
+        signatureVersion: 'v4',
+        // Disable Express-specific features
+        useGlobalEndpoint: false,
+        // Force standard S3 behavior
+        s3ForcePathStyle: false,
+        // Override endpoint to ensure standard S3
+        endpoint: undefined
       });
+
+      // HACK: Remove S3 Express middleware if it was added
+      try {
+        if (this.s3Client.middlewareStack && this.s3Client.middlewareStack.remove) {
+          // Try to remove S3 Express middleware if present
+          const middlewareNames = ['s3ExpressMiddleware', 'S3ExpressMiddleware', 's3Express'];
+          middlewareNames.forEach(name => {
+            try {
+              this.s3Client.middlewareStack.remove(name);
+            } catch (e) {
+              // Middleware not found, ignore
+            }
+          });
+        }
+      } catch (middlewareError) {
+        console.log('⚠️ Could not modify middleware stack:', middlewareError.message);
+      }
 
       this.credentialProvider = credentialProvider;
       this.isInitialized = true;
