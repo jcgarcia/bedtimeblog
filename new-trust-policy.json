@@ -1,0 +1,21 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::007041844937:oidc-provider/oidc.ingasti.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.ingasti.com:sub": "system:serviceaccount:blog:media-access-sa",
+                    "oidc.ingasti.com:aud": [
+                        "sts.amazonaws.com",
+                        "https://oidc.ingasti.com"
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -24,13 +24,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// OIDC Discovery configuration based on K3s settings
+// OIDC Discovery configuration for AWS compatibility
 const oidcConfig = {
-  "issuer": "https://k8soci.ingasti.com",
-  "jwks_uri": "https://k8soci.ingasti.com/openid/v1/jwks",
-  "authorization_endpoint": "https://k8soci.ingasti.com/oauth2/authorize", 
-  "token_endpoint": "https://k8soci.ingasti.com/oauth2/token",
-  "userinfo_endpoint": "https://k8soci.ingasti.com/oauth2/userinfo",
+  "issuer": "https://oidc.ingasti.com",
+  "jwks_uri": "https://oidc.ingasti.com/.well-known/jwks.json",
+  "authorization_endpoint": "https://oidc.ingasti.com/oauth2/authorize", 
+  "token_endpoint": "https://oidc.ingasti.com/oauth2/token",
+  "userinfo_endpoint": "https://oidc.ingasti.com/oauth2/userinfo",
   "subject_types_supported": ["public"],
   "response_types_supported": ["code", "token", "id_token", "code token", "code id_token", "token id_token", "code token id_token"],
   "claims_supported": ["aud", "exp", "iat", "iss", "sub"],
@@ -43,18 +43,22 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// OIDC Discovery endpoint
-app.get('/.well-known/openid_configuration', (req, res) => {
+// OIDC Discovery endpoint - standard location
+app.get('/.well-known/openid-configuration', (req, res) => {
   console.log(`📋 OIDC Discovery requested at ${new Date().toISOString()}`);
+  // Set proper headers for AWS compatibility (no no-cache)
+  res.set({
+    'Cache-Control': 'public, max-age=300', // Allow 5 minute caching
+    'Content-Type': 'application/json'
+  });
   res.json(oidcConfig);
 });
 
-// JWKS endpoint - read from mounted ConfigMap
-app.get('/openid/v1/jwks', async (req, res) => {
-  console.log(`🔑 JWKS endpoint requested at ${new Date().toISOString()}`);
+// Standard JWKS endpoint - what AWS expects
+app.get('/.well-known/jwks.json', async (req, res) => {
+  console.log(`🔑 Standard JWKS endpoint requested at ${new Date().toISOString()}`);
   try {
     const fs = require('fs');
-    const path = require('path');
     
     // Read the JWKS from the mounted ConfigMap
     const jwksPath = '/app/jwks/jwks.json';
@@ -62,7 +66,43 @@ app.get('/openid/v1/jwks', async (req, res) => {
     if (fs.existsSync(jwksPath)) {
       const jwksData = fs.readFileSync(jwksPath, 'utf8');
       const jwks = JSON.parse(jwksData);
-      console.log(`✅ JWKS returned successfully - ${jwks.keys.length} keys`);
+      console.log(`✅ Standard JWKS returned successfully - ${jwks.keys.length} keys`);
+      
+      // Set proper headers for AWS compatibility (allow caching)
+      res.set({
+        'Cache-Control': 'public, max-age=300', // Allow 5 minute caching for AWS
+        'Content-Type': 'application/json'
+      });
+      res.json(jwks);
+    } else {
+      console.error('❌ JWKS file not found at:', jwksPath);
+      res.status(500).json({ error: 'JWKS file not found' });
+    }
+  } catch (error) {
+    console.error('❌ Error reading JWKS:', error);
+    res.status(500).json({ error: 'Unable to read JWKS' });
+  }
+});
+
+// Legacy JWKS endpoint - for backward compatibility
+app.get('/openid/v1/jwks', async (req, res) => {
+  console.log(`🔑 Legacy JWKS endpoint requested at ${new Date().toISOString()}`);
+  try {
+    const fs = require('fs');
+    
+    // Read the JWKS from the mounted ConfigMap
+    const jwksPath = '/app/jwks/jwks.json';
+    
+    if (fs.existsSync(jwksPath)) {
+      const jwksData = fs.readFileSync(jwksPath, 'utf8');
+      const jwks = JSON.parse(jwksData);
+      console.log(`✅ Legacy JWKS returned successfully - ${jwks.keys.length} keys`);
+      
+      // Set proper headers for AWS compatibility
+      res.set({
+        'Cache-Control': 'public, max-age=300',
+        'Content-Type': 'application/json'
+      });
       res.json(jwks);
     } else {
       console.error('❌ JWKS file not found at:', jwksPath);
