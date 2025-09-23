@@ -31,8 +31,17 @@ router.options("*", (req, res) => {
   res.status(200).end();
 });
 
-// Media serving route - serve files by filename with signed URLs
-router.get("/:filename", async (req, res) => {
+// Media file management routes
+router.post("/upload", requireAdminAuth, uploadToS3);              // POST /api/media/upload - Upload file to S3
+router.get("/files", requireAdminAuth, getMediaFiles);             // GET /api/media/files - Get all media files with pagination
+router.get("/files/:id", requireAdminAuth, getMediaFile);          // GET /api/media/files/:id - Get single media file
+router.put("/files/:id", requireAdminAuth, updateMediaFile);       // PUT /api/media/files/:id - Update media metadata
+router.put("/files/:id/move", requireAdminAuth, moveMediaFile);    // PUT /api/media/files/:id/move - Move file to different folder
+router.delete("/files/:id", requireAdminAuth, deleteMediaFile);    // DELETE /api/media/files/:id - Delete media file
+router.get("/signed-url", requireAdminAuth, getSignedUrlForKey);   // GET /api/media/signed-url?key=... - Get signed URL for S3 key
+
+// Media serving route - serve files by filename with signed URLs (must be after other routes)
+router.get("/serve/:filename", async (req, res) => {
   try {
     const { filename } = req.params;
     console.log(`📁 Media request for filename: ${filename}`);
@@ -84,15 +93,6 @@ router.get("/:filename", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-// Media file management routes
-router.post("/upload", requireAdminAuth, uploadToS3);              // POST /api/media/upload - Upload file to S3
-router.get("/files", requireAdminAuth, getMediaFiles);             // GET /api/media/files - Get all media files with pagination
-router.get("/files/:id", requireAdminAuth, getMediaFile);          // GET /api/media/files/:id - Get single media file
-router.put("/files/:id", requireAdminAuth, updateMediaFile);       // PUT /api/media/files/:id - Update media metadata
-router.put("/files/:id/move", requireAdminAuth, moveMediaFile);    // PUT /api/media/files/:id/move - Move file to different folder
-router.delete("/files/:id", requireAdminAuth, deleteMediaFile);    // DELETE /api/media/files/:id - Delete media file
-router.get("/signed-url", requireAdminAuth, getSignedUrlForKey);   // GET /api/media/signed-url?key=... - Get signed URL for S3 key
 
 // Folder management routes
 router.get("/folders", requireAdminAuth, getMediaFolders);         // GET /api/media/folders - Get all folders
