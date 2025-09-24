@@ -24,10 +24,13 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     // Get OIDC credentials directly
     const credentials = await credentialManager.getCredentials();
     console.log('✅ OIDC credentials obtained');
+    console.log('🔍 Raw credential object:', JSON.stringify(credentials, null, 2));
     console.log('🔍 Credential details:', {
       hasAccessKeyId: !!credentials.accessKeyId,
       hasSecretAccessKey: !!credentials.secretAccessKey,
-      hasSessionToken: !!credentials.sessionToken
+      hasSessionToken: !!credentials.sessionToken,
+      objectKeys: Object.keys(credentials),
+      credentialType: typeof credentials
     });
     
     // Validate credentials before proceeding
