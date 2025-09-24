@@ -12,140 +12,30 @@ import { generatePdfThumbnail, deletePdfThumbnail, getThumbnailRelativePath } fr
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 
-// Helper: Get S3 Client with automatic credential management
-export async function getS3Client(config) {
-  try {
-    console.log('🔑 Getting S3 client with configuration:', config ? 'Config provided' : 'No config');
-    
-    // If config is provided and has temporary credentials, use them directly
-    if (config && (config.tempAccessKey || config.accessKey) && (config.tempSecretKey || config.secretKey) && (config.tempSessionToken || config.sessionToken)) {
-      console.log('🔑 Using temporary credentials from config');
-      const s3Client = new S3Client({
-        region: config.region || 'eu-west-2',
-        credentials: {
-          accessKeyId: config.tempAccessKey || config.accessKey,
-          secretAccessKey: config.tempSecretKey || config.secretKey,
-          sessionToken: config.tempSessionToken || config.sessionToken
-        },
-        // Explicitly disable S3 Express One Zone signing for standard S3 buckets
-        useAccelerateEndpoint: false,
-        forcePathStyle: false,
-        // Ensure we use standard S3 signing, not S3 Express
-        signingName: 's3',
-        signingRegion: config.region || 'eu-west-2'
-      });
-      return s3Client;
-    }
-    
-    // If config specifies role-based auth, use assume role
-    if (config && config.authMethod === 'role' && config.roleArn && config.externalId) {
-      console.log('🔑 Using role-based authentication');
-      const stsClient = new STSClient({ region: config.region || 'eu-west-2' });
-      const assumeRoleCommand = new AssumeRoleCommand({
-        RoleArn: config.roleArn,
-        RoleSessionName: 'BedtimeBlog-MediaManager',
-        ExternalId: config.externalId
-      });
-      
-      const roleCredentials = await stsClient.send(assumeRoleCommand);
-      return new S3Client({
-        region: config.region || 'eu-west-2',
-        credentials: {
-          accessKeyId: roleCredentials.Credentials.AccessKeyId,
-          secretAccessKey: roleCredentials.Credentials.SecretAccessKey,
-          sessionToken: roleCredentials.Credentials.SessionToken
-        },
-        // Explicitly disable S3 Express One Zone signing for standard S3 buckets
-        useAccelerateEndpoint: false,
-        forcePathStyle: false,
-        // Ensure we use standard S3 signing, not S3 Express
-        signingName: 's3',
-        signingRegion: config.region || 'eu-west-2'
-      });
-    }
-    
-    // Fallback to credential manager
-    console.log('🔑 Falling back to credential manager');
-    return await credentialManager.getS3Client();
-    
-  } catch (error) {
-    console.error('❌ Failed to get S3 client:', error.message);
-    
-    // Provide more specific error messages
-    if (error.message.includes('Identity Center credentials expired')) {
-      throw new Error('Identity Center credentials have expired (12-hour limit). Please refresh credentials in Operations Panel > Media Management > Refresh Credentials button.');
-    } else if (error.message.includes('No AWS configuration found')) {
-      throw new Error('AWS configuration not found. Please configure AWS S3 settings in Operations Panel.');
-    } else if (error.message.includes('credentials expired')) {
-      throw new Error('AWS credentials have expired. Please refresh them in the Operations Panel.');
-    }
-    
-    throw new Error(`S3 client configuration failed: ${error.message}`);
-  }
-}
+// Removed complex getS3Client function - using direct OIDC approach instead
 
-// Helper: Generate signed URL for private S3 objects
+// Helper: Generate signed URL for private S3 objects using OIDC
 export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
-    console.log('🔑 Attempting to generate signed URL for S3 key:', s3Key);
+    console.log('🔑 Generating signed URL for S3 key:', s3Key);
     
-    // Use the credential manager's S3 client which is properly configured for OIDC
-    const s3Client = await credentialManager.getS3Client();
-    console.log('🔗 S3 Client obtained from OIDC credential manager');
+    // Get OIDC credentials directly
+    const credentials = await credentialManager.getCredentials();
+    console.log('✅ OIDC credentials obtained');
     
-    console.log('🔧 Using bucket:', bucketName, 'with OIDC authentication');
-    
-    // CRITICAL FIX: Create a new S3Client with explicit standard S3 configuration
-    // to bypass any Express middleware that might be attached
-    let region = 'eu-west-2'; // Default region
-    try {
-      // Resolve region if it's a function
-      const configRegion = s3Client.config.region;
-      if (typeof configRegion === 'function') {
-        region = await configRegion() || 'eu-west-2';
-      } else if (typeof configRegion === 'string') {
-        region = configRegion;
-      }
-      console.log('🌍 Resolved region:', region);
-    } catch (regionError) {
-      console.log('⚠️ Could not resolve region, using default:', region);
-    }
-    
-    console.log('🛠️ Explicitly resolving OIDC credentials before S3 client creation');
-    
-    // CRITICAL: Explicitly resolve credentials to ensure OIDC tokens are properly acquired
-    let resolvedCredentials;
-    try {
-      resolvedCredentials = await credentialManager.getCredentials();
-      console.log('✅ OIDC credentials resolved successfully:', {
-        hasAccessKeyId: !!resolvedCredentials.accessKeyId,
-        hasSecretAccessKey: !!resolvedCredentials.secretAccessKey,
-        hasSessionToken: !!resolvedCredentials.sessionToken,
-        expiration: resolvedCredentials.expiration
-      });
-    } catch (credError) {
-      console.error('❌ CRITICAL: Failed to resolve OIDC credentials:', credError.message);
-      throw new Error(`OIDC credential resolution failed: ${credError.message}`);
-    }
-    
-    // CRITICAL: Use ultra-minimal S3Client configuration to force standard S3
-    console.log('🔧 Creating ultra-minimal S3Client to force standard S3 behavior');
-    
-    // Create the most basic S3Client possible to avoid any Express detection
-    const { S3Client: MinimalS3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    // Create minimal S3Client with OIDC credentials
+    const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
     const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
     
-    const minimalS3Client = new MinimalS3Client({
-      region: region,
+    const s3Client = new S3Client({
+      region: 'eu-west-2',
       credentials: {
-        accessKeyId: resolvedCredentials.accessKeyId,
-        secretAccessKey: resolvedCredentials.secretAccessKey,
-        sessionToken: resolvedCredentials.sessionToken
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
       },
-      // Minimal configuration to prevent any Express features
       forcePathStyle: true,
-      endpoint: `https://s3.${region}.amazonaws.com`,
-      useArnRegion: false
+      endpoint: 'https://s3.eu-west-2.amazonaws.com'
     });
     
     const command = new GetObjectCommand({
@@ -153,60 +43,13 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       Key: s3Key
     });
     
-    console.log('📝 Using minimal S3 client for signing. Bucket:', bucketName, ', Key:', s3Key);
-    
-    // Use getSignedUrl with minimal options
-    const signedUrl = await getSignedUrl(minimalS3Client, command, { 
-      expiresIn
-    });
-    
-    console.log('✅ Successfully generated signed URL using clean S3 client for key:', s3Key);
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+    console.log('✅ Successfully generated signed URL for key:', s3Key);
     return signedUrl;
     
   } catch (error) {
-    console.error('❌ CRITICAL: Error generating signed URL for S3 key', s3Key + ':', error.message);
-    console.error('❌ Error name:', error.name + ', message:', error.message);
-    console.error('❌ Full error stack:', error.stack);
-    
-    // If clean client approach fails, try one more fallback approach
-    try {
-      console.log('🔄 Attempting fallback signing approach...');
-      
-      // Get fresh credentials from credential manager (already resolved above)
-      console.log('🔄 Using already resolved OIDC credentials for fallback approach');
-      
-      // Create minimal S3Client with StackOverflow proven configuration using dynamic import
-      const { S3Client: FallbackS3Client } = await import('@aws-sdk/client-s3');
-      const fallbackS3Client = new FallbackS3Client({
-        region: 'eu-west-2',
-        credentials: {
-          accessKeyId: resolvedCredentials.accessKeyId,
-          secretAccessKey: resolvedCredentials.secretAccessKey,
-          sessionToken: resolvedCredentials.sessionToken
-        },
-        // Apply same StackOverflow solution
-        forcePathStyle: true,  // Critical for OIDC compatibility
-        endpoint: 'https://s3.eu-west-2.amazonaws.com',
-        disableS3ExpressSessionAuth: true,
-        signatureVersion: 'v4'
-      });
-      
-      const fallbackCommand = new GetObjectCommand({
-        Bucket: bucketName,
-        Key: s3Key
-      });
-      
-      const fallbackUrl = await getSignedUrl(fallbackS3Client, fallbackCommand, { 
-        expiresIn 
-      });
-      
-      console.log('✅ Fallback signing successful for key:', s3Key);
-      return fallbackUrl;
-      
-    } catch (fallbackError) {
-      console.error('❌ Fallback signing also failed:', fallbackError.message);
-      throw error; // Throw original error
-    }
+    console.error('❌ Failed to generate signed URL for', s3Key + ':', error.message);
+    throw new Error(`Signed URL generation failed: ${error.message}`);
   }
 }
 
@@ -374,9 +217,18 @@ export const uploadToS3 = async (req, res) => {
       let s3, BUCKET_NAME, CDN_URL;
       
       if (storageType === 'aws' && settings.aws_config) {
-        // Use automated credential management for AWS
+        // Use OIDC credentials for AWS
         try {
-          s3 = await getS3Client(settings.aws_config);
+          const credentials = await credentialManager.getCredentials();
+          s3 = new S3Client({
+            region: settings.aws_config.region || 'eu-west-2',
+            credentials: {
+              accessKeyId: credentials.accessKeyId,
+              secretAccessKey: credentials.secretAccessKey,
+              sessionToken: credentials.sessionToken
+            },
+            forcePathStyle: true
+          });
           BUCKET_NAME = settings.aws_config.bucketName;
           CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
         } catch (awsError) {
@@ -771,7 +623,16 @@ export const getMediaFiles = async (req, res) => {
         });
         
         if (settings.media_storage_type === 'aws' && settings.aws_config) {
-          const s3Client = await getS3Client(settings.aws_config);
+          const credentials = await credentialManager.getCredentials();
+          const s3Client = new S3Client({
+            region: settings.aws_config.region || 'eu-west-2',
+            credentials: {
+              accessKeyId: credentials.accessKeyId,
+              secretAccessKey: credentials.secretAccessKey,
+              sessionToken: credentials.sessionToken
+            },
+            forcePathStyle: true
+          });
           const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
           syncPerformed = true;
           console.log(`✅ S3 sync completed: ${syncResult.syncedCount} new files, ${syncResult.updatedCount} reorganized`);
@@ -1003,7 +864,16 @@ export const deleteMediaFile = async (req, res) => {
     // Delete from S3/OCI if key exists
     if (mediaFile.s3_key) {
       try {
-        const s3Client = await getS3Client(settings);
+        const credentials = await credentialManager.getCredentials();
+        const s3Client = new S3Client({
+          region: 'eu-west-2',
+          credentials: {
+            accessKeyId: credentials.accessKeyId,
+            secretAccessKey: credentials.secretAccessKey,
+            sessionToken: credentials.sessionToken
+          },
+          forcePathStyle: true
+        });
         
         // Get bucket name from settings
         const bucketName = settings.oci_config?.bucket_name || settings.aws_config?.bucket_name;
@@ -1442,7 +1312,16 @@ export const syncS3Files = async (req, res) => {
     }
     
     // Get S3 client and perform sync
-    const s3Client = await getS3Client(settings.aws_config);
+    const credentials = await credentialManager.getCredentials();
+    const s3Client = new S3Client({
+      region: settings.aws_config.region || 'eu-west-2',
+      credentials: {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
+      },
+      forcePathStyle: true
+    });
     const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
     
     res.json({
@@ -1784,15 +1663,15 @@ export const testAwsConnection = async (req, res) => {
       authMethod = 'Temporary Access Keys (Direct)';
       console.log('🔑 Using temporary access keys directly');
     } else if (hasRoleAuth) {
-      // Try to use cached credentials from credential manager
+      // Use OIDC credentials from credential manager
       try {
         finalCredentials = await credentialManager.getCredentials();
-        authMethod = 'IAM Role (Cached)';
-        console.log('🔑 Using cached role credentials for test');
+        authMethod = 'OIDC Web Identity (Kubernetes)';
+        console.log('🔑 Using OIDC credentials for test');
       } catch (error) {
         return res.status(400).json({
           success: false,
-          message: 'Role-based authentication requires valid cached credentials. Please ensure IAM role is properly configured.'
+          message: 'OIDC authentication requires valid Kubernetes service account token. Please check pod configuration.'
         });
       }
     }
@@ -2193,8 +2072,17 @@ export const testAwsConnectionSimple = async (req, res) => {
       console.log('🔑 OIDC authentication detected - testing via actual S3 operation instead of credential test');
       // For OIDC, test by actually trying to use S3 rather than testing credentials
       try {
-        const s3Client = await credentialManager.getS3Client();
-        const { ListBucketsCommand } = await import('@aws-sdk/client-s3');
+        const credentials = await credentialManager.getCredentials();
+        const { S3Client, ListBucketsCommand } = await import('@aws-sdk/client-s3');
+        const s3Client = new S3Client({
+          region: 'eu-west-2',
+          credentials: {
+            accessKeyId: credentials.accessKeyId,
+            secretAccessKey: credentials.secretAccessKey,
+            sessionToken: credentials.sessionToken
+          },
+          forcePathStyle: true
+        });
         const result = await s3Client.send(new ListBucketsCommand({}));
         testResult = {
           success: true,
