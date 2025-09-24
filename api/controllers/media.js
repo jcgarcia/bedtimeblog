@@ -150,7 +150,7 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     // CRITICAL: Use explicit SignatureV4 to completely bypass SDK auto-detection
     console.log('🔧 Using explicit SignatureV4 to bypass S3 Express auto-detection');
     
-    const { SignatureV4 } = await import('@aws-sdk/signature-v4');
+    const { SignatureV4 } = await import('@smithy/signature-v4');
     const { HttpRequest } = await import('@smithy/protocol-http');
     const { Sha256 } = await import('@aws-crypto/sha256-js');
     
