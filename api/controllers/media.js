@@ -128,33 +128,14 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       throw new Error(`OIDC credential resolution failed: ${credError.message}`);
     }
     
-    console.log('🛠️ Creating bypass S3 client to prevent Express signing with resolved credentials');
-    
-    // Create a clean S3Client with comprehensive S3 Express prevention
-    const cleanS3Client = new S3Client({
-      region: region,
-      credentials: resolvedCredentials, // Use explicitly resolved credentials from OIDC
-      // CRITICAL: Comprehensive S3 Express prevention strategy
-      endpoint: `https://s3.${region}.amazonaws.com`, // Explicit endpoint to avoid Express detection
-      forcePathStyle: true,  // Force path-style URLs (bucket in path, not hostname)
-      useArnRegion: false,   // Avoid ARN-based region detection
-      useAccelerateEndpoint: false,
-      disableS3ExpressSessionAuth: true,
-      // Explicit signing configuration
-      signingName: 's3',
-      signingRegion: region,
-      serviceId: 'S3',
-      signatureVersion: 'v4'
-    });
-    
     // CRITICAL: Use ultra-minimal S3Client configuration to force standard S3
     console.log('🔧 Creating ultra-minimal S3Client to force standard S3 behavior');
     
     // Create the most basic S3Client possible to avoid any Express detection
-    const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const { S3Client: MinimalS3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
     const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
     
-    const minimalS3Client = new S3Client({
+    const minimalS3Client = new MinimalS3Client({
       region: region,
       credentials: {
         accessKeyId: resolvedCredentials.accessKeyId,
