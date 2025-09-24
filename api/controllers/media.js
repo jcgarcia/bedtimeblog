@@ -147,40 +147,37 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       signatureVersion: 'v4'
     });
     
-    // CRITICAL: Use explicit SignatureV4 to completely bypass SDK auto-detection
-    console.log('🔧 Using explicit SignatureV4 to bypass S3 Express auto-detection');
+    // CRITICAL: Use ultra-minimal S3Client configuration to force standard S3
+    console.log('🔧 Creating ultra-minimal S3Client to force standard S3 behavior');
     
-    const { SignatureV4 } = await import('@smithy/signature-v4');
-    const { HttpRequest } = await import('@smithy/protocol-http');
-    const { Sha256 } = await import('@aws-crypto/sha256-js');
+    // Create the most basic S3Client possible to avoid any Express detection
+    const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
     
-    // Create explicit standard SignatureV4 signer
-    const signer = new SignatureV4({
-      credentials: resolvedCredentials,
+    const minimalS3Client = new S3Client({
       region: region,
-      service: 's3',
-      sha256: Sha256,
+      credentials: {
+        accessKeyId: resolvedCredentials.accessKeyId,
+        secretAccessKey: resolvedCredentials.secretAccessKey,
+        sessionToken: resolvedCredentials.sessionToken
+      },
+      // Minimal configuration to prevent any Express features
+      forcePathStyle: true,
+      endpoint: `https://s3.${region}.amazonaws.com`,
+      useArnRegion: false
     });
     
-    // Create the HTTP request manually
-    const request = new HttpRequest({
-      method: 'GET',
-      hostname: `s3.${region}.amazonaws.com`,
-      path: `/${bucketName}/${s3Key}`,
-      headers: {
-        'host': `s3.${region}.amazonaws.com`
-      }
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: s3Key
     });
     
-    console.log('📝 Signing request manually with standard SignatureV4. Bucket:', bucketName, ', Key:', s3Key);
+    console.log('📝 Using minimal S3 client for signing. Bucket:', bucketName, ', Key:', s3Key);
     
-    // Sign the request with explicit standard signing
-    const signedRequest = await signer.presign(request, {
-      expiresIn: expiresIn
+    // Use getSignedUrl with minimal options
+    const signedUrl = await getSignedUrl(minimalS3Client, command, { 
+      expiresIn
     });
-    
-    // Convert signed request back to URL
-    const signedUrl = `https://${signedRequest.hostname}${signedRequest.path}?${new URLSearchParams(signedRequest.query).toString()}`;
     
     console.log('✅ Successfully generated signed URL using clean S3 client for key:', s3Key);
     return signedUrl;
