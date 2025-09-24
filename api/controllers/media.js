@@ -130,20 +130,18 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     
     console.log('🛠️ Creating bypass S3 client to prevent Express signing with resolved credentials');
     
-    // Create a clean S3Client specifically for signing to avoid Express detection
+    // Create a clean S3Client with StackOverflow proven solution for OIDC + S3 Express issue
     const cleanS3Client = new S3Client({
       region: region,
-      credentials: resolvedCredentials, // Use explicitly resolved credentials instead of provider
-      // Force standard S3 configuration without any Express features
-      forcePathStyle: false,
+      credentials: resolvedCredentials, // Use explicitly resolved credentials from OIDC
+      // CRITICAL: StackOverflow confirmed solution for OIDC + S3 Express compatibility
+      forcePathStyle: true,  // Force path-style URLs to prevent Express detection
+      endpoint: `https://s3.${region}.amazonaws.com`, // Custom endpoint prevents Express middleware
+      // Additional safeguards
       useAccelerateEndpoint: false,
+      disableS3ExpressSessionAuth: true,
       signingName: 's3',
       signingRegion: region,
-      // Explicitly disable any Express features
-      disableS3ExpressSessionAuth: true,
-      // Force standard S3 endpoint pattern
-      endpoint: `https://s3.${region}.amazonaws.com`,
-      // Override service configuration
       serviceId: 'S3',
       signatureVersion: 'v4'
     });
@@ -181,12 +179,15 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       // Get fresh credentials from credential manager (already resolved above)
       console.log('🔄 Using already resolved OIDC credentials for fallback approach');
       
-      // Create minimal S3Client with direct credentials
+      // Create minimal S3Client with StackOverflow proven configuration
       const fallbackS3Client = new S3Client({
         region: 'eu-west-2',
         credentials: resolvedCredentials, // Use the same resolved credentials
-        forcePathStyle: false,
-        endpoint: 'https://s3.eu-west-2.amazonaws.com'
+        // Apply same StackOverflow solution
+        forcePathStyle: true,  // Critical for OIDC compatibility
+        endpoint: 'https://s3.eu-west-2.amazonaws.com',
+        disableS3ExpressSessionAuth: true,
+        signatureVersion: 'v4'
       });
       
       const fallbackCommand = new GetObjectCommand({
