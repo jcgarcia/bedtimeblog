@@ -44,7 +44,8 @@ router.get("/signed-url", requireAdminAuth, getSignedUrlForKey);   // GET /api/m
 router.get("/serve/:filename", async (req, res) => {
   try {
     const { filename } = req.params;
-    console.log(`📁 Media request for filename: ${filename}`);
+    console.log(`🎯 [MEDIA ROUTE] Request for filename: ${filename}`);
+    console.log(`🎯 [MEDIA ROUTE] Full URL path: ${req.originalUrl}`);
     
     // Look up the file in the database
     const { getDbPool } = await import("../db.js");
@@ -55,26 +56,27 @@ router.get("/serve/:filename", async (req, res) => {
     );
     
     if (result.rows.length === 0) {
-      console.log(`❌ File not found in database: ${filename}`);
+      console.log(`❌ [MEDIA ROUTE] File not found in database: ${filename}`);
       return res.status(404).json({ error: "File not found" });
     }
     
     const { s3_key, s3_bucket } = result.rows[0];
-    console.log(`🔍 Found file: ${s3_key} in bucket: ${s3_bucket}`);
+    console.log(`🔍 [MEDIA ROUTE] Found file: ${s3_key} in bucket: ${s3_bucket}`);
     
     // Generate signed URL using OIDC credential manager
-    console.log('🔑 Using OIDC credential manager for signed URL generation');
+    console.log('🔑 [MEDIA ROUTE] Using OIDC credential manager for signed URL generation');
     const { generateSignedUrl } = await import("../controllers/media.js");
     
     // Use the OIDC-aware signed URL generator instead of manual S3Client creation
+    console.log('🎯 [MEDIA ROUTE] About to call generateSignedUrl from media.js');
     const signedUrl = await generateSignedUrl(s3_key, 'bedtimeblog-medialibrary', 3600);
-    console.log(`✅ Generated signed URL for: ${filename}`);
+    console.log(`✅ [MEDIA ROUTE] Generated signed URL for: ${filename}`);
     
     // Redirect to the signed URL
     res.redirect(302, signedUrl);
     
   } catch (error) {
-    console.error(`❌ Error serving media file ${req.params.filename}:`, error);
+    console.error(`❌ [MEDIA ROUTE] Error serving media file ${req.params.filename}:`, error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
