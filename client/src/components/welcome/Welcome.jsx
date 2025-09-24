@@ -7,7 +7,7 @@ export default function Welcome() {
   const [showAudioButton, setShowAudioButton] = useState(false)
   const [isFirstVisit, setIsFirstVisit] = useState(false)
   const [shouldAutoplay, setShouldAutoplay] = useState(false)
-  const [isMuted, setIsMuted] = useState(true)
+  const [isMuted, setIsMuted] = useState(false)
   const [showSoundToggle, setShowSoundToggle] = useState(false)
 
   useEffect(() => {
@@ -27,10 +27,10 @@ export default function Welcome() {
         localStorage.setItem('bedtime-video-played', 'true')
         setShowSoundToggle(true)
       }).catch((error) => {
-        console.log('Autoplay with audio blocked by browser, trying muted autoplay')
-        // If autoplay with audio fails, try muted autoplay and show audio button
-        videoRef.current.muted = true
-        setIsMuted(true)
+        console.log('Autoplay with audio blocked by browser, keeping audio available')
+        // If autoplay with audio fails, keep audio available for user interaction
+        videoRef.current.muted = false
+        setIsMuted(false)
         videoRef.current.play().then(() => {
           setShowAudioButton(true)
           setShowSoundToggle(true)
@@ -42,10 +42,10 @@ export default function Welcome() {
         })
       })
     } else if (videoRef.current) {
-      console.log('Not first visit - video ready for manual play only')
-      // Subsequent visits - ensure video is paused and ready for manual play
-      videoRef.current.muted = true
-      setIsMuted(true)
+      console.log('Not first visit - video ready for manual play with audio')
+      // Subsequent visits - ensure video is ready for manual play with audio
+      videoRef.current.muted = false
+      setIsMuted(false)
       videoRef.current.pause()
       videoRef.current.currentTime = 0
       setShowSoundToggle(true)
