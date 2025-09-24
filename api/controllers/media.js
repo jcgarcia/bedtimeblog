@@ -97,7 +97,19 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     
     // CRITICAL FIX: Create a new S3Client with explicit standard S3 configuration
     // to bypass any Express middleware that might be attached
-    const region = s3Client.config.region || 'eu-west-2';
+    let region = 'eu-west-2'; // Default region
+    try {
+      // Resolve region if it's a function
+      const configRegion = s3Client.config.region;
+      if (typeof configRegion === 'function') {
+        region = await configRegion() || 'eu-west-2';
+      } else if (typeof configRegion === 'string') {
+        region = configRegion;
+      }
+      console.log('🌍 Resolved region:', region);
+    } catch (regionError) {
+      console.log('⚠️ Could not resolve region, using default:', region);
+    }
     
     console.log('🛠️ Explicitly resolving OIDC credentials before S3 client creation');
     
