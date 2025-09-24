@@ -1,6 +1,6 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getDbPool } from '../db.js';
-import { getS3Client } from './media.js';
+import credentialManager from '../services/awsCredentialManager.js';
 
 // Sync S3 bucket contents with database
 export const syncS3ToDatabase = async (req, res) => {
@@ -31,7 +31,16 @@ export const syncS3ToDatabase = async (req, res) => {
     }
 
     // Get S3 client
-    const s3Client = await getS3Client(settings.aws_config);
+    const credentials = await credentialManager.getCredentials();
+    const s3Client = new S3Client({
+      region: settings.aws_config.region || 'eu-west-2',
+      credentials: {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
+      },
+      forcePathStyle: true
+    });
     const bucketName = settings.aws_config.bucketName;
 
     // List all objects in S3 bucket

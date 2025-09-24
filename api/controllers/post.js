@@ -1,7 +1,6 @@
 import { getDbPool } from "../db.js";
 import jwt from "jsonwebtoken";
-import { getS3Client } from "./media.js";
-import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import credentialManager from '../services/awsCredentialManager.js';
 import { getDefaultCategoryId } from "./category.js";
@@ -66,7 +65,16 @@ async function resolveMediaUrl(mediaId) {
         
         const awsConfig = JSON.parse(settingsRes.rows[0].value);
         console.log(`🔧 AWS Config loaded - Bucket: ${awsConfig.bucketName}, Region: ${awsConfig.region}`);
-        const s3Client = await getS3Client(awsConfig);
+        const credentials = await credentialManager.getCredentials();
+        const s3Client = new S3Client({
+          region: awsConfig.region || 'eu-west-2',
+          credentials: {
+            accessKeyId: credentials.accessKeyId,
+            secretAccessKey: credentials.secretAccessKey,
+            sessionToken: credentials.sessionToken
+          },
+          forcePathStyle: true
+        });
         console.log(`🔗 S3 Client created successfully`);
         
         const command = new GetObjectCommand({
@@ -95,7 +103,16 @@ async function resolveMediaUrl(mediaId) {
       console.log(`🔑 Attempting to generate signed URL for S3 key: ${mediaId}`);
       
       // Use the credential manager that's already configured with OIDC
-      const s3Client = await credentialManager.getS3Client();
+      const credentials = await credentialManager.getCredentials();
+      const s3Client = new S3Client({
+        region: 'eu-west-2',
+        credentials: {
+          accessKeyId: credentials.accessKeyId,
+          secretAccessKey: credentials.secretAccessKey,
+          sessionToken: credentials.sessionToken
+        },
+        forcePathStyle: true
+      });
       console.log(`🔗 S3 Client obtained from OIDC credential manager`);
       
       // Get bucket name from database config
@@ -150,7 +167,16 @@ async function resolveMediaUrl(mediaId) {
       }
       
       const awsConfig = JSON.parse(settingsRes.rows[0].value);
-      const s3Client = await getS3Client(awsConfig);
+      const credentials = await credentialManager.getCredentials();
+      const s3Client = new S3Client({
+        region: awsConfig.region || 'eu-west-2',
+        credentials: {
+          accessKeyId: credentials.accessKeyId,
+          secretAccessKey: credentials.secretAccessKey,
+          sessionToken: credentials.sessionToken
+        },
+        forcePathStyle: true
+      });
       
       const command = new GetObjectCommand({
         Bucket: media.s3_bucket,

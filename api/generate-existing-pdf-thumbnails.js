@@ -9,8 +9,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import pkg from 'pg';
 import { generatePdfThumbnail } from './utils/pdfThumbnails.js';
-import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getS3Client } from './controllers/media.js';
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import credentialManager from './services/awsCredentialManager.js';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -57,7 +57,16 @@ async function generateThumbnailsForExistingPdfs() {
             
             try {
                 // Get S3 client
-                const s3Client = await getS3Client();
+                const credentials = await credentialManager.getCredentials();
+                const s3Client = new S3Client({
+                  region: 'eu-west-2',
+                  credentials: {
+                    accessKeyId: credentials.accessKeyId,
+                    secretAccessKey: credentials.secretAccessKey,
+                    sessionToken: credentials.sessionToken
+                  },
+                  forcePathStyle: true
+                });
                 
                 // Create temporary file paths
                 const tempDir = '/tmp';
