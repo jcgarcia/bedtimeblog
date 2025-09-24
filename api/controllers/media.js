@@ -175,10 +175,15 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       // Get fresh credentials from credential manager (already resolved above)
       console.log('🔄 Using already resolved OIDC credentials for fallback approach');
       
-      // Create minimal S3Client with StackOverflow proven configuration
-      const fallbackS3Client = new S3Client({
+      // Create minimal S3Client with StackOverflow proven configuration using dynamic import
+      const { S3Client: FallbackS3Client } = await import('@aws-sdk/client-s3');
+      const fallbackS3Client = new FallbackS3Client({
         region: 'eu-west-2',
-        credentials: resolvedCredentials, // Use the same resolved credentials
+        credentials: {
+          accessKeyId: resolvedCredentials.accessKeyId,
+          secretAccessKey: resolvedCredentials.secretAccessKey,
+          sessionToken: resolvedCredentials.sessionToken
+        },
         // Apply same StackOverflow solution
         forcePathStyle: true,  // Critical for OIDC compatibility
         endpoint: 'https://s3.eu-west-2.amazonaws.com',
