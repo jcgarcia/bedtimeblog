@@ -62,27 +62,12 @@ router.get("/serve/:filename", async (req, res) => {
     const { s3_key, s3_bucket } = result.rows[0];
     console.log(`🔍 Found file: ${s3_key} in bucket: ${s3_bucket}`);
     
-    // Generate signed URL directly
-    const { getS3Client } = await import("../controllers/media.js");
-    const { GetObjectCommand } = await import("@aws-sdk/client-s3");
-    const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+    // Generate signed URL using OIDC credential manager
+    console.log('🔑 Using OIDC credential manager for signed URL generation');
+    const { generateSignedUrl } = await import("../controllers/media.js");
     
-    // Get AWS config from database
-    const settingsRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config'");
-    if (settingsRes.rows.length === 0) {
-      console.error('❌ AWS configuration not found');
-      return res.status(500).json({ error: "AWS configuration not found" });
-    }
-    
-    const awsConfig = JSON.parse(settingsRes.rows[0].value);
-    const s3Client = await getS3Client(awsConfig);
-    
-    const command = new GetObjectCommand({
-      Bucket: awsConfig.bucketName,
-      Key: s3_key,
-    });
-    
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    // Use the OIDC-aware signed URL generator instead of manual S3Client creation
+    const signedUrl = await generateSignedUrl(s3_key, 3600);
     console.log(`✅ Generated signed URL for: ${filename}`);
     
     // Redirect to the signed URL
