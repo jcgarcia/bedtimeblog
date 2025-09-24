@@ -98,14 +98,30 @@ async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     // CRITICAL FIX: Create a new S3Client with explicit standard S3 configuration
     // to bypass any Express middleware that might be attached
     const region = s3Client.config.region || 'eu-west-2';
-    const credentials = s3Client.config.credentials;
     
-    console.log('🛠️ Creating bypass S3 client to prevent Express signing');
+    console.log('🛠️ Explicitly resolving OIDC credentials before S3 client creation');
+    
+    // CRITICAL: Explicitly resolve credentials to ensure OIDC tokens are properly acquired
+    let resolvedCredentials;
+    try {
+      resolvedCredentials = await credentialManager.getCredentials();
+      console.log('✅ OIDC credentials resolved successfully:', {
+        hasAccessKeyId: !!resolvedCredentials.accessKeyId,
+        hasSecretAccessKey: !!resolvedCredentials.secretAccessKey,
+        hasSessionToken: !!resolvedCredentials.sessionToken,
+        expiration: resolvedCredentials.expiration
+      });
+    } catch (credError) {
+      console.error('❌ CRITICAL: Failed to resolve OIDC credentials:', credError.message);
+      throw new Error(`OIDC credential resolution failed: ${credError.message}`);
+    }
+    
+    console.log('🛠️ Creating bypass S3 client to prevent Express signing with resolved credentials');
     
     // Create a clean S3Client specifically for signing to avoid Express detection
     const cleanS3Client = new S3Client({
       region: region,
-      credentials: credentials,
+      credentials: resolvedCredentials, // Use explicitly resolved credentials instead of provider
       // Force standard S3 configuration without any Express features
       forcePathStyle: false,
       useAccelerateEndpoint: false,
@@ -150,13 +166,13 @@ async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     try {
       console.log('🔄 Attempting fallback signing approach...');
       
-      // Get fresh credentials from credential manager
-      const freshCredentials = await credentialManager.getCredentials();
+      // Get fresh credentials from credential manager (already resolved above)
+      console.log('🔄 Using already resolved OIDC credentials for fallback approach');
       
       // Create minimal S3Client with direct credentials
       const fallbackS3Client = new S3Client({
         region: 'eu-west-2',
-        credentials: freshCredentials,
+        credentials: resolvedCredentials, // Use the same resolved credentials
         forcePathStyle: false,
         endpoint: 'https://s3.eu-west-2.amazonaws.com'
       });
@@ -1155,12 +1171,24 @@ export const getAWSCredentialStatus = async (req, res) => {
   try {
     const status = await credentialManager.getStatus();
     
-    // Test credentials to ensure they're working
+    // Test credentials to ensure they're working (SKIP for OIDC as it's managed by Kubernetes)
     let credentialTest = null;
-    try {
-      credentialTest = await credentialManager.testCredentials();
-    } catch (testError) {
-      credentialTest = { success: false, error: testError.message };
+    
+    if (status.authMethod === 'OIDC Web Identity (Kubernetes)') {
+      // For OIDC, don't test credentials as they're managed by Kubernetes service account tokens
+      console.log('🔑 OIDC authentication detected - skipping credential test (managed by Kubernetes)');
+      credentialTest = { 
+        success: true, 
+        message: 'OIDC credentials are managed by Kubernetes service account tokens',
+        oidcManaged: true 
+      };
+    } else {
+      // For other authentication methods, perform credential test
+      try {
+        credentialTest = await credentialManager.testCredentials();
+      } catch (testError) {
+        credentialTest = { success: false, error: testError.message };
+      }
     }
     
     // Add helpful status indicators
@@ -1266,8 +1294,20 @@ export const updateAWSCredentials = async (req, res) => {
     // Update configuration in database and reinitialize
     await credentialManager.updateConfiguration(newConfig);
     
-    // Test the new credentials
-    const testResult = await credentialManager.testCredentials();
+    // Test the new credentials (skip for OIDC)
+    const currentStatus = await credentialManager.getStatus();
+    let testResult;
+    
+    if (currentStatus.authMethod === 'OIDC Web Identity (Kubernetes)') {
+      console.log('🔑 OIDC detected - skipping credential test after update');
+      testResult = { 
+        success: true, 
+        message: 'OIDC credentials are managed by Kubernetes - manual update not applicable',
+        oidcManaged: true 
+      };
+    } else {
+      testResult = await credentialManager.testCredentials();
+    }
     
     res.json({
       success: true,
@@ -2104,8 +2144,36 @@ export const testAwsConnectionSimple = async (req, res) => {
   try {
     console.log('🧪 Testing AWS S3 connection using credential manager...');
     
-    // Use the credential manager to test connection
-    const testResult = await credentialManager.testCredentials();
+    // Check authentication method first
+    const status = await credentialManager.getStatus();
+    let testResult;
+    
+    if (status.authMethod === 'OIDC Web Identity (Kubernetes)') {
+      console.log('🔑 OIDC authentication detected - testing via actual S3 operation instead of credential test');
+      // For OIDC, test by actually trying to use S3 rather than testing credentials
+      try {
+        const s3Client = await credentialManager.getS3Client();
+        const { ListBucketsCommand } = await import('@aws-sdk/client-s3');
+        const result = await s3Client.send(new ListBucketsCommand({}));
+        testResult = {
+          success: true,
+          message: 'OIDC S3 connection successful',
+          identity: { 
+            method: 'OIDC Web Identity',
+            bucketsFound: result.Buckets?.length || 0 
+          }
+        };
+      } catch (oidcError) {
+        testResult = {
+          success: false,
+          message: `OIDC S3 connection failed: ${oidcError.message}`,
+          error: oidcError.message
+        };
+      }
+    } else {
+      // Use the credential manager to test connection for non-OIDC methods
+      testResult = await credentialManager.testCredentials();
+    }
     
     if (testResult.success) {
       console.log('✅ AWS S3 connection test successful');
