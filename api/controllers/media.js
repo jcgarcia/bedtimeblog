@@ -22,15 +22,58 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     console.log('🔑 Generating signed URL for S3 key:', s3Key);
     
     // Get OIDC credentials directly
-    const credentials = await credentialManager.getCredentials();
+    const rawCredentials = await credentialManager.getCredentials();
     console.log('✅ OIDC credentials obtained');
-    console.log('🔍 Raw credential object:', JSON.stringify(credentials, null, 2));
-    console.log('🔍 Credential details:', {
+    console.log('🔍 Raw credential object keys:', Object.keys(rawCredentials));
+    
+    // Extract actual AWS credentials from the credential object
+    // AWS SDK credential providers return different structures
+    let credentials = rawCredentials;
+    
+    // Check if this is a nested credential structure
+    if (rawCredentials.credentials) {
+      credentials = rawCredentials.credentials;
+      console.log('🔧 Using nested credentials object');
+    } else if (rawCredentials.AccessKeyId || rawCredentials.SecretAccessKey) {
+      // AWS STS format (uppercase properties)
+      credentials = {
+        accessKeyId: rawCredentials.AccessKeyId,
+        secretAccessKey: rawCredentials.SecretAccessKey,
+        sessionToken: rawCredentials.SessionToken
+      };
+      console.log('🔧 Converting from AWS STS format (uppercase)');
+    } else if (rawCredentials.accessKeyId || rawCredentials.secretAccessKey) {
+      // Standard format - use as is
+      console.log('🔧 Using standard credential format');
+    } else {
+      // Try to find the actual credential properties in the object
+      console.log('🔍 Searching for credential properties in object...');
+      const props = Object.keys(rawCredentials);
+      console.log('🔍 Available properties:', props);
+      
+      // Look for common AWS credential property names
+      const accessKeyProp = props.find(p => p.toLowerCase().includes('accesskey') || p.toLowerCase().includes('access_key'));
+      const secretKeyProp = props.find(p => p.toLowerCase().includes('secretkey') || p.toLowerCase().includes('secret_key'));  
+      const sessionTokenProp = props.find(p => p.toLowerCase().includes('sessiontoken') || p.toLowerCase().includes('session_token'));
+      
+      if (accessKeyProp && secretKeyProp) {
+        credentials = {
+          accessKeyId: rawCredentials[accessKeyProp],
+          secretAccessKey: rawCredentials[secretKeyProp],
+          sessionToken: rawCredentials[sessionTokenProp]
+        };
+        console.log('🔧 Extracted credentials using property mapping');
+      } else {
+        throw new Error(`Unable to find AWS credentials in object. Available properties: ${props.join(', ')}`);
+      }
+    }
+    
+    console.log('🔍 Final credential details:', {
       hasAccessKeyId: !!credentials.accessKeyId,
       hasSecretAccessKey: !!credentials.secretAccessKey,
       hasSessionToken: !!credentials.sessionToken,
-      objectKeys: Object.keys(credentials),
-      credentialType: typeof credentials
+      accessKeyIdLength: credentials.accessKeyId?.length,
+      secretAccessKeyLength: credentials.secretAccessKey?.length
     });
     
     // Validate credentials before proceeding
