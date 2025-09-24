@@ -7,14 +7,6 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
   const { socialLinks, loading } = useSocialLinks();
 
-  // Fallbacks for each social media service
-  const defaultLinks = {
-    linkedin: 'https://linkedin.com',
-    twitter: 'https://twitter.com',
-    instagram: 'https://instagram.com',
-    threads: 'https://threads.net',
-  };
-
   return (
     <footer className="footer">
       <div className="footer-content">
@@ -45,34 +37,39 @@ export default function Footer() {
           <h4>Connect</h4>
           <p>Follow us on social media for updates and new content.</p>
           <div className="footer-social">
-            <a
-              href={(!loading && socialLinks.linkedin) ? socialLinks.linkedin : defaultLinks.linkedin}
-              className="social-link"
-              aria-label="LinkedIn"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <i className="fa-brands fa-linkedin"></i>
-            </a>
-            <a
-              href={(!loading && socialLinks.twitter) ? socialLinks.twitter : defaultLinks.twitter}
-              className="social-link"
-              aria-label="Twitter"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <i className="fa-brands fa-twitter"></i>
-            </a>
-            <a
-              href={(!loading && socialLinks.instagram) ? socialLinks.instagram : defaultLinks.instagram}
-              className="social-link"
-              aria-label="Instagram"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <i className="fa-brands fa-instagram"></i>
-            </a>
-            {/* Optionally add Threads if you want */}
+            {(!loading && socialLinks.linkedin) && (
+              <a
+                href={socialLinks.linkedin}
+                className="social-link"
+                aria-label="LinkedIn"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fa-brands fa-linkedin"></i>
+              </a>
+            )}
+            {(!loading && socialLinks.twitter) && (
+              <a
+                href={socialLinks.twitter}
+                className="social-link"
+                aria-label="X (Twitter)"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fa-brands fa-x-twitter"></i>
+              </a>
+            )}
+            {(!loading && socialLinks.instagram) && (
+              <a
+                href={socialLinks.instagram}
+                className="social-link"
+                aria-label="Instagram"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i className="fa-brands fa-instagram"></i>
+              </a>
+            )}
             {(!loading && socialLinks.threads) && (
               <a
                 href={socialLinks.threads}
