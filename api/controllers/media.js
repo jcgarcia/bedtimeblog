@@ -26,60 +26,50 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     console.log('✅ OIDC credentials obtained');
     console.log('🔍 Raw credential object keys:', Object.keys(rawCredentials));
     
-    // Extract actual AWS credentials from the credential object
-    // AWS SDK credential providers return different structures
-    let credentials = rawCredentials;
+    // Handle OIDC Web Identity Token response structure
+    let accessKeyId, secretAccessKey, sessionToken;
     
-    // Check if this is a nested credential structure
-    if (rawCredentials.credentials) {
-      credentials = rawCredentials.credentials;
-      console.log('🔧 Using nested credentials object');
-    } else if (rawCredentials.AccessKeyId || rawCredentials.SecretAccessKey) {
-      // AWS STS format (uppercase properties)
-      credentials = {
-        accessKeyId: rawCredentials.AccessKeyId,
-        secretAccessKey: rawCredentials.SecretAccessKey,
-        sessionToken: rawCredentials.SessionToken
-      };
-      console.log('🔧 Converting from AWS STS format (uppercase)');
-    } else if (rawCredentials.accessKeyId || rawCredentials.secretAccessKey) {
-      // Standard format - use as is
-      console.log('🔧 Using standard credential format');
+    if (rawCredentials.Credentials) {
+      // OIDC Web Identity Token response structure (from AWS STS AssumeRoleWithWebIdentity)
+      accessKeyId = rawCredentials.Credentials.AccessKeyId;
+      secretAccessKey = rawCredentials.Credentials.SecretAccessKey;
+      sessionToken = rawCredentials.Credentials.SessionToken;
+      console.log('� Using OIDC Web Identity credential structure (Credentials.AccessKeyId)');
+    } else if (rawCredentials.credentials) {
+      // Nested credentials object (lowercase)
+      const creds = rawCredentials.credentials;
+      accessKeyId = creds.AccessKeyId || creds.accessKeyId;
+      secretAccessKey = creds.SecretAccessKey || creds.secretAccessKey;
+      sessionToken = creds.SessionToken || creds.sessionToken;
+      console.log('🔍 Using nested credentials object');
+    } else if (rawCredentials.accessKeyId || rawCredentials.AccessKeyId) {
+      // Direct credential structure
+      accessKeyId = rawCredentials.accessKeyId || rawCredentials.AccessKeyId;
+      secretAccessKey = rawCredentials.secretAccessKey || rawCredentials.SecretAccessKey;
+      sessionToken = rawCredentials.sessionToken || rawCredentials.SessionToken;
+      console.log('� Using direct credential structure');
     } else {
-      // Try to find the actual credential properties in the object
-      console.log('🔍 Searching for credential properties in object...');
-      const props = Object.keys(rawCredentials);
-      console.log('🔍 Available properties:', props);
-      
-      // Look for common AWS credential property names
-      const accessKeyProp = props.find(p => p.toLowerCase().includes('accesskey') || p.toLowerCase().includes('access_key'));
-      const secretKeyProp = props.find(p => p.toLowerCase().includes('secretkey') || p.toLowerCase().includes('secret_key'));  
-      const sessionTokenProp = props.find(p => p.toLowerCase().includes('sessiontoken') || p.toLowerCase().includes('session_token'));
-      
-      if (accessKeyProp && secretKeyProp) {
-        credentials = {
-          accessKeyId: rawCredentials[accessKeyProp],
-          secretAccessKey: rawCredentials[secretKeyProp],
-          sessionToken: rawCredentials[sessionTokenProp]
-        };
-        console.log('🔧 Extracted credentials using property mapping');
-      } else {
-        throw new Error(`Unable to find AWS credentials in object. Available properties: ${props.join(', ')}`);
-      }
+      console.error('❌ Unable to find AWS credentials in object. Available properties:', Object.keys(rawCredentials).join(', '));
+      throw new Error(`Unable to find AWS credentials in object. Available properties: ${Object.keys(rawCredentials).join(', ')}`);
     }
     
-    console.log('🔍 Final credential details:', {
-      hasAccessKeyId: !!credentials.accessKeyId,
-      hasSecretAccessKey: !!credentials.secretAccessKey,
-      hasSessionToken: !!credentials.sessionToken,
-      accessKeyIdLength: credentials.accessKeyId?.length,
-      secretAccessKeyLength: credentials.secretAccessKey?.length
+    // Validate extracted credentials
+    if (!accessKeyId || !secretAccessKey || !sessionToken) {
+      console.error('❌ Credential validation failed:', {
+        hasAccessKeyId: !!accessKeyId,
+        hasSecretAccessKey: !!secretAccessKey,
+        hasSessionToken: !!sessionToken,
+        accessKeyId: accessKeyId ? accessKeyId.substring(0, 10) + '...' : 'undefined',
+        secretAccessKey: secretAccessKey ? secretAccessKey.substring(0, 4) + '...' : 'undefined'
+      });
+      throw new Error(`Invalid credentials: missing ${!accessKeyId ? 'accessKeyId' : !secretAccessKey ? 'secretAccessKey' : 'sessionToken'}`);
+    }
+    
+    console.log('✅ Credentials extracted successfully:', {
+      accessKeyId: accessKeyId.substring(0, 10) + '...',
+      secretAccessKey: secretAccessKey.substring(0, 4) + '...',
+      hasSessionToken: !!sessionToken
     });
-    
-    // Validate credentials before proceeding
-    if (!credentials.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken) {
-      throw new Error(`Invalid credentials: missing ${!credentials.accessKeyId ? 'accessKeyId' : !credentials.secretAccessKey ? 'secretAccessKey' : 'sessionToken'}`);
-    }
     
     // MANUAL AWS V4 SIGNING - bypass AWS SDK signature issues entirely
     console.log('🔧 Implementing manual AWS Signature V4 signing');
@@ -98,9 +88,9 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     
     // Create credential scope
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-    const credential = `${credentials.accessKeyId}/${credentialScope}`;
+    const credential = `${accessKeyId}/${credentialScope}`;
     
-    console.log('🔑 Using access key:', credentials.accessKeyId.substring(0, 10) + '...');
+    console.log('🔑 Using access key:', accessKeyId.substring(0, 10) + '...');
     
     // Create query parameters for presigned URL
     const queryParams = new URLSearchParams({
@@ -108,7 +98,7 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       'X-Amz-Credential': credential,
       'X-Amz-Date': amzDate,
       'X-Amz-Expires': expiresIn.toString(),
-      'X-Amz-Security-Token': credentials.sessionToken,
+      'X-Amz-Security-Token': sessionToken,
       'X-Amz-SignedHeaders': 'host'
     });
     
@@ -140,7 +130,7 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     
     // Calculate signature
     console.log('🔐 Calculating signature...');
-    const kDate = crypto.createHmac('sha256', `AWS4${credentials.secretAccessKey}`).update(dateStamp).digest();
+    const kDate = crypto.createHmac('sha256', `AWS4${secretAccessKey}`).update(dateStamp).digest();
     const kRegion = crypto.createHmac('sha256', kDate).update(region).digest();
     const kService = crypto.createHmac('sha256', kRegion).update(service).digest();
     const kSigning = crypto.createHmac('sha256', kService).update('aws4_request').digest();
