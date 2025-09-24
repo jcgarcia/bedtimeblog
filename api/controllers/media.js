@@ -85,7 +85,7 @@ export async function getS3Client(config) {
 }
 
 // Helper: Generate signed URL for private S3 objects
-async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
+export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
     console.log('🔑 Attempting to generate signed URL for S3 key:', s3Key);
     

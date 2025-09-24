@@ -167,14 +167,25 @@ class AWSCredentialManager {
       this.credentialProvider = credentialProvider;
       this.isInitialized = true;
 
-      console.log('✅ AWS SDK automatic credential provider initialized successfully');
-      console.log('📋 Credentials will be automatically refreshed by AWS SDK');
-
-      return {
-        success: true,
-        message: 'AWS SDK automatic credential provider initialized',
-        autoRefresh: true
-      };
+      // Show different messages based on authentication method
+      if (config.authMethod === 'oidc' && config.roleArn && config.oidcSubject) {
+        console.log('✅ OIDC Web Identity provider initialized successfully');
+        console.log('🔄 Kubernetes service account tokens will be automatically rotated');
+        return {
+          success: true,
+          message: 'OIDC Web Identity provider initialized',
+          autoRefresh: true,
+          tokenManagement: 'Kubernetes'
+        };
+      } else {
+        console.log('✅ AWS SDK automatic credential provider initialized successfully');
+        console.log('📋 Credentials will be automatically refreshed by AWS SDK');
+        return {
+          success: true,
+          message: 'AWS SDK automatic credential provider initialized',
+          autoRefresh: true
+        };
+      }
 
     } catch (error) {
       console.error('❌ Failed to initialize credential provider:', error.message);
@@ -313,9 +324,17 @@ class AWSCredentialManager {
     }
 
     try {
-      // AWS SDK automatically refreshes credentials when needed
+      // Get credentials from provider (different messages for OIDC vs credentials)
       const credentials = await this.credentialProvider();
-      console.log('✅ Credentials obtained (AWS SDK auto-refresh active)');
+      
+      // Check authentication method for appropriate messaging
+      const config = await this.getStoredAWSConfig();
+      if (config && config.authMethod === 'oidc') {
+        console.log('✅ OIDC tokens obtained (Kubernetes service account token active)');
+      } else {
+        console.log('✅ Credentials obtained (AWS SDK auto-refresh active)');
+      }
+      
       return credentials;
     } catch (error) {
       console.error('❌ Failed to get credentials:', error.message);

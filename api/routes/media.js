@@ -67,7 +67,7 @@ router.get("/serve/:filename", async (req, res) => {
     const { generateSignedUrl } = await import("../controllers/media.js");
     
     // Use the OIDC-aware signed URL generator instead of manual S3Client creation
-    const signedUrl = await generateSignedUrl(s3_key, 3600);
+    const signedUrl = await generateSignedUrl(s3_key, 'bedtimeblog-medialibrary', 3600);
     console.log(`✅ Generated signed URL for: ${filename}`);
     
     // Redirect to the signed URL
