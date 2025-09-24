@@ -1199,7 +1199,12 @@ export const getAWSCredentialStatus = async (req, res) => {
       statusMessage: getSDKStatusMessage(status, credentialTest),
       actionRequired: getSDKActionRequired(status, credentialTest),
       recommendations: getSDKRecommendations(status, credentialTest),
-      refreshInfo: {
+      refreshInfo: status.authMethod === 'OIDC Web Identity (Kubernetes)' ? {
+        automatic: true,
+        managedBy: 'Kubernetes',
+        tokenStrategy: 'Service Account Token Rotation',
+        description: 'No credential refresh needed - tokens automatically rotated by Kubernetes'
+      } : {
         automatic: true,
         managedBy: 'AWS SDK',
         refreshStrategy: status.authMethod || 'Unknown'
@@ -2012,35 +2017,57 @@ function getSDKActionRequired(status, testResult) {
 function getSDKRecommendations(status, testResult) {
   const recommendations = [];
   const level = getSDKStatusLevel(status, testResult);
+  const isOIDC = status.authMethod === 'OIDC Web Identity (Kubernetes)';
   
   if (!status.configured) {
-    recommendations.push('Configure AWS settings in Operations Panel > Media Management');
-    recommendations.push('Add Access Key, Secret Key, and Session Token from AWS Identity Center');
-  }
-  
-  if (!status.initialized) {
-    recommendations.push('Credential provider will initialize automatically on next use');
-  }
-  
-  if (testResult && !testResult.success) {
-    if (testResult.error.includes('expired')) {
-      recommendations.push('AWS credentials have expired - refresh them in AWS Identity Center portal');
-      recommendations.push('Copy new credentials to Operations Panel > Media Management');
-    } else if (testResult.error.includes('Invalid')) {
-      recommendations.push('AWS credentials are invalid - check Access Key and Secret Key');
+    if (isOIDC) {
+      recommendations.push('OIDC configuration incomplete - check role ARN and service account settings');
+      recommendations.push('Verify Kubernetes service account and OIDC issuer URL configuration');
     } else {
-      recommendations.push('Check AWS configuration and network connectivity');
+      recommendations.push('Configure AWS settings in Operations Panel > Media Management');
+      recommendations.push('Add Access Key, Secret Key, and Session Token from AWS Identity Center');
     }
   }
   
-  if (status.isNearExpiry) {
+  if (!status.initialized) {
+    if (isOIDC) {
+      recommendations.push('OIDC provider will initialize automatically using Kubernetes service account token');
+    } else {
+      recommendations.push('Credential provider will initialize automatically on next use');
+    }
+  }
+  
+  if (testResult && !testResult.success) {
+    if (isOIDC) {
+      recommendations.push('Check Kubernetes service account token availability');
+      recommendations.push('Verify AWS IAM role trust policy allows OIDC provider');
+      recommendations.push('Ensure OIDC discovery service is accessible');
+    } else {
+      if (testResult.error.includes('expired')) {
+        recommendations.push('AWS credentials have expired - refresh them in AWS Identity Center portal');
+        recommendations.push('Copy new credentials to Operations Panel > Media Management');
+      } else if (testResult.error.includes('Invalid')) {
+        recommendations.push('AWS credentials are invalid - check Access Key and Secret Key');
+      } else {
+        recommendations.push('Check AWS configuration and network connectivity');
+      }
+    }
+  }
+  
+  if (status.isNearExpiry && !isOIDC) {
     recommendations.push('AWS SDK will automatically refresh credentials soon');
     recommendations.push('No manual action required unless refresh fails');
   }
   
   if (level === 'HEALTHY') {
-    recommendations.push('✅ System working correctly with automatic credential refresh');
-    recommendations.push('AWS SDK will handle credential renewal automatically');
+    if (isOIDC) {
+      recommendations.push('✅ OIDC authentication working correctly');
+      recommendations.push('Kubernetes service account tokens are automatically managed');
+      recommendations.push('No manual credential management required');
+    } else {
+      recommendations.push('✅ System working correctly with automatic credential refresh');
+      recommendations.push('AWS SDK will handle credential renewal automatically');
+    }
   }
   
   return recommendations;
