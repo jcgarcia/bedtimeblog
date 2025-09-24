@@ -4,6 +4,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import credentialManager from '../services/awsCredentialManager.js';
 import { getDefaultCategoryId } from "./category.js";
+import { generateSignedUrl } from './media.js';
 
 // Helper function to get valid category ID
 async function getCategoryIdForPost(categoryInput) {
@@ -80,12 +81,8 @@ async function resolveMediaUrl(mediaId) {
         });
         console.log(`🔗 S3 Client created successfully`);
         
-        const command = new GetObjectCommand({
-          Bucket: awsConfig.bucketName,
-          Key: s3Key,
-        });
-        
-        const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        console.log(`🔧 Using manual signing for fresh URL: bucket=${awsConfig.bucketName}, key=${s3Key}`);
+        const signedUrl = await generateSignedUrl(s3Key, awsConfig.bucketName, 3600);
         console.log(`✅ Fresh signed URL generated: ${signedUrl.substring(0, 100)}...`);
         return signedUrl;
       }
@@ -132,14 +129,9 @@ async function resolveMediaUrl(mediaId) {
       const awsConfig = JSON.parse(settingsRes.rows[0].value);
       console.log(`🔧 Using bucket: ${awsConfig.bucketName} with OIDC authentication`);
       
-      const command = new GetObjectCommand({
-        Bucket: awsConfig.bucketName,
-        Key: mediaId,
-      });
-      
-      console.log(`📝 Attempting getSignedUrl for bucket: ${awsConfig.bucketName}, key: ${mediaId}`);
-      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-      console.log(`✅ Successfully generated signed URL with OIDC: ${signedUrl.substring(0, 100)}...`);
+      console.log(`📝 Using manual signing for bucket: ${awsConfig.bucketName}, key: ${mediaId}`);
+      const signedUrl = await generateSignedUrl(mediaId, awsConfig.bucketName, 3600);
+      console.log(`✅ Successfully generated manually signed URL: ${signedUrl.substring(0, 100)}...`);
       return signedUrl;
     } catch (error) {
       console.error(`❌ CRITICAL: Error generating signed URL for S3 key ${mediaId}:`, error);
@@ -187,12 +179,8 @@ async function resolveMediaUrl(mediaId) {
         signatureVersion: 'v4'
       });
       
-      const command = new GetObjectCommand({
-        Bucket: media.s3_bucket,
-        Key: media.s3_key,
-      });
-      
-      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      console.log(`🔧 Using manual signing for media URL: bucket=${media.s3_bucket}, key=${media.s3_key}`);
+      const signedUrl = await generateSignedUrl(media.s3_key, media.s3_bucket, 3600);
       return signedUrl;
     }
     
