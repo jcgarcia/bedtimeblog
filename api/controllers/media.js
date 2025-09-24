@@ -14,6 +14,8 @@ import { existsSync } from 'fs';
 
 // Removed complex getS3Client function - using direct OIDC approach instead
 
+import crypto from 'crypto';
+
 // Helper: Generate signed URL for private S3 objects using OIDC
 export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
@@ -23,29 +25,9 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     const credentials = await credentialManager.getCredentials();
     console.log('✅ OIDC credentials obtained');
     
-    // AGGRESSIVE FIX: Create S3Client with absolute minimal configuration
-    // and try multiple approaches to avoid SignatureV4S3Express
-    const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    // MANUAL AWS V4 SIGNING - bypass AWS SDK signature issues entirely
+    console.log('🔧 Implementing manual AWS Signature V4 signing');
     
-    console.log('🔧 Attempt 1: Ultra-minimal S3Client configuration');
-    
-    // Create the most basic S3Client possible
-    const s3Client = new S3Client({
-      region: 'eu-west-2',
-      credentials: credentials,
-      // Absolute minimum configuration
-      forcePathStyle: true
-    });
-    
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: s3Key
-    });
-    
-    // Try direct approach without getSignedUrl (use manual signing)
-    console.log('🔧 Attempting manual URL generation without AWS presigner');
-    
-    // Manual approach: construct signed URL manually
     const region = 'eu-west-2';
     const service = 's3';
     const method = 'GET';
@@ -60,7 +42,7 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
     const credential = `${credentials.accessKeyId}/${credentialScope}`;
     
-    // Create query parameters
+    // Create query parameters for presigned URL
     const queryParams = new URLSearchParams({
       'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
       'X-Amz-Credential': credential,
@@ -70,30 +52,48 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
       'X-Amz-SignedHeaders': 'host'
     });
     
-    // For now, create a basic unsigned URL and let the client handle it
-    // This is a temporary workaround while we debug the signing issue
-    const tempUrl = `https://${host}${uri}?${queryParams.toString()}&X-Amz-Signature=PLACEHOLDER`;
+    // Sort query parameters for canonical query string
+    const sortedParams = Array.from(queryParams.entries()).sort(([a], [b]) => a.localeCompare(b));
+    const canonicalQueryString = sortedParams.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
     
-    console.log('⚠️ Returning temporarily constructed URL (signature validation may fail)');
-    console.log('🔍 URL structure created for key:', s3Key);
+    // Create canonical request
+    const canonicalHeaders = `host:${host}\n`;
+    const signedHeaders = 'host';
+    const payloadHash = 'UNSIGNED-PAYLOAD';
     
-    // Alternative: Try to use the S3 client with getSignedUrl but catch the specific error
-    try {
-      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-      const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
-      console.log('✅ Successfully generated signed URL for key:', s3Key);
-      return signedUrl;
-    } catch (signingError) {
-      console.log('⚠️ getSignedUrl failed, using direct approach:', signingError.message);
-      
-      // Return a simple direct URL for now (won't work for private buckets but helps debug)
-      const simpleUrl = `https://s3.${region}.amazonaws.com/${bucketName}/${s3Key}`;
-      console.log('🔄 Returning direct S3 URL as final fallback:', simpleUrl);
-      return simpleUrl;
-    }
+    const canonicalRequest = [
+      method,
+      uri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      payloadHash
+    ].join('\n');
+    
+    // Create string to sign
+    const stringToSign = [
+      'AWS4-HMAC-SHA256',
+      amzDate,
+      credentialScope,
+      crypto.createHash('sha256').update(canonicalRequest).digest('hex')
+    ].join('\n');
+    
+    // Calculate signature
+    const kDate = crypto.createHmac('sha256', `AWS4${credentials.secretAccessKey}`).update(dateStamp).digest();
+    const kRegion = crypto.createHmac('sha256', kDate).update(region).digest();
+    const kService = crypto.createHmac('sha256', kRegion).update(service).digest();
+    const kSigning = crypto.createHmac('sha256', kService).update('aws4_request').digest();
+    const signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+    
+    // Construct final URL
+    const signedUrl = `https://${host}${uri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+    
+    console.log('✅ Successfully generated manually signed URL for key:', s3Key);
+    return signedUrl;
     
   } catch (error) {
-    console.error('❌ All signing approaches failed for', s3Key + ':', error.message);
+    console.error('❌ Manual signing failed for', s3Key + ':', error.message);
+    console.error('Error details:', error);
     throw new Error(`Signed URL generation failed: ${error.message}`);
   }
 }
