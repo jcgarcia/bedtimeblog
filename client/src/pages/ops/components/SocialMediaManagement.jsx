@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '../../../config/api';
 
 export default function SocialMediaManagement() {
   const [socialLinks, setSocialLinks] = useState({
-    facebook: '',
+    linkedin: '',
     twitter: '',
     instagram: '',
     threads: ''
@@ -99,18 +99,18 @@ export default function SocialMediaManagement() {
       <div className="social-links-form">
         <div className="social-link-item">
           <div className="social-icon">
-            <i className="fa-brands fa-square-facebook"></i>
+            <i className="fa-brands fa-linkedin"></i>
           </div>
           <div className="social-input">
-            <label>Facebook Page URL</label>
+            <label>LinkedIn Profile URL</label>
             <input
               type="url"
-              placeholder="https://facebook.com/your-page"
-              value={socialLinks.facebook}
-              onChange={(e) => handleInputChange('facebook', e.target.value)}
-              className={!validateUrl(socialLinks.facebook) ? 'invalid' : ''}
+              placeholder="https://linkedin.com/in/your-profile"
+              value={socialLinks.linkedin}
+              onChange={(e) => handleInputChange('linkedin', e.target.value)}
+              className={!validateUrl(socialLinks.linkedin) ? 'invalid' : ''}
             />
-            {socialLinks.facebook && !validateUrl(socialLinks.facebook) && (
+            {socialLinks.linkedin && !validateUrl(socialLinks.linkedin) && (
               <span className="error-text">Please enter a valid URL</span>
             )}
           </div>
@@ -196,9 +196,9 @@ export default function SocialMediaManagement() {
         <h3>Preview</h3>
         <p>This is how your social media icons will appear in the blog:</p>
         <div className="preview-icons">
-          {socialLinks.facebook && (
-            <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-              <i className="fa-brands fa-square-facebook"></i>
+          {socialLinks.linkedin && (
+            <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
+              <i className="fa-brands fa-linkedin"></i>
             </a>
           )}
           {socialLinks.twitter && (
@@ -232,7 +232,7 @@ export default function SocialMediaManagement() {
           <li><strong>Leave blank if not used</strong> - Icons won't appear for empty links</li>
           <li><strong>Examples:</strong>
             <ul>
-              <li>Facebook: https://facebook.com/your-page</li>
+              <li>LinkedIn: https://linkedin.com/in/your-profile</li>
               <li>X (Twitter): https://x.com/your-username</li>
               <li>Instagram: https://instagram.com/your-username</li>
               <li>Threads: https://threads.net/@your-username</li>

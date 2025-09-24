@@ -80,9 +80,9 @@ export default function TopBar() {
   return (
     <div className='top'>
       <div className="topLeft">
-        {!loading && socialLinks.facebook && (
-          <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-            <i className="topIcon fa-brands fa-square-facebook"></i>
+        {!loading && socialLinks.linkedin && (
+          <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
+            <i className="topIcon fa-brands fa-linkedin"></i>
           </a>
         )}
         {!loading && socialLinks.twitter && (

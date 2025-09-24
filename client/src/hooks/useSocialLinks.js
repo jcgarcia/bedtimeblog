@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '../config/api.js';
 
 export const useSocialLinks = () => {
   const [socialLinks, setSocialLinks] = useState({
-    facebook: '',
+    linkedin: '',
     twitter: '',
     instagram: '',
     threads: ''

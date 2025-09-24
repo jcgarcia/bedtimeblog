@@ -9,7 +9,7 @@ export default function Footer() {
 
   // Fallbacks for each social media service
   const defaultLinks = {
-    facebook: 'https://facebook.com',
+    linkedin: 'https://linkedin.com',
     twitter: 'https://twitter.com',
     instagram: 'https://instagram.com',
     threads: 'https://threads.net',
@@ -46,13 +46,13 @@ export default function Footer() {
           <p>Follow us on social media for updates and new content.</p>
           <div className="footer-social">
             <a
-              href={(!loading && socialLinks.facebook) ? socialLinks.facebook : defaultLinks.facebook}
+              href={(!loading && socialLinks.linkedin) ? socialLinks.linkedin : defaultLinks.linkedin}
               className="social-link"
-              aria-label="Facebook"
+              aria-label="LinkedIn"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <i className="fa-brands fa-facebook"></i>
+              <i className="fa-brands fa-linkedin"></i>
             </a>
             <a
               href={(!loading && socialLinks.twitter) ? socialLinks.twitter : defaultLinks.twitter}

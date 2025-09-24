@@ -1,6 +1,6 @@
 -- Insert default social media settings into the settings table
 INSERT INTO settings (key, value, type, group_name, description, is_public) VALUES
-('social_facebook_url', '', 'string', 'social', 'Facebook page URL', TRUE),
+('social_linkedin_url', '', 'string', 'social', 'LinkedIn profile URL', TRUE),
 ('social_twitter_url', '', 'string', 'social', 'X (Twitter) profile URL', TRUE),
 ('social_instagram_url', '', 'string', 'social', 'Instagram profile URL', TRUE),
 ('social_threads_url', '', 'string', 'social', 'Threads profile URL', TRUE)

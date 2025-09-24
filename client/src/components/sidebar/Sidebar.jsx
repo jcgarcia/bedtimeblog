@@ -88,9 +88,9 @@ export default function Sidebar() {
       <div className="sidebarItem">
         <span className='sidebarTitle'>Wanna follow?</span> 
           <div className="sidebarSocial">
-            {!loading && socialLinks.facebook && (
-              <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer">
-                <i className="sidebarIcon fa-brands fa-square-facebook"></i>
+            {!loading && socialLinks.linkedin && (
+              <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer">
+                <i className="sidebarIcon fa-brands fa-linkedin"></i>
               </a>
             )}
             {!loading && socialLinks.twitter && (

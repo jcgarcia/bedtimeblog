@@ -119,7 +119,7 @@ export const updateSettings = async (req, res) => {
 export const getSocialMediaLinks = async (req, res) => {
   try {
     const socialKeys = [
-      'social_facebook_url',
+      'social_linkedin_url',
       'social_twitter_url', 
       'social_instagram_url',
       'social_threads_url'
@@ -131,7 +131,7 @@ export const getSocialMediaLinks = async (req, res) => {
     );
     
     const socialLinks = {
-      facebook: '',
+      linkedin: '',
       twitter: '',
       instagram: '',
       threads: ''
@@ -139,8 +139,8 @@ export const getSocialMediaLinks = async (req, res) => {
     
     result.rows.forEach(row => {
       switch (row.key) {
-        case 'social_facebook_url':
-          socialLinks.facebook = row.value || '';
+        case 'social_linkedin_url':
+          socialLinks.linkedin = row.value || '';
           break;
         case 'social_twitter_url':
           socialLinks.twitter = row.value || '';
@@ -164,10 +164,10 @@ export const getSocialMediaLinks = async (req, res) => {
 // Update social media links
 export const updateSocialMediaLinks = async (req, res) => {
   try {
-    const { facebook, twitter, instagram, threads } = req.body;
+    const { linkedin, twitter, instagram, threads } = req.body;
     
     const updates = [
-      { key: 'social_facebook_url', value: facebook || '' },
+      { key: 'social_linkedin_url', value: linkedin || '' },
       { key: 'social_twitter_url', value: twitter || '' },
       { key: 'social_instagram_url', value: instagram || '' },
       { key: 'social_threads_url', value: threads || '' }
@@ -191,7 +191,7 @@ export const updateSocialMediaLinks = async (req, res) => {
     
     res.status(200).json({ 
       message: "Social media links updated successfully",
-      links: { facebook, twitter, instagram, threads }
+      links: { linkedin, twitter, instagram, threads }
     });
   } catch (error) {
     console.error("Error updating social media links:", error);
