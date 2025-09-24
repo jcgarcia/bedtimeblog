@@ -65,7 +65,10 @@ async function generateThumbnailsForExistingPdfs() {
                     secretAccessKey: credentials.secretAccessKey,
                     sessionToken: credentials.sessionToken
                   },
-                  forcePathStyle: true
+                  forcePathStyle: true,
+                  endpoint: 'https://s3.eu-west-2.amazonaws.com',
+                  disableS3ExpressSessionAuth: true,
+                  signatureVersion: 'v4'
                 });
                 
                 // Create temporary file paths

@@ -35,7 +35,10 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
         sessionToken: credentials.sessionToken
       },
       forcePathStyle: true,
-      endpoint: 'https://s3.eu-west-2.amazonaws.com'
+      endpoint: 'https://s3.eu-west-2.amazonaws.com',
+      // Explicitly disable S3 Express features for OIDC compatibility
+      disableS3ExpressSessionAuth: true,
+      signatureVersion: 'v4'
     });
     
     const command = new GetObjectCommand({
@@ -227,7 +230,10 @@ export const uploadToS3 = async (req, res) => {
               secretAccessKey: credentials.secretAccessKey,
               sessionToken: credentials.sessionToken
             },
-            forcePathStyle: true
+            forcePathStyle: true,
+            endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
+            disableS3ExpressSessionAuth: true,
+            signatureVersion: 'v4'
           });
           BUCKET_NAME = settings.aws_config.bucketName;
           CDN_URL = settings.aws_config.cdnUrl || `https://${settings.aws_config.bucketName}.s3.${settings.aws_config.region}.amazonaws.com`;
@@ -631,7 +637,10 @@ export const getMediaFiles = async (req, res) => {
               secretAccessKey: credentials.secretAccessKey,
               sessionToken: credentials.sessionToken
             },
-            forcePathStyle: true
+            forcePathStyle: true,
+            endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
+            disableS3ExpressSessionAuth: true,
+            signatureVersion: 'v4'
           });
           const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
           syncPerformed = true;
@@ -1320,7 +1329,10 @@ export const syncS3Files = async (req, res) => {
         secretAccessKey: credentials.secretAccessKey,
         sessionToken: credentials.sessionToken
       },
-      forcePathStyle: true
+      forcePathStyle: true,
+      endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
+      disableS3ExpressSessionAuth: true,
+      signatureVersion: 'v4'
     });
     const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
     

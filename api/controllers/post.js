@@ -73,7 +73,10 @@ async function resolveMediaUrl(mediaId) {
             secretAccessKey: credentials.secretAccessKey,
             sessionToken: credentials.sessionToken
           },
-          forcePathStyle: true
+          forcePathStyle: true,
+          endpoint: `https://s3.${awsConfig.region || 'eu-west-2'}.amazonaws.com`,
+          disableS3ExpressSessionAuth: true,
+          signatureVersion: 'v4'
         });
         console.log(`🔗 S3 Client created successfully`);
         
@@ -111,7 +114,10 @@ async function resolveMediaUrl(mediaId) {
           secretAccessKey: credentials.secretAccessKey,
           sessionToken: credentials.sessionToken
         },
-        forcePathStyle: true
+        forcePathStyle: true,
+        endpoint: 'https://s3.eu-west-2.amazonaws.com',
+        disableS3ExpressSessionAuth: true,
+        signatureVersion: 'v4'
       });
       console.log(`🔗 S3 Client obtained from OIDC credential manager`);
       
@@ -175,7 +181,10 @@ async function resolveMediaUrl(mediaId) {
           secretAccessKey: credentials.secretAccessKey,
           sessionToken: credentials.sessionToken
         },
-        forcePathStyle: true
+        forcePathStyle: true,
+        endpoint: `https://s3.${awsConfig.region || 'eu-west-2'}.amazonaws.com`,
+        disableS3ExpressSessionAuth: true,
+        signatureVersion: 'v4'
       });
       
       const command = new GetObjectCommand({

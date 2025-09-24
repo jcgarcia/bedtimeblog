@@ -39,7 +39,10 @@ export const syncS3ToDatabase = async (req, res) => {
         secretAccessKey: credentials.secretAccessKey,
         sessionToken: credentials.sessionToken
       },
-      forcePathStyle: true
+      forcePathStyle: true,
+      endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
+      disableS3ExpressSessionAuth: true,
+      signatureVersion: 'v4'
     });
     const bucketName = settings.aws_config.bucketName;
 
