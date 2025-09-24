@@ -24,6 +24,16 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     // Get OIDC credentials directly
     const credentials = await credentialManager.getCredentials();
     console.log('✅ OIDC credentials obtained');
+    console.log('🔍 Credential details:', {
+      hasAccessKeyId: !!credentials.accessKeyId,
+      hasSecretAccessKey: !!credentials.secretAccessKey,
+      hasSessionToken: !!credentials.sessionToken
+    });
+    
+    // Validate credentials before proceeding
+    if (!credentials.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken) {
+      throw new Error(`Invalid credentials: missing ${!credentials.accessKeyId ? 'accessKeyId' : !credentials.secretAccessKey ? 'secretAccessKey' : 'sessionToken'}`);
+    }
     
     // MANUAL AWS V4 SIGNING - bypass AWS SDK signature issues entirely
     console.log('🔧 Implementing manual AWS Signature V4 signing');
@@ -38,9 +48,13 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '');
     const amzDate = now.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
     
+    console.log('🕐 Signing timestamp:', amzDate);
+    
     // Create credential scope
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
     const credential = `${credentials.accessKeyId}/${credentialScope}`;
+    
+    console.log('🔑 Using access key:', credentials.accessKeyId.substring(0, 10) + '...');
     
     // Create query parameters for presigned URL
     const queryParams = new URLSearchParams({
@@ -79,16 +93,21 @@ export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
     ].join('\n');
     
     // Calculate signature
+    console.log('🔐 Calculating signature...');
     const kDate = crypto.createHmac('sha256', `AWS4${credentials.secretAccessKey}`).update(dateStamp).digest();
     const kRegion = crypto.createHmac('sha256', kDate).update(region).digest();
     const kService = crypto.createHmac('sha256', kRegion).update(service).digest();
     const kSigning = crypto.createHmac('sha256', kService).update('aws4_request').digest();
     const signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex');
     
+    console.log('📝 String to sign:', stringToSign.replace(/\n/g, '\\n'));
+    console.log('🔏 Generated signature:', signature.substring(0, 16) + '...');
+    
     // Construct final URL
     const signedUrl = `https://${host}${uri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
     
     console.log('✅ Successfully generated manually signed URL for key:', s3Key);
+    console.log('🔗 Final URL length:', signedUrl.length);
     return signedUrl;
     
   } catch (error) {
