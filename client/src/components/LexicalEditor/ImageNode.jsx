@@ -63,7 +63,7 @@ export class ImageNode extends DecoratorNode {
     const {
       altText,
       height,
-      maxWidth,
+      maxWidth = 600,
       caption,
       src,
       showCaption,
@@ -84,10 +84,10 @@ export class ImageNode extends DecoratorNode {
   exportDOM() {
     const element = document.createElement('img');
     element.setAttribute('src', this.__src);
-    element.setAttribute('alt', this.__altText);
-    element.setAttribute('width', this.__width.toString());
-    element.setAttribute('height', this.__height.toString());
-    element.setAttribute('style', `max-width: ${this.__maxWidth}px`);
+    element.setAttribute('alt', this.__altText || '');
+    if (this.__maxWidth) {
+      element.setAttribute('style', `max-width: ${this.__maxWidth}px; height: auto;`);
+    }
     return { element };
   }
 

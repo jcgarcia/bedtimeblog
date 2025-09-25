@@ -215,12 +215,27 @@ function SetInitialContentPlugin({ content }) {
         const root = $getRoot();
         root.clear();
         
-        // For now, just treat all content as plain text
+        // Try to parse as JSON first (for rich content with images)
+        try {
+          const parsedContent = JSON.parse(content);
+          if (parsedContent.root && parsedContent.root.children) {
+            // Import the JSON state
+            const editorState = editor.parseEditorState(parsedContent);
+            editor.setEditorState(editorState);
+            console.log('JSON content loaded successfully');
+            setInitialContentSet(true);
+            return;
+          }
+        } catch (jsonError) {
+          console.log('Content is not JSON, treating as markdown/text');
+        }
+        
+        // Fallback: treat as plain text/markdown
         const paragraphNode = $createParagraphNode();
         const textNode = $createTextNode(content);
         paragraphNode.append(textNode);
         root.append(paragraphNode);
-        console.log('Content set in editor');
+        console.log('Text content set in editor');
         setInitialContentSet(true);
       } catch (error) {
         console.error('Error setting initial content:', error);
@@ -318,6 +333,8 @@ export default function LexicalEditor({
     ],
     onError: (error) => {
       console.error('Lexical error:', error);
+      // Don't throw the error to prevent editor crashes
+      return false;
     },
   };
 
