@@ -177,24 +177,39 @@ function ImageComponent({
   caption,
   showCaption,
 }) {
-  return (
-    <div className="lexical-image-wrapper">
-      <img
-        className="lexical-image"
-        src={src}
-        alt={altText}
-        style={{
-          maxWidth: maxWidth ? `${maxWidth}px` : '100%',
-          height: 'auto',
-          display: 'block'
-        }}
-        draggable="false"
-      />
-      {showCaption && caption && (
-        <div className="lexical-image-caption">
-          {caption}
-        </div>
-      )}
-    </div>
-  );
+  // Safety checks to prevent undefined errors
+  if (!src) {
+    console.warn('ImageComponent: No src provided');
+    return null;
+  }
+
+  try {
+    return (
+      <div className="lexical-image-wrapper">
+        <img
+          className="lexical-image"
+          src={src}
+          alt={altText || ''}
+          style={{
+            maxWidth: maxWidth ? `${maxWidth}px` : '100%',
+            height: 'auto',
+            display: 'block'
+          }}
+          draggable="false"
+          onError={(e) => {
+            console.error('Image failed to load:', src);
+            e.target.style.display = 'none';
+          }}
+        />
+        {showCaption && caption && (
+          <div className="lexical-image-caption">
+            {caption}
+          </div>
+        )}
+      </div>
+    );
+  } catch (error) {
+    console.error('Error rendering ImageComponent:', error);
+    return null;
+  }
 }

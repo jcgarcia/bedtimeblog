@@ -181,15 +181,34 @@ function UpdateContentPlugin({ onChange }) {
       if (dirtyElements.size > 0 || dirtyLeaves.size > 0) {
         editorState.read(() => {
           try {
-            // For now, just get text content to avoid serialization issues
             const root = $getRoot();
-            const textContent = root.getTextContent();
-            // Ensure we always pass a string
-            onChange(textContent || '');
+            const children = root.getChildren();
+            
+            // Check if we have rich content (images, formatted text, etc.)
+            const hasRichContent = children.some(child => {
+              return child.getType() !== 'paragraph' || 
+                     child.getChildren().some(grandchild => grandchild.getType() !== 'text') ||
+                     child.getTextContent() !== child.getTextContent().trim(); // has formatting
+            });
+            
+            if (hasRichContent) {
+              // Export as JSON to preserve rich content
+              const serializedState = JSON.stringify(editorState.toJSON());
+              onChange(serializedState);
+            } else {
+              // Simple text content, export as plain text
+              const textContent = root.getTextContent();
+              onChange(textContent || '');
+            }
           } catch (error) {
             console.error('Error getting editor content:', error);
-            // Pass empty string on error
-            onChange('');
+            // Fallback to text content
+            try {
+              const root = $getRoot();
+              onChange(root.getTextContent() || '');
+            } catch (fallbackError) {
+              onChange('');
+            }
           }
         });
       }
@@ -332,9 +351,8 @@ export default function LexicalEditor({
       ImageNode,
     ],
     onError: (error) => {
-      console.error('Lexical error:', error);
-      // Don't throw the error to prevent editor crashes
-      return false;
+      console.error('Lexical error:', error || 'Unknown error');
+      // Prevent error propagation to avoid editor crashes
     },
   };
 
