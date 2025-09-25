@@ -29,7 +29,7 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
       const adminToken = localStorage.getItem('adminToken');
       
       // Get folder list first
-      const foldersResponse = await fetch('/api/media/folders', {
+      const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
@@ -51,7 +51,7 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
       let allMedia = [];
       for (const folder of foldersToSearch) {
         try {
-          const response = await fetch(`/api/media/files?folder=${encodeURIComponent(folder)}`, {
+          const response = await fetch(`https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`, {
             headers: {
               'Authorization': `Bearer ${adminToken}`,
               'Content-Type': 'application/json'
