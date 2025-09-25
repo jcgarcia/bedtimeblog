@@ -23,21 +23,60 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
     }
   }, [isOpen, activeTab]);
 
-  const fetchMediaLibrary = async () => {
+    const fetchMediaLibrary = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://bapi.ingasti.com/api/media/files', {
+      const adminToken = localStorage.getItem('adminToken');
+      
+      // Get folder list first
+      const foldersResponse = await fetch('/api/media/folders', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
         }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📚 Media library API response:', data);
-        setMediaLibrary(data.media || []);
+      let foldersToSearch = ['/']; // Default fallback
+      
+      if (foldersResponse.ok) {
+        const foldersData = await foldersResponse.json();
+        if (foldersData.success && foldersData.folders) {
+          foldersToSearch = foldersData.folders.map(folder => 
+            typeof folder === 'string' ? folder : (folder.path || folder.folder_path || folder.name || '/')
+          );
+        }
       }
+      
+      // Search all folders for images
+      let allMedia = [];
+      for (const folder of foldersToSearch) {
+        try {
+          const response = await fetch(`/api/media/files?folder=${encodeURIComponent(folder)}`, {
+            headers: {
+              'Authorization': `Bearer ${adminToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.media && Array.isArray(data.media)) {
+              // Filter only image files
+              const imageFiles = data.media.filter(item => 
+                item.file_type && (
+                  item.file_type.startsWith('image/') || 
+                  (item.file_name || item.original_name)?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                )
+              );
+              allMedia = [...allMedia, ...imageFiles];
+            }
+          }
+        } catch (folderError) {
+          console.error(`Error fetching folder "${folder}":`, folderError);
+        }
+      }
+      
+      setMediaLibrary(allMedia);
     } catch (error) {
       console.error('Error fetching media library:', error);
     } finally {
