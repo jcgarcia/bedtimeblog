@@ -3,6 +3,7 @@
  */
 
 import { DecoratorNode } from 'lexical';
+import './ImageNode.css';
 
 export class ImageNode extends DecoratorNode {
   static getType() {
@@ -183,9 +184,9 @@ function ImageComponent({
         src={src}
         alt={altText}
         style={{
-          width: width || 'auto',
-          height: height || 'auto',
-          maxWidth: maxWidth ? `${maxWidth}px` : '100%'
+          maxWidth: maxWidth ? `${maxWidth}px` : '100%',
+          height: 'auto',
+          display: 'block'
         }}
         draggable="false"
       />

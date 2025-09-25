@@ -149,12 +149,11 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
   const handleInsert = () => {
     if (selectedImage) {
       onInsertImage({
-        src: selectedImage.signed_url,
+        src: selectedImage.public_url || selectedImage.signed_url,
         altText: altText || selectedImage.original_name || '',
         caption: caption,
         showCaption: showCaption && caption.trim() !== '',
-        width: selectedImage.width,
-        height: selectedImage.height
+        maxWidth: 600
       });
       handleClose();
     }
