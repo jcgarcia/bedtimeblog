@@ -232,9 +232,25 @@ export default function Write() {
         status: formData.status
       };
 
-      // Only include image if it's not a signed URL (to avoid database length issues)
-      if (formData.featuredImage && !formData.featuredImage.includes('X-Amz-Algorithm')) {
-        postData.img = formData.featuredImage;
+      // Handle featured image - extract S3 key if it's a signed URL
+      if (formData.featuredImage) {
+        if (formData.featuredImage.includes('X-Amz-Algorithm')) {
+          // Extract S3 key from signed URL to avoid database length issues
+          try {
+            const url = new URL(formData.featuredImage);
+            const s3Key = url.pathname.substring(1); // Remove leading slash
+            if (s3Key.startsWith('uploads/')) {
+              postData.img = s3Key;
+            } else {
+              postData.img = formData.featuredImage;
+            }
+          } catch (error) {
+            console.warn('Failed to extract S3 key, using original URL:', error);
+            postData.img = formData.featuredImage;
+          }
+        } else {
+          postData.img = formData.featuredImage;
+        }
       }
       
       if (isEditing) {
