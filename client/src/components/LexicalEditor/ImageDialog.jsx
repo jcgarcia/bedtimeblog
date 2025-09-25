@@ -26,7 +26,7 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
   const fetchMediaLibrary = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://bapi.ingasti.com/api/media/library', {
+      const response = await fetch('https://bapi.ingasti.com/api/media/files', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
           'Content-Type': 'application/json'
@@ -35,6 +35,7 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📚 Media library API response:', data);
         setMediaLibrary(data.media || []);
       }
     } catch (error) {
