@@ -208,7 +208,7 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
                       onClick={() => handleLibraryImageSelect(item)}
                     >
                       <img
-                        src={`https://bapi.ingasti.com/api/media/signed-url?key=${encodeURIComponent(item.s3_key)}`}
+                        src={item.public_url || item.signed_url}
                         alt={item.alt_text || item.original_name}
                         loading="lazy"
                       />
