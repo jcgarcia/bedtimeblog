@@ -223,7 +223,7 @@ export const uploadAPI = {
       if (response.data.success && response.data.media) {
         return {
           success: true,
-          data: response.data.media.id // Return media ID instead of URL for database storage
+          data: response.data.media.s3_key // Return S3 key for featuredImage string field
         };
       } else {
         return {
