@@ -241,6 +241,118 @@ const getImageDimensions = async (buffer, mimetype) => {
   }
 };
 
+// Manual S3 upload using HTTP requests (same approach as image serving)
+async function uploadToS3Manual({ bucket, key, body, contentType, metadata = {} }) {
+  try {
+    // Get credentials using the same method as image serving
+    const credentials = await credentialManager.getCredentials();
+    
+    // Extract credentials (same approach as generateSignedUrl)
+    let accessKeyId, secretAccessKey, sessionToken;
+    
+    if (credentials.Credentials) {
+      // OIDC Web Identity credential structure
+      accessKeyId = credentials.Credentials.AccessKeyId;
+      secretAccessKey = credentials.Credentials.SecretAccessKey;
+      sessionToken = credentials.Credentials.SessionToken;
+      console.log('🔑 Using OIDC Web Identity credential structure (Credentials.AccessKeyId)');
+    } else {
+      // Direct credential structure
+      accessKeyId = credentials.accessKeyId;
+      secretAccessKey = credentials.secretAccessKey;
+      sessionToken = credentials.sessionToken;
+      console.log('🔑 Using direct credential structure (accessKeyId)');
+    }
+    
+    if (!accessKeyId || !secretAccessKey) {
+      throw new Error('Invalid credentials: missing access key or secret');
+    }
+    
+    console.log('✅ Credentials extracted successfully for upload:', {
+      accessKeyId: accessKeyId.substring(0, 12) + '...',
+      secretAccessKey: secretAccessKey.substring(0, 4) + '...',
+      hasSessionToken: !!sessionToken
+    });
+    
+    // Manual HTTP PUT request to S3
+    const region = 'eu-west-2';
+    const host = `${bucket}.s3.${region}.amazonaws.com`;
+    const url = `https://${host}/${key}`;
+    
+    // Create headers with metadata
+    const headers = {
+      'Content-Type': contentType,
+      'Host': host
+    };
+    
+    // Add metadata as x-amz-meta- headers
+    Object.keys(metadata).forEach(metaKey => {
+      headers[`x-amz-meta-${metaKey}`] = metadata[metaKey];
+    });
+    
+    // Add session token if present
+    if (sessionToken) {
+      headers['x-amz-security-token'] = sessionToken;
+    }
+    
+    // Generate signature (same logic as generateSignedUrl)
+    const timestamp = new Date().toISOString().replace(/[:\-]|\.\d{3}/g, '');
+    const date = timestamp.substr(0, 8);
+    
+    headers['x-amz-date'] = timestamp;
+    
+    // Create canonical request
+    const method = 'PUT';
+    const canonicalUri = `/${key}`;
+    const canonicalQueryString = '';
+    
+    const headerKeys = Object.keys(headers).map(k => k.toLowerCase()).sort();
+    const canonicalHeaders = headerKeys.map(k => `${k}:${headers[Object.keys(headers).find(hk => hk.toLowerCase() === k)]}`).join('\n') + '\n';
+    const signedHeaders = headerKeys.join(';');
+    
+    // For file uploads, we need the hash of the body
+    const crypto = await import('crypto');
+    const payloadHash = crypto.createHash('sha256').update(body).digest('hex');
+    
+    const canonicalRequest = [method, canonicalUri, canonicalQueryString, canonicalHeaders, signedHeaders, payloadHash].join('\n');
+    
+    // Create string to sign
+    const algorithm = 'AWS4-HMAC-SHA256';
+    const credentialScope = `${date}/${region}/s3/aws4_request`;
+    const stringToSign = [algorithm, timestamp, credentialScope, crypto.createHash('sha256').update(canonicalRequest, 'utf8').digest('hex')].join('\n');
+    
+    // Calculate signature
+    const kDate = crypto.createHmac('sha256', `AWS4${secretAccessKey}`).update(date).digest();
+    const kRegion = crypto.createHmac('sha256', kDate).update(region).digest();
+    const kService = crypto.createHmac('sha256', kRegion).update('s3').digest();
+    const kSigning = crypto.createHmac('sha256', kService).update('aws4_request').digest();
+    const signature = crypto.createHmac('sha256', kSigning).update(stringToSign, 'utf8').digest('hex');
+    
+    // Add authorization header
+    headers['Authorization'] = `${algorithm} Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+    
+    // Make HTTP request
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`S3 upload failed: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+    
+    console.log('✅ Manual S3 upload successful:', key);
+    return { success: true };
+    
+  } catch (error) {
+    console.error('❌ Manual S3 upload failed:', error.message);
+    throw error;
+  }
+}
+
 // Upload file to S3
 export const uploadToS3 = async (req, res) => {
   try {
@@ -463,13 +575,16 @@ export const uploadToS3 = async (req, res) => {
         // Use the appropriate thumbnail key (image or PDF)
         const finalThumbnailS3Key = thumbnailS3Key || pdfThumbnailS3Key;
         
-        // Upload main file to S3/OCI
-        const uploadCommand = new PutObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: s3Key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          Metadata: {
+        // Upload main file to S3 using manual HTTP request (same approach as image serving)
+        console.log('🔄 [DEBUG] Starting manual S3 upload for:', s3Key);
+        
+        // Use manual HTTP upload instead of AWS SDK to avoid credential validation issues
+        const s3Result = await uploadToS3Manual({
+          bucket: BUCKET_NAME,
+          key: s3Key,
+          body: file.buffer,
+          contentType: file.mimetype,
+          metadata: {
             originalName: file.originalname,
             uploadedBy: userId.toString(),
             uploadedAt: new Date().toISOString(),
@@ -477,7 +592,7 @@ export const uploadToS3 = async (req, res) => {
           }
         });
         
-        const s3Result = await s3.send(uploadCommand);
+        console.log('✅ [DEBUG] Manual S3 upload completed for:', s3Key);
         // For private buckets, we don't store a public URL - we'll generate signed URLs on demand
         const privateUrl = 'PRIVATE_BUCKET'; // Placeholder for private bucket - use signed URLs instead
         
