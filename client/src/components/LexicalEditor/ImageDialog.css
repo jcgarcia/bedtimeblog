@@ -93,7 +93,7 @@
   flex: 1;
   padding: 20px 24px;
   overflow-y: auto;
-  min-height: 400px;
+  max-height: calc(90vh - 200px);
 }
 
 /* Media Library Tab */
