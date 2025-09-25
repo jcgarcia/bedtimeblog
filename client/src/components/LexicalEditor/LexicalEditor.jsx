@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { $getRoot, $getSelection, $createParagraphNode, $createTextNode } from 'lexical';
+import { $getRoot, $getSelection, $createParagraphNode, $createTextNode, $insertNodes } from 'lexical';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -23,10 +23,30 @@ import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { CodeNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
+import { ImageNode, $createImageNode } from './ImageNode';
+
+// Components
+import ImageDialog from './ImageDialog';
 
 // Toolbar Component
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+
+  const insertImage = (imageData) => {
+    editor.update(() => {
+      const imageNode = $createImageNode({
+        src: imageData.src,
+        altText: imageData.altText,
+        caption: imageData.caption,
+        showCaption: imageData.showCaption,
+        width: imageData.width,
+        height: imageData.height,
+        maxWidth: 500
+      });
+      $insertNodes([imageNode]);
+    });
+  };
 
   return (
     <div className="lexical-toolbar">
@@ -130,6 +150,23 @@ function ToolbarPlugin() {
       >
         <i className="fa-solid fa-quote-left"></i>
       </button>
+      
+      <div className="toolbar-divider"></div>
+      
+      <button
+        onClick={() => setIsImageDialogOpen(true)}
+        className="toolbar-item"
+        type="button"
+        title="Insert Image"
+      >
+        <i className="fa-solid fa-image"></i>
+      </button>
+      
+      <ImageDialog
+        isOpen={isImageDialogOpen}
+        onClose={() => setIsImageDialogOpen(false)}
+        onInsertImage={insertImage}
+      />
     </div>
   );
 }
@@ -277,6 +314,7 @@ export default function LexicalEditor({
       LinkNode,
       AutoLinkNode,
       CodeNode,
+      ImageNode,
     ],
     onError: (error) => {
       console.error('Lexical error:', error);

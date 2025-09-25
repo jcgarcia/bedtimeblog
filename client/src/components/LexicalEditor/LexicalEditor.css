@@ -248,6 +248,11 @@
   text-align: center;
 }
 
+/* Image toolbar button */
+.toolbar-item i.fa-image {
+  color: #0066cc;
+}
+
 /* Code Highlight Tokens */
 .lexical-token-comment {
   color: #6a9955;
