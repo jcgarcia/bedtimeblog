@@ -40,10 +40,10 @@ const ImageDialog = ({ isOpen, onClose, onInsertImage }) => {
       
       if (foldersResponse.ok) {
         const foldersData = await foldersResponse.json();
+        console.log('📁 Folders API response:', foldersData);
         if (foldersData.success && foldersData.folders) {
-          foldersToSearch = foldersData.folders.map(folder => 
-            typeof folder === 'string' ? folder : (folder.path || folder.folder_path || folder.name || '/')
-          );
+          foldersToSearch = foldersData.folders.map(folder => folder.path);
+          console.log('📁 Folders to search:', foldersToSearch);
         }
       }
       
