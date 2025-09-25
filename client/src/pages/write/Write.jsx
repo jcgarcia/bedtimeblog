@@ -227,11 +227,15 @@ export default function Write() {
       const postData = {
         title: formData.title,
         desc: formData.content, // API expects 'desc' field
-        img: formData.featuredImage,
         cat: formData.category,
         excerpt: formData.excerpt,
         status: formData.status
       };
+
+      // Only include image if it's not a signed URL (to avoid database length issues)
+      if (formData.featuredImage && !formData.featuredImage.includes('X-Amz-Algorithm')) {
+        postData.img = formData.featuredImage;
+      }
       
       if (isEditing) {
         const response = await postsAPI.updatePost(postId, postData);
