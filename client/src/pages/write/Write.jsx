@@ -3,9 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/UserContext";
 import { useAdmin } from "../../contexts/AdminContext";
 import { postsAPI, categoriesAPI, uploadAPI } from "../../services/postsAPI";
-import LexicalEditor from "../../components/LexicalEditor/LexicalEditor";
+import SimpleRichTextEditor from "../../components/SimpleRichTextEditor/SimpleRichTextEditor";
 import MediaSelector from "../../components/MediaSelector";
-import "../../components/LexicalEditor/LexicalEditor.css";
 import "./write.css";
 import PostImg from '../../media/NewPost.jpg';
 
@@ -427,20 +426,10 @@ export default function Write() {
         </div>
         
         <div className="writeFormGroup writeFormGroupFull">
-          <textarea
-            name="content"
-            placeholder="Start writing your story... (Markdown supported)"
-            className="writeInput writeText"
+          <SimpleRichTextEditor
             value={formData.content}
-            onChange={handleInputChange}
-            rows="25"
-            style={{
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              lineHeight: '1.5',
-              resize: 'vertical',
-              minHeight: '400px'
-            }}
+            onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+            placeholder="Start writing your story..."
           />
         </div>
         
