@@ -214,7 +214,7 @@ export default function Write() {
       return;
     }
     
-    if (!formData.content.trim()) {
+    if (!formData.content || (typeof formData.content === 'string' && !formData.content.trim())) {
       setError('Content is required');
       return;
     }
