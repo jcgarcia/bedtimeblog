@@ -320,13 +320,21 @@ export const uploadToS3 = async (req, res) => {
         // Use OIDC credentials for AWS
         try {
           const credentials = await credentialManager.getCredentials();
+          console.log('🔧 [DEBUG] Credentials type:', typeof credentials);
+          console.log('🔧 [DEBUG] Credentials keys:', Object.keys(credentials || {}));
+          
+          // Ensure credentials are in the right format
+          const credentialObject = {
+            accessKeyId: credentials.accessKeyId || credentials.AccessKeyId,
+            secretAccessKey: credentials.secretAccessKey || credentials.SecretAccessKey,
+            sessionToken: credentials.sessionToken || credentials.SessionToken
+          };
+          
+          console.log('🔧 [DEBUG] Final credential object keys:', Object.keys(credentialObject));
+          
           s3 = new S3Client({
             region: settings.aws_config.region || 'eu-west-2',
-            credentials: {
-              accessKeyId: credentials.accessKeyId,
-              secretAccessKey: credentials.secretAccessKey,
-              sessionToken: credentials.sessionToken
-            },
+            credentials: credentialObject,
             forcePathStyle: true,
             endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
             disableS3ExpressSessionAuth: true,
