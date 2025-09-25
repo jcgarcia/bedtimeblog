@@ -184,10 +184,21 @@ function UpdateContentPlugin({ onChange }) {
             const root = $getRoot();
             const children = root.getChildren();
             
-            // For now, always export as text to prevent data corruption
-            // TODO: Implement proper JSON handling after fixing the backend
-            const textContent = root.getTextContent();
-            onChange(textContent || '');
+            // Check if we have images specifically
+            const hasImages = children.some(child => {
+              if (child.getType() === 'image') return true;
+              return child.getChildren().some(grandchild => grandchild.getType() === 'image');
+            });
+            
+            if (hasImages) {
+              // Export as JSON to preserve images
+              const serializedState = JSON.stringify(editorState.toJSON());
+              onChange(serializedState);
+            } else {
+              // Export as text for simple content
+              const textContent = root.getTextContent();
+              onChange(textContent || '');
+            }
           } catch (error) {
             console.error('Error getting editor content:', error);
             // Fallback to text content
@@ -358,20 +369,14 @@ export default function LexicalEditor({
             placeholder={
               <div className="lexical-placeholder">{placeholder}</div>
             }
-            ErrorBoundary={({ children, error }) => {
-              console.error('Lexical Editor Error:', error);
-              return (
-                <div style={{ color: 'red', padding: '10px' }}>
-                  Editor error occurred. Please refresh the page.
-                  {children}
-                </div>
-              );
+            ErrorBoundary={() => {
+              console.log('Editor boundary triggered - using fallback');
+              return <div className="lexical-fallback">Loading editor...</div>;
             }}
           />
           <HistoryPlugin />
           <ListPlugin />
           <LinkPlugin />
-          <OnChangePlugin onChange={onChange} />
           <UpdateContentPlugin onChange={onChange} />
           <SetInitialContentPlugin content={safeValue} />
         </div>

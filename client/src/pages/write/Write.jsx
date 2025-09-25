@@ -427,13 +427,10 @@ export default function Write() {
         </div>
         
         <div className="writeFormGroup writeFormGroupFull">
-          <textarea
-            name="content"
-            placeholder="Start writing your story..."
-            className="writeInput writeText"
+          <LexicalEditor
             value={formData.content}
-            onChange={handleInputChange}
-            rows="20"
+            onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+            placeholder="Start writing your story..."
           />
         </div>
         
