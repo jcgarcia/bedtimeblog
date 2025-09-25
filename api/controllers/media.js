@@ -489,21 +489,19 @@ export const uploadToS3 = async (req, res) => {
           if (thumbnail) {
             thumbnailS3Key = s3Key.replace(/(\.[^.]+)$/, '_thumb.jpg');
             
-            // Upload thumbnail to S3
-            const thumbnailUploadCommand = new PutObjectCommand({
-              Bucket: BUCKET_NAME,
-              Key: thumbnailS3Key,
-              Body: thumbnail,
-              ContentType: 'image/jpeg',
-              Metadata: {
+            // Upload thumbnail to S3 using manual upload
+            await uploadToS3Manual({
+              bucket: BUCKET_NAME,
+              key: thumbnailS3Key,
+              body: thumbnail,
+              contentType: 'image/jpeg',
+              metadata: {
                 originalName: file.originalname + '_thumbnail',
                 uploadedBy: userId.toString(),
                 uploadedAt: new Date().toISOString(),
                 thumbnailFor: s3Key
               }
             });
-            
-            await s3.send(thumbnailUploadCommand);
             console.log(`✅ Thumbnail uploaded: ${thumbnailS3Key}`);
           }
         }
@@ -532,13 +530,13 @@ export const uploadToS3 = async (req, res) => {
               // Generate S3 key for thumbnail
               pdfThumbnailS3Key = s3Key.replace(/(\.[^.]+)$/, '_thumb.png');
               
-              // Upload thumbnail to S3
-              const pdfThumbnailUploadCommand = new PutObjectCommand({
-                Bucket: BUCKET_NAME,
-                Key: pdfThumbnailS3Key,
-                Body: thumbnailBuffer,
-                ContentType: 'image/png',
-                Metadata: {
+              // Upload thumbnail to S3 using manual upload
+              await uploadToS3Manual({
+                bucket: BUCKET_NAME,
+                key: pdfThumbnailS3Key,
+                body: thumbnailBuffer,
+                contentType: 'image/png',
+                metadata: {
                   originalName: file.originalname + '_pdf_thumbnail',
                   uploadedBy: userId.toString(),
                   uploadedAt: new Date().toISOString(),
@@ -546,8 +544,6 @@ export const uploadToS3 = async (req, res) => {
                   generatedFrom: 'pdf'
                 }
               });
-              
-              await s3.send(pdfThumbnailUploadCommand);
               console.log(`✅ PDF thumbnail uploaded: ${pdfThumbnailS3Key}`);
               
               // Store the relative path for database
