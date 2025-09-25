@@ -314,6 +314,9 @@ async function uploadToS3Manual({ bucket, key, body, contentType, metadata = {} 
     const crypto = await import('crypto');
     const payloadHash = crypto.createHash('sha256').update(body).digest('hex');
     
+    // Add required content hash header
+    headers['x-amz-content-sha256'] = payloadHash;
+    
     const canonicalRequest = [method, canonicalUri, canonicalQueryString, canonicalHeaders, signedHeaders, payloadHash].join('\n');
     
     // Create string to sign
