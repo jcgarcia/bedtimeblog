@@ -184,22 +184,10 @@ function UpdateContentPlugin({ onChange }) {
             const root = $getRoot();
             const children = root.getChildren();
             
-            // Check if we have rich content (images, formatted text, etc.)
-            const hasRichContent = children.some(child => {
-              return child.getType() !== 'paragraph' || 
-                     child.getChildren().some(grandchild => grandchild.getType() !== 'text') ||
-                     child.getTextContent() !== child.getTextContent().trim(); // has formatting
-            });
-            
-            if (hasRichContent) {
-              // Export as JSON to preserve rich content
-              const serializedState = JSON.stringify(editorState.toJSON());
-              onChange(serializedState);
-            } else {
-              // Simple text content, export as plain text
-              const textContent = root.getTextContent();
-              onChange(textContent || '');
-            }
+            // For now, always export as text to prevent data corruption
+            // TODO: Implement proper JSON handling after fixing the backend
+            const textContent = root.getTextContent();
+            onChange(textContent || '');
           } catch (error) {
             console.error('Error getting editor content:', error);
             // Fallback to text content
@@ -234,19 +222,21 @@ function SetInitialContentPlugin({ content }) {
         const root = $getRoot();
         root.clear();
         
-        // Try to parse as JSON first (for rich content with images)
-        try {
-          const parsedContent = JSON.parse(content);
-          if (parsedContent.root && parsedContent.root.children) {
-            // Import the JSON state
-            const editorState = editor.parseEditorState(parsedContent);
-            editor.setEditorState(editorState);
-            console.log('JSON content loaded successfully');
-            setInitialContentSet(true);
-            return;
+        // Try to parse as JSON first (only if it looks like JSON)
+        if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
+          try {
+            const parsedContent = JSON.parse(content);
+            if (parsedContent.root && parsedContent.root.children) {
+              // Import the JSON state
+              const editorState = editor.parseEditorState(parsedContent);
+              editor.setEditorState(editorState);
+              console.log('JSON content loaded successfully');
+              setInitialContentSet(true);
+              return;
+            }
+          } catch (jsonError) {
+            console.log('Failed to parse JSON content, treating as text:', jsonError.message);
           }
-        } catch (jsonError) {
-          console.log('Content is not JSON, treating as markdown/text');
         }
         
         // Fallback: treat as plain text/markdown
