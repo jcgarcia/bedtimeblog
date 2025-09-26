@@ -1,328 +1,150 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { $convertFromMarkdownString, $convertToMarkdownString } from '@lexical/markdown';
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { ListPlugin } from '@lexical/react/LexicalListPlugin';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { TRANSFORMERS } from '@lexical/markdown';
-
-import {
-  $createParagraphNode,
-  $createTextNode,
-  $getSelection,
-  $isRangeSelection,
-  FORMAT_TEXT_COMMAND,
-  SELECTION_CHANGE_COMMAND,
-  $getRoot
-} from 'lexical';
-
-import {
-  $createHeadingNode,
-  $isHeadingNode,
-  HeadingNode
-} from '@lexical/rich-text';
-
-import {
-  $createListItemNode,
-  $createListNode,
-  $isListNode,
-  ListItemNode,
-  ListNode
-} from '@lexical/list';
+import React, { useState, useMemo, useRef } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 import MediaSelector from '../MediaSelector';
 import './RichTextEditor.css';
 
-// Custom plugin to handle markdown conversion
-function MarkdownConverterPlugin({ value, onChange }) {
-  const [editor] = useLexicalComposerContext();
+// Convert HTML to Markdown (basic conversion)
+const htmlToMarkdown = (html) => {
+  if (!html) return '';
   
-  useEffect(() => {
-    if (value && typeof value === 'string') {
-      editor.update(() => {
-        try {
-          $convertFromMarkdownString(value, TRANSFORMERS);
-        } catch (error) {
-          console.error('Error converting from markdown:', error);
-          // Fallback: create simple text node
-          const root = $getRoot();
-          root.clear();
-          const paragraph = $createParagraphNode();
-          paragraph.append($createTextNode(value));
-          root.append(paragraph);
-        }
-      });
-    }
-  }, [value, editor]);
+  // Remove HTML tags and convert basic formatting
+  let markdown = html
+    // Convert headings
+    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
+    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
+    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
+    // Convert bold and italic
+    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
+    .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
+    .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
+    .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
+    // Convert lists
+    .replace(/<ul[^>]*>/gi, '')
+    .replace(/<\/ul>/gi, '\n')
+    .replace(/<ol[^>]*>/gi, '')
+    .replace(/<\/ol>/gi, '\n')
+    .replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n')
+    // Convert images
+    .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)')
+    .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![Image]($1)')
+    // Convert paragraphs
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+    // Convert line breaks
+    .replace(/<br[^>]*>/gi, '\n')
+    // Remove remaining HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Clean up extra whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 
-  useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      editorState.read(() => {
-        try {
-          const markdownString = $convertToMarkdownString(TRANSFORMERS);
-          onChange(markdownString);
-        } catch (error) {
-          console.error('Error converting to markdown:', error);
-          // Fallback: get plain text
-          const root = $getRoot();
-          const textContent = root.getTextContent();
-          onChange(textContent);
-        }
-      });
-    });
-  }, [editor, onChange]);
-
-  return null;
-}
-
-// Toolbar component
-function Toolbar() {
-  const [editor] = useLexicalComposerContext();
-  const [isBold, setIsBold] = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
-  const [showMediaSelector, setShowMediaSelector] = useState(false);
-
-  const updateToolbar = useCallback(() => {
-    const selection = $getSelection();
-    if ($isRangeSelection(selection)) {
-      setIsBold(selection.hasFormat('bold'));
-      setIsItalic(selection.hasFormat('italic'));
-    }
-  }, []);
-
-  useEffect(() => {
-    return editor.registerCommand(
-      SELECTION_CHANGE_COMMAND,
-      () => {
-        updateToolbar();
-        return false;
-      },
-      1
-    );
-  }, [editor, updateToolbar]);
-
-  const formatText = (format) => {
-    editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
-  };
-
-  const insertHeading = () => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        const headingNode = $createHeadingNode('h2');
-        selection.insertNodes([headingNode]);
-      }
-    });
-  };
-
-  const insertList = () => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        const listNode = $createListNode('bullet');
-        const listItemNode = $createListItemNode();
-        listItemNode.append($createTextNode('List item'));
-        listNode.append(listItemNode);
-        selection.insertNodes([listNode]);
-      }
-    });
-  };
-
-  const insertImage = (imageUrl) => {
-    try {
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          // Create the image markdown text
-          const imageMarkdown = `![Image](${imageUrl})`;
-          
-          // Insert as plain text - this is safer than trying to insert nodes
-          selection.insertText(imageMarkdown);
-          
-          // Add some space after the image
-          selection.insertText('\n\n');
-        }
-      });
-      console.log('Image inserted successfully:', imageUrl);
-    } catch (error) {
-      console.error('Error inserting image:', error);
-      // Don't crash the editor - just log the error
-      alert('Failed to insert image. Please try again or insert manually: ![Image](' + imageUrl + ')');
-    } finally {
-      setShowMediaSelector(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="toolbar">
-        <button
-          type="button"
-          className={`toolbar-btn ${isBold ? 'active' : ''}`}
-          onClick={() => formatText('bold')}
-          title="Bold"
-        >
-          <strong>B</strong>
-        </button>
-        <button
-          type="button"
-          className={`toolbar-btn ${isItalic ? 'active' : ''}`}
-          onClick={() => formatText('italic')}
-          title="Italic"
-        >
-          <em>I</em>
-        </button>
-        <div className="toolbar-separator"></div>
-        <button
-          type="button"
-          className="toolbar-btn"
-          onClick={insertHeading}
-          title="Heading"
-        >
-          H2
-        </button>
-        <button
-          type="button"
-          className="toolbar-btn"
-          onClick={insertList}
-          title="Bullet List"
-        >
-          •List
-        </button>
-        <div className="toolbar-separator"></div>
-        <button
-          type="button"
-          className="toolbar-btn image-btn"
-          onClick={() => setShowMediaSelector(true)}
-          title="Insert Image"
-        >
-          🖼️ Image
-        </button>
-      </div>
-      
-      {showMediaSelector && (
-        <MediaSelector
-          onSelect={insertImage}
-          onClose={() => setShowMediaSelector(false)}
-        />
-      )}
-    </>
-  );
-}
-
-// Error fallback component
-function ErrorFallback({ error, resetErrorBoundary }) {
-  return (
-    <div className="editor-error">
-      <h3>Editor Error</h3>
-      <p>The rich text editor encountered an error. You can:</p>
-      <button onClick={resetErrorBoundary}>Try Again</button>
-      <details style={{ marginTop: '10px' }}>
-        <summary>Error Details</summary>
-        <pre style={{ color: 'red', fontSize: '12px' }}>
-          {error.message}
-        </pre>
-      </details>
-    </div>
-  );
-}
-
-// Main editor configuration
-const editorConfig = {
-  namespace: 'RichTextEditor',
-  nodes: [
-    HeadingNode,
-    ListNode,
-    ListItemNode
-  ],
-  onError: (error) => {
-    console.error('Lexical Editor Error:', error);
-  },
-  theme: {
-    root: 'editor-root',
-    paragraph: 'editor-paragraph',
-    text: {
-      bold: 'editor-text-bold',
-      italic: 'editor-text-italic',
-    },
-    heading: {
-      h1: 'editor-heading-h1',
-      h2: 'editor-heading-h2',
-      h3: 'editor-heading-h3',
-    },
-    list: {
-      nested: {
-        listitem: 'editor-nested-listitem',
-      },
-      ol: 'editor-list-ol',
-      ul: 'editor-list-ul',
-      listitem: 'editor-listitem',
-    }
-  }
+  return markdown;
 };
 
-// Main component
-export default function RichTextEditor({ value, onChange, placeholder }) {
-  const [hasError, setHasError] = useState(false);
+// Convert Markdown to HTML (basic conversion)
+const markdownToHtml = (markdown) => {
+  if (!markdown) return '';
+  
+  let html = markdown
+    // Convert headings
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+    // Convert bold and italic
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Convert images
+    .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" />')
+    // Convert line breaks to paragraphs
+    .split('\n\n')
+    .map(paragraph => paragraph.trim() ? `<p>${paragraph.replace(/\n/g, '<br>')}</p>` : '')
+    .join('');
 
-  const handleError = useCallback((error) => {
-    console.error('Rich Text Editor Error:', error);
-    setHasError(true);
-  }, []);
+  return html;
+};
 
-  const resetError = useCallback(() => {
-    setHasError(false);
-  }, []);
+export default function RichTextEditor({ value, onChange, placeholder = "Write your post..." }) {
+  const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const quillRef = useRef(null);
+  
+  // Convert markdown value to HTML for Quill
+  const htmlValue = useMemo(() => markdownToHtml(value || ''), [value]);
 
-  // Fallback to simple textarea if there's an error
-  if (hasError) {
-    return (
-      <div className="rich-text-editor">
-        <div className="editor-error">
-          <p>Rich text editor is temporarily unavailable. Using simple text editor:</p>
-          <button onClick={resetError} className="retry-btn">
-            Try Rich Editor Again
-          </button>
-        </div>
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="fallback-textarea"
-          rows="20"
-        />
-      </div>
-    );
-  }
+  // Custom toolbar configuration
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['blockquote'],
+        ['image', 'link'],
+        ['clean']
+      ],
+      handlers: {
+        image: () => {
+          setShowMediaSelector(true);
+        }
+      }
+    }
+  }), []);
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline',
+    'list', 'bullet',
+    'blockquote',
+    'image', 'link'
+  ];
+
+  const handleChange = (html) => {
+    // Convert HTML back to markdown
+    const markdown = htmlToMarkdown(html);
+    onChange(markdown);
+  };
+
+  const handleImageInsert = (imageUrl) => {
+    const quill = quillRef.current?.getEditor();
+    if (quill) {
+      const range = quill.getSelection();
+      const index = range ? range.index : quill.getLength();
+      
+      // Insert image at cursor position
+      quill.insertEmbed(index, 'image', imageUrl);
+      
+      // Move cursor after the image
+      quill.setSelection(index + 1);
+      
+      // Trigger change to update markdown
+      const html = quill.root.innerHTML;
+      handleChange(html);
+    }
+    setShowMediaSelector(false);
+  };
 
   return (
     <div className="rich-text-editor">
-      <LexicalComposer initialConfig={editorConfig}>
-        <Toolbar />
-        <div className="editor-container">
-          <RichTextPlugin
-            contentEditable={
-              <ContentEditable
-                className="editor-content"
-                placeholder={<div className="editor-placeholder">{placeholder}</div>}
-              />
-            }
-            ErrorBoundary={({ children, onError }) => (
-              <LexicalErrorBoundary onError={handleError}>
-                {children}
-              </LexicalErrorBoundary>
-            )}
-          />
-          <HistoryPlugin />
-          <AutoFocusPlugin />
-          <ListPlugin />
-          <MarkdownConverterPlugin value={value} onChange={onChange} />
-        </div>
-      </LexicalComposer>
+      <ReactQuill
+        ref={quillRef}
+        theme="snow"
+        value={htmlValue}
+        onChange={handleChange}
+        modules={modules}
+        formats={formats}
+        placeholder={placeholder}
+        style={{
+          height: '400px',
+          marginBottom: '50px'
+        }}
+      />
+      
+      {showMediaSelector && (
+        <MediaSelector
+          onSelect={handleImageInsert}
+          onClose={() => setShowMediaSelector(false)}
+        />
+      )}
     </div>
   );
 }
