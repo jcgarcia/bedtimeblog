@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useUser } from "../../contexts/UserContext";
 import { useAdmin } from "../../contexts/AdminContext";
 import { postsAPI, categoriesAPI, uploadAPI } from "../../services/postsAPI";
-import SimpleRichTextEditor from "../../components/SimpleRichTextEditor/SimpleRichTextEditor";
+import RichTextEditor from "../../components/RichTextEditor/RichTextEditor";
 import MediaSelector from "../../components/MediaSelector";
 import "./write.css";
 import PostImg from '../../media/NewPost.jpg';
@@ -426,7 +426,7 @@ export default function Write() {
         </div>
         
         <div className="writeFormGroup writeFormGroupFull">
-          <SimpleRichTextEditor
+          <RichTextEditor
             value={formData.content}
             onChange={(content) => setFormData(prev => ({ ...prev, content }))}
             placeholder="Start writing your story..."

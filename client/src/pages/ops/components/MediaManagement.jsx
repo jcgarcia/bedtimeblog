@@ -1392,11 +1392,7 @@ export default function MediaManagement() {
                         ) : cloudConfig.aws.authMethod === 'sso' ? (
                           <>
                             • Auth Method: <span style={{color: 'blue'}}>AWS SSO (Identity Center) 🔐</span><br/>
-
-                              <>
-                                • Manual Credentials: <span style={{color: 'red'}}>MISSING ❌</span>
-                              </>
-                            )}
+                            • Manual Credentials: <span style={{color: 'red'}}>MISSING ❌</span>
                           </>
                         ) : (
                           <>
