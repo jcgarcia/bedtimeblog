@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAdmin } from '../../contexts/AdminContext';
 import { staticPagesAPI } from '../../config/apiService';
-import LexicalEditor from '../../components/LexicalEditor/LexicalEditor';
-import '../../components/LexicalEditor/LexicalEditor.css';
+import RichTextEditor from '../../components/RichTextEditor/RichTextEditor';
 import './editPage.css';
 
 export default function EditPage() {
@@ -283,7 +282,7 @@ export default function EditPage() {
 
           <div className="form-group form-group-full">
             <label htmlFor="content">Page Content *</label>
-            <LexicalEditor
+            <RichTextEditor
               value={formData.content}
               onChange={(content) => setFormData(prev => ({ ...prev, content }))}
               placeholder="Start writing your page content..."
