@@ -377,7 +377,10 @@ export const addPost = async (req, res) => {
     return res.json({ message: "Post has been created.", post: result.rows[0] });
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
-      return res.status(403).json("Token is not valid!");
+      return res.status(401).json("Token is not valid!");
+    }
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json("Token has expired!");
     }
     console.error('Database error in addPost:', err);
     return res.status(500).json({ error: 'Failed to create post' });
@@ -420,7 +423,10 @@ export const deletePost = async (req, res) => {
     return res.json("Post has been deleted!");
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
-      return res.status(403).json("Token is not valid!");
+      return res.status(401).json("Token is not valid!");
+    }
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json("Token has expired!");
     }
     console.error('Database error in deletePost:', err);
     return res.status(403).json("You can delete only your post!");
@@ -546,7 +552,10 @@ export const updatePost = async (req, res) => {
     console.error('❌ [DEBUG] updatePost error:', err.message);
     console.error('❌ [DEBUG] Error stack:', err.stack);
     if (err.name === 'JsonWebTokenError') {
-      return res.status(403).json("Token is not valid!");
+      return res.status(401).json("Token is not valid!");
+    }
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json("Token has expired!");
     }
     console.error('Database error in updatePost:', err);
     return res.status(500).json({ error: 'Failed to update post', details: err.message });

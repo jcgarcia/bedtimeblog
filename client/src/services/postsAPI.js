@@ -39,6 +39,15 @@ api.interceptors.response.use(
       // Clear auth tokens on unauthorized
       localStorage.removeItem('userToken');
       localStorage.removeItem('adminToken');
+      
+      // Show user-friendly message and redirect to login
+      console.warn('Session expired. Please log in again.');
+      
+      // Only redirect if we're not already on the login page
+      if (!window.location.pathname.includes('login')) {
+        alert('Your session has expired. Please log in again.');
+        window.location.href = '/userlogin';
+      }
     }
     return Promise.reject(error);
   }
