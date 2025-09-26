@@ -68,14 +68,9 @@ function MarkdownConverterPlugin({ value, onChange }) {
         } catch (error) {
           console.error('Error converting to markdown:', error);
           // Fallback: get plain text
-          try {
-            const root = $getRoot();
-            const textContent = root.getTextContent();
-            onChange(textContent);
-          } catch (fallbackError) {
-            console.error('Fallback text extraction failed:', fallbackError);
-            onChange(''); // Ultimate fallback
-          }
+          const root = $getRoot();
+          const textContent = root.getTextContent();
+          onChange(textContent);
         }
       });
     });
@@ -92,14 +87,10 @@ function Toolbar() {
   const [showMediaSelector, setShowMediaSelector] = useState(false);
 
   const updateToolbar = useCallback(() => {
-    try {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        setIsBold(selection.hasFormat('bold'));
-        setIsItalic(selection.hasFormat('italic'));
-      }
-    } catch (error) {
-      console.error('Error updating toolbar:', error);
+    const selection = $getSelection();
+    if ($isRangeSelection(selection)) {
+      setIsBold(selection.hasFormat('bold'));
+      setIsItalic(selection.hasFormat('italic'));
     }
   }, []);
 
@@ -115,91 +106,52 @@ function Toolbar() {
   }, [editor, updateToolbar]);
 
   const formatText = (format) => {
-    try {
-      editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
-    } catch (error) {
-      console.error(`Error formatting text with ${format}:`, error);
-    }
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
   };
 
   const insertHeading = () => {
-    try {
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          const headingNode = $createHeadingNode('h2');
-          selection.insertNodes([headingNode]);
-        }
-      });
-    } catch (error) {
-      console.error('Error inserting heading:', error);
-    }
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const headingNode = $createHeadingNode('h2');
+        selection.insertNodes([headingNode]);
+      }
+    });
   };
 
   const insertList = () => {
-    try {
-      editor.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          const listNode = $createListNode('bullet');
-          const listItemNode = $createListItemNode();
-          listItemNode.append($createTextNode('List item'));
-          listNode.append(listItemNode);
-          selection.insertNodes([listNode]);
-        }
-      });
-    } catch (error) {
-      console.error('Error inserting list:', error);
-    }
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const listNode = $createListNode('bullet');
+        const listItemNode = $createListItemNode();
+        listItemNode.append($createTextNode('List item'));
+        listNode.append(listItemNode);
+        selection.insertNodes([listNode]);
+      }
+    });
   };
 
   const insertImage = (imageUrl) => {
-    console.log('Inserting image with URL:', imageUrl);
-    
     try {
       editor.update(() => {
         const selection = $getSelection();
-        console.log('Current selection:', selection);
-        
         if ($isRangeSelection(selection)) {
-          // Simple approach: just insert the markdown text directly
+          // Create the image markdown text
           const imageMarkdown = `![Image](${imageUrl})`;
-          console.log('Inserting markdown:', imageMarkdown);
           
-          // Use insertText instead of insertNodes to avoid node creation issues
+          // Insert as plain text - this is safer than trying to insert nodes
           selection.insertText(imageMarkdown);
           
-          // Add a line break after
+          // Add some space after the image
           selection.insertText('\n\n');
         }
       });
-      console.log('Image insertion completed successfully');
+      console.log('Image inserted successfully:', imageUrl);
     } catch (error) {
       console.error('Error inserting image:', error);
-      
-      // Ultimate fallback: update content directly through onChange
-      try {
-        const currentContent = editor.getEditorState().read(() => {
-          const root = $getRoot();
-          return root.getTextContent();
-        });
-        const imageMarkdown = `![Image](${imageUrl})`;
-        const newContent = currentContent + '\n\n' + imageMarkdown + '\n\n';
-        
-        // This will trigger the markdown converter
-        editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          const paragraph = $createParagraphNode();
-          paragraph.append($createTextNode(newContent));
-          root.append(paragraph);
-        });
-        
-        console.log('Fallback image insertion completed');
-      } catch (fallbackError) {
-        console.error('Fallback image insertion also failed:', fallbackError);
-        alert(`Failed to insert image. You can manually add: ![Image](${imageUrl})`);
-      }
+      // Don't crash the editor - just log the error
+      alert('Failed to insert image. Please try again or insert manually: ![Image](' + imageUrl + ')');
     } finally {
       setShowMediaSelector(false);
     }
