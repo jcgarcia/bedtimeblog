@@ -260,7 +260,16 @@ export default function Write() {
             navigate(`/post/${postId}`);
           }, 1500);
         } else {
-          setError(response.error || 'Failed to update post');
+          // Check for specific authentication errors
+          if (response.error && response.error.includes('expired')) {
+            setError('Your session has expired. Please log in again to continue editing.');
+            setTimeout(() => navigate('/userlogin'), 3000);
+          } else if (response.error && response.error.includes('unauthorized')) {
+            setError('Authentication failed. Please log in again to update this post.');
+            setTimeout(() => navigate('/userlogin'), 3000);
+          } else {
+            setError(response.error || 'Failed to update post. Please try again.');
+          }
         }
       } else {
         const response = await postsAPI.createPost(postData);
@@ -276,13 +285,35 @@ export default function Write() {
             status: 'draft'
           });
         } else {
-          setError(response.error || 'Failed to create post');
+          // Check for specific authentication errors
+          if (response.error && response.error.includes('expired')) {
+            setError('Your session has expired. Please log in again to create posts.');
+            setTimeout(() => navigate('/userlogin'), 3000);
+          } else if (response.error && response.error.includes('unauthorized')) {
+            setError('Authentication failed. Please log in again to create this post.');
+            setTimeout(() => navigate('/userlogin'), 3000);
+          } else {
+            setError(response.error || 'Failed to create post. Please try again.');
+          }
         }
       }
       
     } catch (err) {
       console.error('Error saving post:', err);
-      setError(err.response?.data?.message || 'Failed to save post. Please try again.');
+      
+      // Handle specific error cases
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again to continue.');
+        setTimeout(() => navigate('/userlogin'), 3000);
+      } else if (err.response?.status === 403) {
+        setError('You do not have permission to perform this action.');
+      } else if (err.response?.status === 500) {
+        setError('Server error occurred. Please try again in a few moments.');
+      } else if (err.message && err.message.includes('Network Error')) {
+        setError('Network connection failed. Please check your internet connection.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to save post. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

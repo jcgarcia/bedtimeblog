@@ -5,6 +5,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
   const [media, setMedia] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     fetchMedia();
@@ -88,11 +89,17 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     }
   };
 
-  const handleImageSelect = (image) => {
-    // Pass the S3 key instead of the full signed URL to avoid varchar limit
-    const s3Key = image.s3_key || image.file_path || image.signed_url;
-    onSelect(s3Key);
-    onClose();
+  const handleImageClick = (image) => {
+    setSelectedItem(image);
+  };
+
+  const handleInsert = () => {
+    if (selectedItem) {
+      // Pass the S3 key instead of the full signed URL to avoid varchar limit
+      const s3Key = selectedItem.s3_key || selectedItem.file_path || selectedItem.signed_url;
+      onSelect(s3Key);
+      onClose();
+    }
   };
 
   if (loading) {
@@ -139,8 +146,8 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
               {media.map((item, index) => (
                 <div 
                   key={index} 
-                  className="media-item"
-                  onClick={() => handleImageSelect(item)}
+                  className={`media-item ${selectedItem === item ? 'selected' : ''}`}
+                  onClick={() => handleImageClick(item)}
                 >
                   <img 
                     src={item.public_url} 
@@ -154,6 +161,11 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
                       {item.file_type && <span className="media-type">{item.file_type}</span>}
                     </div>
                   </div>
+                  {selectedItem === item && (
+                    <div className="selection-indicator">
+                      <span className="checkmark">✓</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -161,7 +173,23 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
         </div>
         
         <div className="media-selector-footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <div className="selection-info">
+            {selectedItem ? (
+              <span>Selected: {selectedItem.file_name}</span>
+            ) : (
+              <span>Click an image to select it</span>
+            )}
+          </div>
+          <div className="footer-buttons">
+            <button className="btn-secondary" onClick={onClose}>Cancel</button>
+            <button 
+              className="btn-primary" 
+              onClick={handleInsert}
+              disabled={!selectedItem}
+            >
+              Insert Image
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -88,6 +88,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   background: white;
+  position: relative;
 }
 
 .media-item:hover {
@@ -98,6 +99,22 @@
 .media-item.selected {
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.selection-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #007bff;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .media-thumbnail {
@@ -136,11 +153,21 @@
 
 .media-selector-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   padding: 20px;
   border-top: 1px solid #eee;
   background: #f8f9fa;
+}
+
+.selection-info {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 12px;
 }
 
 .btn-primary,
@@ -159,9 +186,16 @@
   border-color: #007bff;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: #0056b3;
   border-color: #0056b3;
+}
+
+.btn-primary:disabled {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-secondary {
