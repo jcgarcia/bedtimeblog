@@ -1,150 +1,251 @@
-import React, { useState, useMemo, useRef } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import React, { useState } from 'react';import React from 'react';
 
-import MediaSelector from '../MediaSelector';
+import { Editor } from '@tinymce/tinymce-react';import { Editor } from '@tinymce/tinymce-react';
+
+import MediaSelector from '../MediaSelector';import './RichTextEditor.css';
+
 import './RichTextEditor.css';
 
-// Convert HTML to Markdown (basic conversion)
-const htmlToMarkdown = (html) => {
-  if (!html) return '';
-  
-  // Remove HTML tags and convert basic formatting
-  let markdown = html
-    // Convert headings
-    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n')
-    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n')
-    .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n')
-    // Convert bold and italic
-    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
-    .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
-    .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
-    .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
-    // Convert lists
-    .replace(/<ul[^>]*>/gi, '')
-    .replace(/<\/ul>/gi, '\n')
-    .replace(/<ol[^>]*>/gi, '')
-    .replace(/<\/ol>/gi, '\n')
-    .replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n')
-    // Convert images
-    .replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)')
-    .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![Image]($1)')
-    // Convert paragraphs
-    .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
-    // Convert line breaks
-    .replace(/<br[^>]*>/gi, '\n')
-    // Remove remaining HTML tags
-    .replace(/<[^>]*>/g, '')
-    // Clean up extra whitespace
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+// Simple but functional rich text editor with markdown support
 
-  return markdown;
-};
+export default function RichTextEditor({ value, onChange, placeholder = "Write your post..." }) {export default function RichTextEditor({ value, onChange, placeholder = "Write your post..." }) {
 
-// Convert Markdown to HTML (basic conversion)
-const markdownToHtml = (markdown) => {
-  if (!markdown) return '';
-  
-  let html = markdown
-    // Convert headings
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    // Convert bold and italic
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // Convert images
-    .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" />')
-    // Convert line breaks to paragraphs
-    .split('\n\n')
-    .map(paragraph => paragraph.trim() ? `<p>${paragraph.replace(/\n/g, '<br>')}</p>` : '')
-    .join('');
+  const [showMediaSelector, setShowMediaSelector] = useState(false);  const [showMediaSelector, setShowMediaSelector] = useState(false);
 
-  return html;
-};
+  const [editorRef, setEditorRef] = useState(null);  const textareaRef = useRef(null);
 
-export default function RichTextEditor({ value, onChange, placeholder = "Write your post..." }) {
-  const [showMediaSelector, setShowMediaSelector] = useState(false);
-  const quillRef = useRef(null);
-  
-  // Convert markdown value to HTML for Quill
-  const htmlValue = useMemo(() => markdownToHtml(value || ''), [value]);
 
-  // Custom toolbar configuration
-  const modules = useMemo(() => ({
-    toolbar: {
-      container: [
-        [{ 'header': [1, 2, 3, false] }],
-        ['bold', 'italic', 'underline'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        ['blockquote'],
-        ['image', 'link'],
-        ['clean']
-      ],
-      handlers: {
-        image: () => {
-          setShowMediaSelector(true);
-        }
-      }
-    }
-  }), []);
 
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline',
-    'list', 'bullet',
-    'blockquote',
-    'image', 'link'
-  ];
+  const handleImageInsert = () => {  const insertAtCursor = (text) => {
 
-  const handleChange = (html) => {
-    // Convert HTML back to markdown
-    const markdown = htmlToMarkdown(html);
-    onChange(markdown);
+    setShowMediaSelector(true);    const textarea = textareaRef.current;
+
+  };    if (!textarea) return;
+
+
+
+  const insertImage = (imageUrl) => {    const start = textarea.selectionStart;
+
+    if (editorRef) {    const end = textarea.selectionEnd;
+
+      // Insert image into TinyMCE editor    const currentValue = value || '';
+
+      editorRef.insertContent(`<img src="${imageUrl}" alt="Image" style="max-width: 100%; height: auto;" />`);    
+
+    }    const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+
+    setShowMediaSelector(false);    onChange(newValue);
+
   };
 
-  const handleImageInsert = (imageUrl) => {
-    const quill = quillRef.current?.getEditor();
-    if (quill) {
-      const range = quill.getSelection();
-      const index = range ? range.index : quill.getLength();
-      
-      // Insert image at cursor position
-      quill.insertEmbed(index, 'image', imageUrl);
-      
-      // Move cursor after the image
-      quill.setSelection(index + 1);
-      
-      // Trigger change to update markdown
-      const html = quill.root.innerHTML;
-      handleChange(html);
-    }
+    // Restore cursor position after the inserted text
+
+  return (    setTimeout(() => {
+
+    <div className="rich-text-editor">      const newPosition = start + text.length;
+
+      <Editor      textarea.setSelectionRange(newPosition, newPosition);
+
+        apiKey="no-api-key" // Use TinyMCE without cloud - self-hosted      textarea.focus();
+
+        value={value || ''}    }, 0);
+
+        onEditorChange={(content) => onChange(content)}  };
+
+        onInit={(evt, editor) => setEditorRef(editor)}
+
+        init={{  const wrapSelection = (before, after = before) => {
+
+          height: 500,    const textarea = textareaRef.current;
+
+          menubar: false,    if (!textarea) return;
+
+          plugins: [
+
+            'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',    const start = textarea.selectionStart;
+
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',    const end = textarea.selectionEnd;
+
+            'insertdatetime', 'table', 'help', 'wordcount'    const currentValue = value || '';
+
+          ],    const selectedText = currentValue.substring(start, end);
+
+          toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | customimage | help',    
+
+          setup: (editor) => {    const newText = before + selectedText + after;
+
+            // Add custom image button that opens our MediaSelector    const newValue = currentValue.substring(0, start) + newText + currentValue.substring(end);
+
+            editor.ui.registry.addButton('customimage', {    onChange(newValue);
+
+              text: 'Insert Image',
+
+              icon: 'image',    // Restore selection after the formatting
+
+              onAction: handleImageInsert    setTimeout(() => {
+
+            });      const newStart = start + before.length;
+
+          },      const newEnd = newStart + selectedText.length;
+
+          content_style: `      textarea.setSelectionRange(newStart, newEnd);
+
+            body {       textarea.focus();
+
+              font-family: -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;     }, 0);
+
+              font-size: 14px;   };
+
+              line-height: 1.6; 
+
+              color: #333;  const formatBold = () => wrapSelection('**');
+
+            }  const formatItalic = () => wrapSelection('*');
+
+            img {  const formatHeading = () => {
+
+              max-width: 100%;    const textarea = textareaRef.current;
+
+              height: auto;    if (!textarea) return;
+
+            }    
+
+          `,    const start = textarea.selectionStart;
+
+          placeholder: placeholder,    const currentValue = value || '';
+
+          branding: false,    
+
+          promotion: false,    // Find start of current line
+
+          skin: 'oxide',    const lineStart = currentValue.lastIndexOf('\n', start - 1) + 1;
+
+          content_css: 'default',    const lineEnd = currentValue.indexOf('\n', start);
+
+          block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 3=h3; Heading 4=h4; Heading 5=h5; Heading 6=h6;',    const actualLineEnd = lineEnd === -1 ? currentValue.length : lineEnd;
+
+          formats: {    
+
+            bold: { inline: 'strong' },    const currentLine = currentValue.substring(lineStart, actualLineEnd);
+
+            italic: { inline: 'em' }    const newLine = currentLine.startsWith('## ') ? currentLine.substring(3) : '## ' + currentLine;
+
+          }    
+
+        }}    const newValue = currentValue.substring(0, lineStart) + newLine + currentValue.substring(actualLineEnd);
+
+      />    onChange(newValue);
+
+  };
+
+      {showMediaSelector && (
+
+        <MediaSelector  const formatList = () => {
+
+          onSelect={insertImage}    insertAtCursor('\n- ');
+
+          onClose={() => setShowMediaSelector(false)}  };
+
+        />
+
+      )}  const formatQuote = () => {
+
+    </div>    const textarea = textareaRef.current;
+
+  );    if (!textarea) return;
+
+}    
+    const start = textarea.selectionStart;
+    const currentValue = value || '';
+    
+    // Find start of current line
+    const lineStart = currentValue.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = currentValue.indexOf('\n', start);
+    const actualLineEnd = lineEnd === -1 ? currentValue.length : lineEnd;
+    
+    const currentLine = currentValue.substring(lineStart, actualLineEnd);
+    const newLine = currentLine.startsWith('> ') ? currentLine.substring(2) : '> ' + currentLine;
+    
+    const newValue = currentValue.substring(0, lineStart) + newLine + currentValue.substring(actualLineEnd);
+    onChange(newValue);
+  };
+
+  const insertImage = (imageUrl) => {
+    const imageMarkdown = `![Image](${imageUrl})`;
+    insertAtCursor(imageMarkdown);
     setShowMediaSelector(false);
   };
 
   return (
-    <div className="rich-text-editor">
-      <ReactQuill
-        ref={quillRef}
-        theme="snow"
-        value={htmlValue}
-        onChange={handleChange}
-        modules={modules}
-        formats={formats}
-        placeholder={placeholder}
-        style={{
-          height: '400px',
-          marginBottom: '50px'
-        }}
-      />
+    <>
+      <div className="editor-toolbar">
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={formatBold}
+          title="Bold"
+        >
+          <strong>B</strong>
+        </button>
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={formatItalic}
+          title="Italic"
+        >
+          <em>I</em>
+        </button>
+        <div className="toolbar-separator"></div>
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={formatHeading}
+          title="Heading"
+        >
+          H2
+        </button>
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={formatList}
+          title="List"
+        >
+          •
+        </button>
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={formatQuote}
+          title="Quote"
+        >
+          "
+        </button>
+        <div className="toolbar-separator"></div>
+        <button
+          type="button"
+          className="toolbar-btn"
+          onClick={() => setShowMediaSelector(true)}
+          title="Insert Image"
+        >
+          🖼️
+        </button>
+      </div>
       
+      <textarea
+        ref={textareaRef}
+        className="editor-textarea"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={20}
+      />
+
       {showMediaSelector && (
         <MediaSelector
-          onSelect={handleImageInsert}
+          onSelect={insertImage}
           onClose={() => setShowMediaSelector(false)}
         />
       )}
-    </div>
+    </>
   );
 }
