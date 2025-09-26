@@ -95,9 +95,20 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
 
   const handleInsert = () => {
     if (selectedItem) {
-      // Pass the S3 key instead of the full signed URL to avoid varchar limit
-      const s3Key = selectedItem.s3_key || selectedItem.file_path || selectedItem.signed_url;
-      onSelect(s3Key);
+      // Use the public_url if available, otherwise construct the serve URL from filename
+      let imageUrl;
+      
+      if (selectedItem.public_url && !selectedItem.public_url.includes('PRIVATE_BUCKET')) {
+        imageUrl = selectedItem.public_url;
+      } else if (selectedItem.file_name) {
+        // Use the media serving endpoint
+        imageUrl = `https://bapi.ingasti.com/api/media/serve/${selectedItem.file_name}`;
+      } else {
+        // Fallback to s3_key if we have it
+        imageUrl = selectedItem.s3_key || selectedItem.file_path;
+      }
+      
+      onSelect(imageUrl);
       onClose();
     }
   };
