@@ -70,6 +70,15 @@
   min-height: 400px;
   background: white;
   color: #333;
+  border: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+  border-top: none;
+}
+
+.editor-content:empty:before {
+  content: attr(data-placeholder);
+  color: #999;
+  pointer-events: none;
 }
 
 .editor-placeholder {
