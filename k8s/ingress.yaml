@@ -35,10 +35,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - blog.ingasti.com
+        - bedtime.ingasti.com
       secretName: blog-ingasti-tls
   rules:
-    - host: blog.ingasti.com
+    - host: bedtime.ingasti.com
       http:
         paths:
           - path: /

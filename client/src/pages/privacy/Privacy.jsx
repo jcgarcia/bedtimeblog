@@ -13,7 +13,7 @@ export default function Privacy() {
           <p>
             Welcome to Bedtime Blog ("we," "our," or "us"). This Privacy Policy explains how we collect, 
             use, disclose, and safeguard your information when you visit our website{' '}
-            <a href="https://blog.ingasti.com">blog.ingasti.com</a> and use our services.
+            <a href="https://bedtime.ingasti.com">bedtime.ingasti.com</a> and use our services.
           </p>
           <p>
             Please read this privacy policy carefully. If you do not agree with the terms of this 
@@ -176,7 +176,7 @@ export default function Privacy() {
           </p>
           <div className="contact-info">
             <p><strong>Email:</strong> privacy@ingasti.com</p>
-            <p><strong>Website:</strong> <a href="https://blog.ingasti.com/contact">Contact Form</a></p>
+            <p><strong>Website:</strong> <a href="https://bedtime.ingasti.com/contact">Contact Form</a></p>
             <p><strong>Address:</strong> [Your Business Address]</p>
           </div>
         </div>

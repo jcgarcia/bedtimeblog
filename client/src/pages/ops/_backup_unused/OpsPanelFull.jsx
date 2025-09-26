@@ -2414,7 +2414,7 @@ function OAuthSettings() {
             <li>Create a new project or select an existing one</li>
             <li>Enable <strong>APIs & Services {'>'} Credentials</strong></li>
             <li>Create OAuth 2.0 credentials</li>
-            <li>Add your redirect URI: <code>https://blog.ingasti.com/auth/google/callback</code></li>
+            <li>Add your redirect URI: <code>https://bedtime.ingasti.com/auth/google/callback</code></li>
             <li>Copy your <strong>Client ID</strong> and <strong>Client Secret</strong> and paste them above</li>
             <li>See <a href="https://developers.google.com/identity/protocols/oauth2" target="_blank" rel="noopener noreferrer">Google OAuth documentation</a> for details</li>
           </ol>
@@ -2424,7 +2424,7 @@ function OAuthSettings() {
           <ol>
             <li>Go to <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer">Facebook Developers</a></li>
             <li>Create a new app and add Facebook Login</li>
-            <li>Configure OAuth redirect URI: <code>https://blog.ingasti.com/auth/facebook/callback</code></li>
+            <li>Configure OAuth redirect URI: <code>https://bedtime.ingasti.com/auth/facebook/callback</code></li>
             <li>Get your <strong>App ID</strong> and <strong>App Secret</strong> and paste them above</li>
             <li>See <a href="https://developers.facebook.com/docs/facebook-login/" target="_blank" rel="noopener noreferrer">Facebook Login documentation</a> for details</li>
           </ol>
@@ -2434,7 +2434,7 @@ function OAuthSettings() {
           <ol>
             <li>Go to <a href="https://developer.twitter.com/" target="_blank" rel="noopener noreferrer">Twitter Developer Portal</a></li>
             <li>Create a new app and generate Consumer Keys</li>
-            <li>Configure callback URL: <code>https://blog.ingasti.com/auth/twitter/callback</code></li>
+            <li>Configure callback URL: <code>https://bedtime.ingasti.com/auth/twitter/callback</code></li>
             <li>Paste your <strong>Consumer Key</strong> and <strong>Consumer Secret</strong> above</li>
             <li>See <a href="https://developer.twitter.com/en/docs/authentication/oauth-1-0a" target="_blank" rel="noopener noreferrer">Twitter OAuth documentation</a> for details</li>
           </ol>

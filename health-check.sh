@@ -36,10 +36,10 @@ print_error() {
 print_status "🌐 Checking external URLs..."
 
 # Check frontend
-if curl -f -s https://blog.ingasti.com/health &> /dev/null; then
-    print_success "✅ Frontend (blog.ingasti.com) is healthy"
+if curl -f -s https://bedtime.ingasti.com/health &> /dev/null; then
+    print_success "✅ Frontend (bedtime.ingasti.com) is healthy"
 else
-    print_error "❌ Frontend (blog.ingasti.com) is not responding"
+    print_error "❌ Frontend (bedtime.ingasti.com) is not responding"
 fi
 
 # Check backend

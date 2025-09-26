@@ -86,7 +86,7 @@ print_status "🧪 Testing backend image..."
 docker run -d -p 5001:5000 --name test-backend-build \
     -e DATABASE_URL="mysql://test:test@test:3306/test" \
     -e JWT_SECRET="test-secret" \
-    -e CORS_ORIGIN="https://blog.ingasti.com" \
+    -e CORS_ORIGIN="https://bedtime.ingasti.com" \
     -e NODE_ENV=production \
     "$BACKEND_IMAGE"
 

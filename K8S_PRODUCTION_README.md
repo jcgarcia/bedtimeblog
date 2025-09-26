@@ -21,7 +21,7 @@ This repository contains the production-ready Kubernetes deployment for the Bedt
 - Jenkins server with Kubernetes access
 
 ### Domain Configuration
-- `blog.ingasti.com` - Frontend application
+- `bedtime.ingasti.com` - Frontend application
 - `bapi.ingasti.com` - Backend API
 
 ### External Services
@@ -141,7 +141,7 @@ curl -X POST "http://your-jenkins-server/job/blog-k8s-deployment/build"
 - `JWT_SECRET`: JWT signing secret
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-- `CORS_ORIGIN`: Frontend domain (https://blog.ingasti.com)
+- `CORS_ORIGIN`: Frontend domain (https://bedtime.ingasti.com)
 - `PORT`: Server port (default: 5000)
 - `NODE_ENV`: Environment (production)
 
@@ -187,7 +187,7 @@ curl -X POST "http://your-jenkins-server/job/blog-k8s-deployment/build"
 ```bash
 # Application health
 curl -f https://bapi.ingasti.com/health
-curl -f https://blog.ingasti.com/health
+curl -f https://bedtime.ingasti.com/health
 
 # Kubernetes health
 kubectl get pods -n blog

@@ -154,7 +154,7 @@ mv k8s/backend-deployment.yaml.bak k8s/backend-deployment.yaml
 print_success "🎉 Blog deployment completed successfully!"
 print_success ""
 print_success "📱 Services should be available at:"
-print_success "  Frontend: https://blog.ingasti.com"
+print_success "  Frontend: https://bedtime.ingasti.com"
 print_success "  Backend: https://bapi.ingasti.com"
 print_success ""
 print_success "🔍 Monitor with:"

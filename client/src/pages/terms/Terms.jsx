@@ -12,7 +12,7 @@ export default function Terms() {
           <h2>1. Acceptance of Terms</h2>
           <p>
             Welcome to Bedtime Blog. These Terms of Service ("Terms") govern your use of our website 
-            located at <a href="https://blog.ingasti.com">blog.ingasti.com</a> operated by 
+            located at <a href="https://bedtime.ingasti.com">bedtime.ingasti.com</a> operated by 
             Bedtime Blog ("us", "we", or "our").
           </p>
           <p>
@@ -251,7 +251,7 @@ export default function Terms() {
           </p>
           <div className="contact-info">
             <p><strong>Email:</strong> legal@ingasti.com</p>
-            <p><strong>Website:</strong> <a href="https://blog.ingasti.com/contact">Contact Form</a></p>
+            <p><strong>Website:</strong> <a href="https://bedtime.ingasti.com/contact">Contact Form</a></p>
             <p><strong>Address:</strong> [Your Business Address]</p>
           </div>
         </div>

@@ -44,7 +44,7 @@ const app = express();
 app.use((req, res, next) => {
   const allowedOrigins = [
     process.env.CORS_ORIGIN || "http://localhost:3000",
-    "https://blog.ingasti.com",
+    "https://bedtime.ingasti.com",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:5173"  // Vite dev server
