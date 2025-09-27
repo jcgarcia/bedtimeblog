@@ -40,7 +40,7 @@ const createTransporter = async (settings) => {
       user: transporterConfig.auth.user
     });
 
-    const transporter = nodemailer.createTransporter(transporterConfig);
+    const transporter = nodemailer.createTransport(transporterConfig);
     
     // Test the connection
     console.log('Testing SMTP connection...');
