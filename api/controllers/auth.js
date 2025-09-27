@@ -235,8 +235,10 @@ export const cognitoLogin = async (req, res) => {
 
     // Get Cognito configuration from settings
     const settingsQuery = `
-      SELECT value FROM settings 
-      WHERE key = 'cognito' AND group_name = 'oauth'
+      SELECT key, value FROM settings 
+      WHERE key IN ('oauth_cognito_user_pool_id', 'oauth_cognito_client_id', 'oauth_cognito_client_secret', 
+                    'oauth_cognito_region', 'oauth_cognito_domain') 
+      AND group_name = 'oauth'
     `;
     const settingsResult = await pool.query(settingsQuery);
     
@@ -247,8 +249,36 @@ export const cognitoLogin = async (req, res) => {
       });
     }
 
-    const cognitoConfig = JSON.parse(settingsResult.rows[0].value);
+    // Build config object from individual settings
+    const cognitoConfig = {};
+    settingsResult.rows.forEach(row => {
+      switch (row.key) {
+        case 'oauth_cognito_user_pool_id':
+          cognitoConfig.userPoolId = row.value;
+          break;
+        case 'oauth_cognito_client_id':
+          cognitoConfig.clientId = row.value;
+          break;
+        case 'oauth_cognito_client_secret':
+          cognitoConfig.clientSecret = row.value;
+          break;
+        case 'oauth_cognito_region':
+          cognitoConfig.region = row.value;
+          break;
+        case 'oauth_cognito_domain':
+          cognitoConfig.domain = row.value;
+          break;
+      }
+    });
+
+    // Validate required config values
     const { domain, clientId, clientSecret, userPoolId, region } = cognitoConfig;
+    if (!domain || !clientId || !clientSecret || !userPoolId || !region) {
+      return res.status(500).json({
+        success: false,
+        message: 'Incomplete Cognito configuration'
+      });
+    }
 
     // Exchange authorization code for tokens
     const tokenUrl = `https://${domain}/oauth2/token`;
