@@ -282,33 +282,42 @@ export const cognitoLogin = async (req, res) => {
 
     // Exchange authorization code for tokens
     const tokenUrl = `https://${domain}/oauth2/token`;
+    
+    // Use Basic Authentication as required by Cognito
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const tokenParams = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: clientId,
-      client_secret: clientSecret,
       code: code,
       redirect_uri: redirectUri
     });
+
+    console.log(`🔄 Exchanging authorization code for tokens at ${tokenUrl}`);
+    console.log(`📋 Using client_id: ${clientId}`);
+    console.log(`🔗 Redirect URI: ${redirectUri}`);
 
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`
       },
       body: tokenParams
     });
 
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
-      console.error('Token exchange failed:', error);
+      console.error(`❌ Token exchange failed (${tokenResponse.status}):`, error);
+      console.error(`🔍 Request details - URL: ${tokenUrl}, Client: ${clientId}, Redirect: ${redirectUri}`);
       return res.status(400).json({
         success: false,
-        message: 'Failed to exchange authorization code for tokens'
+        message: 'Failed to exchange authorization code for tokens',
+        details: `HTTP ${tokenResponse.status}: ${error}`
       });
     }
 
     const tokenData = await tokenResponse.json();
     const { access_token, id_token } = tokenData;
+    console.log(`✅ Token exchange successful, received access_token and id_token`);
 
     // Get user info from Cognito
     const userInfoResponse = await fetch(`https://${domain}/oauth2/userInfo`, {
