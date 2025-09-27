@@ -357,9 +357,9 @@ export const cognitoLogin = async (req, res) => {
       // Create new user
       const createUserQuery = `
         INSERT INTO users (
-          username, email, first_name, last_name, cognito_user_id,
+          username, email, first_name, last_name, cognito_user_id, password_hash,
           role, is_active, email_verified, created_at, last_login_at
-        ) VALUES ($1, $2, $3, $4, $5, 'user', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'user', true, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING *
       `;
       
@@ -367,8 +367,9 @@ export const cognitoLogin = async (req, res) => {
       const firstName = given_name || name || 'User';
       const lastName = family_name || '';
       
+      // For Cognito users, we don't need a password hash, so use a placeholder
       const newUserResult = await pool.query(createUserQuery, [
-        username, email, firstName, lastName, cognitoUserId
+        username, email, firstName, lastName, cognitoUserId, 'COGNITO_USER'
       ]);
       user = newUserResult.rows[0];
     }
