@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
 import './callback.css';
@@ -9,9 +9,15 @@ export default function CognitoCallback() {
   const { loginWithCognito } = useUser();
   const [status, setStatus] = useState('processing');
   const [error, setError] = useState(null);
+  const processedRef = useRef(false);
 
   useEffect(() => {
     const handleCallback = async () => {
+      // Prevent multiple processing of the same callback
+      if (processedRef.current) {
+        return;
+      }
+      processedRef.current = true;
       try {
         const code = searchParams.get('code');
         const errorParam = searchParams.get('error');

@@ -85,7 +85,9 @@ export const UserProvider = ({ children }) => {
   const loginWithCognito = async (authorizationCode) => {
     setIsLoading(true);
     try {
+      const redirectUri = window.location.origin + '/auth/callback';
       console.log('UserContext: Attempting Cognito login with code:', authorizationCode);
+      console.log('UserContext: Using redirect URI:', redirectUri);
       
       const response = await fetch(API_ENDPOINTS.AUTH.COGNITO_LOGIN, {
         method: 'POST',
@@ -94,7 +96,7 @@ export const UserProvider = ({ children }) => {
         },
         body: JSON.stringify({ 
           code: authorizationCode,
-          redirectUri: window.location.origin + '/auth/callback'
+          redirectUri: redirectUri
         })
       });
 

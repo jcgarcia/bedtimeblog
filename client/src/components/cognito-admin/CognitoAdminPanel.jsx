@@ -18,16 +18,49 @@ export default function CognitoAdminPanel() {
   const [message, setMessage] = useState('');
   const [testResult, setTestResult] = useState(null);
   const [activeTab, setActiveTab] = useState('config');
+  const [debugInfo, setDebugInfo] = useState('');
 
   // Load current settings
   useEffect(() => {
     loadSettings();
+    debugTokenInfo();
   }, []);
+
+  const debugTokenInfo = () => {
+    const token = localStorage.getItem('adminToken');
+    const userToken = localStorage.getItem('userToken');
+    
+    let debug = '🔍 Debug Information:\n';
+    debug += `- Admin Token: ${token ? 'Present' : 'Missing'}\n`;
+    debug += `- User Token: ${userToken ? 'Present' : 'Missing'}\n`;
+    debug += `- Current URL: ${window.location.href}\n`;
+    debug += `- API Endpoint: ${API_ENDPOINTS.SETTINGS.OAUTH}\n`;
+    
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        debug += `- Token expires: ${new Date(payload.exp * 1000).toLocaleString()}\n`;
+        debug += `- Token user ID: ${payload.id}\n`;
+        debug += `- Token role: ${payload.role}\n`;
+        debug += `- Token expired: ${payload.exp * 1000 < Date.now() ? 'YES' : 'NO'}\n`;
+      } catch (e) {
+        debug += `- Token parse error: ${e.message}\n`;
+      }
+    }
+    
+    setDebugInfo(debug);
+    console.log('🔍 [DEBUG] Token Information:', debug);
+  };
 
   const loadSettings = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('adminToken');
+      
+      console.log('🔍 [DEBUG] Loading Cognito settings...');
+      console.log('🔍 [DEBUG] Token exists:', !!token);
+      console.log('🔍 [DEBUG] Token length:', token ? token.length : 0);
+      console.log('🔍 [DEBUG] API Endpoint:', API_ENDPOINTS.SETTINGS.OAUTH);
       
       if (!token) {
         setMessage('❌ Admin authentication required. Please log in.');
@@ -40,8 +73,13 @@ export default function CognitoAdminPanel() {
         }
       });
       
+      console.log('🔍 [DEBUG] Response status:', response.status);
+      console.log('🔍 [DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 [DEBUG] Response data:', data);
+        
         if (data.success && data.config && data.config.cognito) {
           setForm({
             userPoolId: data.config.cognito.userPoolId || '',
@@ -51,14 +89,24 @@ export default function CognitoAdminPanel() {
             domain: data.config.cognito.domain || '',
             enabled: data.config.cognito.enabled || false
           });
+          setMessage('✅ Settings loaded successfully');
+        } else {
+          setMessage('❌ Invalid response structure from server');
         }
       } else {
-        const errorData = await response.json();
-        setMessage(`❌ Error loading settings: ${errorData.message || 'Unknown error'}`);
+        const errorText = await response.text();
+        console.log('🔍 [DEBUG] Error response:', errorText);
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          setMessage(`❌ Error loading settings: ${errorData.message || 'Unknown error'} (Status: ${response.status})`);
+        } catch (parseError) {
+          setMessage(`❌ Server error: ${response.status} - ${errorText}`);
+        }
       }
     } catch (error) {
-      console.error('Error loading Cognito settings:', error);
-      setMessage('Error loading settings');
+      console.error('🔍 [DEBUG] Network error loading Cognito settings:', error);
+      setMessage(`❌ Network error: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -81,6 +129,10 @@ export default function CognitoAdminPanel() {
     try {
       const token = localStorage.getItem('adminToken');
       
+      console.log('🔍 [DEBUG] Saving Cognito settings...');
+      console.log('🔍 [DEBUG] Token exists:', !!token);
+      console.log('🔍 [DEBUG] Form data:', form);
+      
       if (!token) {
         setMessage('❌ Admin authentication required. Please log in.');
         return;
@@ -96,6 +148,8 @@ export default function CognitoAdminPanel() {
           cognito: form
         })
       });
+      
+      console.log('🔍 [DEBUG] Save response status:', response.status);
       
       const data = await response.json();
       
@@ -186,6 +240,12 @@ export default function CognitoAdminPanel() {
           onClick={() => setActiveTab('demo')}
         >
           <i className="fa-solid fa-rocket"></i> Live Demo
+        </button>
+        <button 
+          className={activeTab === 'debug' ? 'active' : ''}
+          onClick={() => setActiveTab('debug')}
+        >
+          <i className="fa-solid fa-bug"></i> Debug
         </button>
       </div>
 
@@ -333,11 +393,56 @@ export default function CognitoAdminPanel() {
         <p><strong>User Pool Management:</strong> <a href="https://console.aws.amazon.com/cognito/" target="_blank" rel="noopener noreferrer">AWS Cognito Console</a></p>
       </div>
         </div>
-      ) : (
+      ) : activeTab === 'demo' ? (
         <div className="demo-section">
           <CognitoLogin />
         </div>
-      )}
+      ) : activeTab === 'debug' ? (
+        <div className="debug-section">
+          <h3>🔍 Debug Information</h3>
+          
+          <div className="debug-card">
+            <h4>Authentication Status</h4>
+            <pre style={{background: '#f5f5f5', padding: '12px', borderRadius: '4px', fontSize: '12px', overflow: 'auto'}}>
+              {debugInfo}
+            </pre>
+          </div>
+          
+          <div className="debug-card">
+            <h4>Recent Error Messages</h4>
+            <div style={{background: message.includes('❌') ? '#ffebee' : '#e8f5e8', padding: '12px', borderRadius: '4px', minHeight: '40px'}}>
+              {message || 'No recent messages'}
+            </div>
+          </div>
+          
+          <div className="debug-card">
+            <h4>Quick Actions</h4>
+            <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+              <button 
+                onClick={debugTokenInfo}
+                style={{padding: '8px 16px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+              >
+                🔄 Refresh Debug Info
+              </button>
+              <button 
+                onClick={loadSettings}
+                style={{padding: '8px 16px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+              >
+                🔄 Retry Load Settings
+              </button>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('adminToken');
+                  window.location.reload();
+                }}
+                style={{padding: '8px 16px', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+              >
+                🚪 Clear Token & Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
