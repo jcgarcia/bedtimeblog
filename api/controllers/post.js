@@ -433,6 +433,56 @@ export const deletePost = async (req, res) => {
   }
 };
 
+export const searchPosts = async (req, res) => {
+  const pool = getDbPool();
+  const { query } = req.query;
+  
+  if (!query || query.trim() === '') {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+  
+  try {
+    const searchTerm = `%${query.trim()}%`;
+    
+    // Search in title, content, and excerpt of published posts
+    const q = `
+      SELECT p.*, u.username, u.first_name, u.last_name, u.email, c.name as category_name, c.slug as category_slug
+      FROM posts p
+      LEFT JOIN users u ON p.author_id = u.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.status = 'published' 
+      AND (LOWER(p.title) LIKE LOWER($1) 
+           OR LOWER(p.content) LIKE LOWER($1)
+           OR LOWER(p.excerpt) LIKE LOWER($1))
+      ORDER BY 
+        CASE 
+          WHEN LOWER(p.title) LIKE LOWER($1) THEN 1
+          WHEN LOWER(p.excerpt) LIKE LOWER($1) THEN 2
+          ELSE 3
+        END,
+        p.created_at DESC
+      LIMIT 20
+    `;
+    
+    const result = await pool.query(q, [searchTerm]);
+    
+    // Resolve featured image URLs for all search results
+    const postsWithImages = await Promise.all(
+      result.rows.map(async (post) => {
+        if (post.featured_image) {
+          post.featured_image = await resolveMediaUrl(post.featured_image);
+        }
+        return post;
+      })
+    );
+    
+    return res.status(200).json(postsWithImages);
+  } catch (err) {
+    console.error('Database error in searchPosts:', err);
+    return res.status(500).json({ error: 'Failed to search posts' });
+  }
+};
+
 export const updatePost = async (req, res) => {
   console.log('🔄 [DEBUG] updatePost called - ID:', req.params.id);
   console.log('🔄 [DEBUG] Request body keys:', Object.keys(req.body));

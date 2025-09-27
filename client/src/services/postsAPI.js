@@ -72,6 +72,11 @@ export const postsAPI = {
     return api.get(`/posts/${id}`);
   },
 
+  // Search posts by query
+  searchPosts: (query) => {
+    return api.get(`/posts/search?query=${encodeURIComponent(query)}`);
+  },
+
   // Get single post by ID (alias for consistency)
   getPostById: (id) => {
     return api.get(`/posts/${id}`).then(response => ({

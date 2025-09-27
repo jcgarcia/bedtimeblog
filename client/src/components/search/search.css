@@ -164,6 +164,29 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Search Error */
+.search-error {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.search-error i {
+  font-size: 3rem;
+  color: #ff6b6b;
+  margin-bottom: 20px;
+}
+
+.search-error h3 {
+  margin: 0 0 10px 0;
+  color: #ff6b6b;
+}
+
+.search-error p {
+  margin: 0;
+  color: #666;
+}
+
 /* No Results */
 .search-no-results {
   text-align: center;
@@ -278,6 +301,31 @@
   color: #333;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.search-tips {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #eb0bba;
+}
+
+.search-tips p {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-weight: 600;
+}
+
+.search-tips ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #666;
+}
+
+.search-tips li {
+  margin-bottom: 8px;
+  font-size: 0.95rem;
 }
 
 .search-tags {

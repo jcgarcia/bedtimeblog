@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { postsAPI } from '../../services/postsAPI';
 import './search.css';
 
 export default function Search({ isOpen, onClose }) {
@@ -7,38 +8,29 @@ export default function Search({ isOpen, onClose }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
-  // Mock posts data - replace with actual API call
-  const mockPosts = [
-    {
-      id: 1,
-      title: "What you can expect from copilot",
-      excerpt: "Exploring the capabilities and features of GitHub Copilot in modern development workflows...",
-      date: "14/06/2025",
-      status: "public",
-      content: "GitHub Copilot has revolutionized the way developers write code. This AI-powered assistant helps with code completion, suggestions, and even entire function implementations."
-    },
-    {
-      id: 2,
-      title: "Getting Started with React",
-      excerpt: "A comprehensive guide to building modern web applications with React...",
-      date: "10/06/2025",
-      status: "public",
-      content: "React is a powerful JavaScript library for building user interfaces. In this guide, we'll explore components, hooks, and state management."
-    },
-    {
-      id: 3,
-      title: "Understanding CSS Grid",
-      excerpt: "Master the art of layout design with CSS Grid system...",
-      date: "08/06/2025",
-      status: "draft",
-      content: "CSS Grid provides a two-dimensional layout system that makes it easy to design complex web layouts with clean and semantic HTML."
-    },
-    {
-      id: 4,
-      title: "JavaScript ES6 Features",
-      excerpt: "Exploring modern JavaScript features that every developer should know...",
-      date: "05/06/2025",
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No date';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  // Truncate text helper
+  const truncateText = (text, maxLength = 150) => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
       status: "public",
       content: "ES6 introduced many powerful features like arrow functions, destructuring, template literals, and async/await that make JavaScript more expressive."
     }
@@ -66,28 +58,29 @@ export default function Search({ isOpen, onClose }) {
     };
   }, [isOpen, onClose]);
 
-  // Search function
+  // Search function - now uses real API
   const performSearch = async (query) => {
     if (!query.trim()) {
       setSearchResults([]);
       setHasSearched(false);
+      setSearchError('');
       return;
     }
 
     setIsLoading(true);
     setHasSearched(true);
+    setSearchError('');
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Search through mock posts
-    const results = mockPosts.filter(post => {
-      const searchText = `${post.title} ${post.excerpt} ${post.content}`.toLowerCase();
-      return searchText.includes(query.toLowerCase()) && post.status === 'public';
-    });
-
-    setSearchResults(results);
-    setIsLoading(false);
+    try {
+      const response = await postsAPI.searchPosts(query);
+      setSearchResults(response.data);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError('Failed to search posts. Please try again.');
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle search input change
@@ -147,7 +140,15 @@ export default function Search({ isOpen, onClose }) {
             </div>
           )}
 
-          {!isLoading && hasSearched && searchResults.length === 0 && (
+          {!isLoading && searchError && (
+            <div className="search-error">
+              <i className="fa-solid fa-exclamation-triangle"></i>
+              <h3>Search Error</h3>
+              <p>{searchError}</p>
+            </div>
+          )}
+
+          {!isLoading && hasSearched && searchResults.length === 0 && !searchError && (
             <div className="search-no-results">
               <i className="fa-solid fa-search-minus"></i>
               <h3>No results found</h3>
@@ -167,15 +168,19 @@ export default function Search({ isOpen, onClose }) {
                 >
                   <div className="search-result-content">
                     <h4>{post.title}</h4>
-                    <p>{post.excerpt}</p>
+                    <p>{truncateText(post.excerpt || post.content)}</p>
                     <div className="search-result-meta">
                       <span className="search-result-date">
                         <i className="fa-solid fa-calendar"></i>
-                        {post.date}
+                        {formatDate(post.created_at)}
                       </span>
-                      <span className="search-result-status">
-                        <i className="fa-solid fa-globe"></i>
-                        {post.status}
+                      <span className="search-result-category">
+                        <i className="fa-solid fa-tag"></i>
+                        {post.category_name || 'Uncategorized'}
+                      </span>
+                      <span className="search-result-author">
+                        <i className="fa-solid fa-user"></i>
+                        {post.first_name || post.username || 'Unknown'}
                       </span>
                     </div>
                   </div>
@@ -189,43 +194,52 @@ export default function Search({ isOpen, onClose }) {
 
           {!hasSearched && (
             <div className="search-suggestions">
-              <h3>Popular Topics</h3>
+              <h3>Search Tips</h3>
+              <div className="search-tips">
+                <p><strong>✨ Try searching for:</strong></p>
+                <ul>
+                  <li>Post titles or keywords</li>
+                  <li>Topics you're interested in</li>
+                  <li>Author names</li>
+                  <li>Content snippets</li>
+                </ul>
+              </div>
               <div className="search-tags">
                 <button 
                   className="search-tag" 
                   onClick={() => {
-                    setSearchQuery('copilot');
-                    performSearch('copilot');
+                    setSearchQuery('tutorial');
+                    performSearch('tutorial');
                   }}
                 >
-                  Copilot
+                  Tutorial
                 </button>
                 <button 
                   className="search-tag" 
                   onClick={() => {
-                    setSearchQuery('react');
-                    performSearch('react');
+                    setSearchQuery('guide');
+                    performSearch('guide');
                   }}
                 >
-                  React
+                  Guide
                 </button>
                 <button 
                   className="search-tag" 
                   onClick={() => {
-                    setSearchQuery('javascript');
-                    performSearch('javascript');
+                    setSearchQuery('tips');
+                    performSearch('tips');
                   }}
                 >
-                  JavaScript
+                  Tips
                 </button>
                 <button 
                   className="search-tag" 
                   onClick={() => {
-                    setSearchQuery('css');
-                    performSearch('css');
+                    setSearchQuery('development');
+                    performSearch('development');
                   }}
                 >
-                  CSS
+                  Development
                 </button>
               </div>
             </div>
