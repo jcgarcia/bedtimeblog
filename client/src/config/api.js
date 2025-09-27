@@ -47,6 +47,8 @@ export const API_ENDPOINTS = {
   
   // Settings
   SETTINGS: {
+    GET: `${API_URL}/api/settings`,
+    UPDATE: `${API_URL}/api/settings`,
     SOCIAL: `${API_URL}/api/settings/social`,
     CONTACT: `${API_URL}/api/settings/contact`,
     SMTP: `${API_URL}/api/settings/smtp`,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '../../../config/api';
+import './SiteSettings.css';
 
 export default function SiteSettings() {
   const [settings, setSettings] = useState({
@@ -29,13 +30,33 @@ export default function SiteSettings() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(API_ENDPOINTS.SETTINGS.GET);
+      const response = await fetch(API_ENDPOINTS.SETTINGS.GET, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
-        setSettings(prev => ({
-          ...prev,
-          ...data
-        }));
+        console.log('Loaded settings:', data);
+        
+        // Map database keys to form fields
+        const mappedSettings = {
+          blogTitle: data.blog_title || data.blogTitle || 'Guilt & Pleasure Bedtime',
+          blogDescription: data.blog_description || data.blogDescription || 'A personal blog about life experiences',
+          requireApproval: data.require_approval === 'true' || data.requireApproval,
+          enableModeration: data.enable_moderation === 'true' || data.enableModeration,
+          enableAutoSave: data.enable_auto_save === 'true' || data.enableAutoSave,
+          autoSaveInterval: parseInt(data.auto_save_interval) || data.autoSaveInterval || 30,
+          // SMTP Email Settings
+          smtpHost: data.smtp_host || '',
+          smtpPort: data.smtp_port || '587',
+          smtpUser: data.smtp_user || '',
+          smtpPass: data.smtp_pass || '',
+          smtpFrom: data.smtp_from || '',
+          smtpSecure: data.smtp_secure === 'true',
+          emailNotifications: data.email_notifications === 'true',
+          contactEmail: data.contact_email || ''
+        };
+        
+        setSettings(mappedSettings);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -57,19 +78,44 @@ export default function SiteSettings() {
       setLoading(true);
       setMessage('');
       
+      // Map form fields to database keys
+      const settingsToSave = {
+        blog_title: settings.blogTitle,
+        blog_description: settings.blogDescription,
+        require_approval: settings.requireApproval.toString(),
+        enable_moderation: settings.enableModeration.toString(),
+        enable_auto_save: settings.enableAutoSave.toString(),
+        auto_save_interval: settings.autoSaveInterval.toString(),
+        // SMTP Email Settings
+        smtp_host: settings.smtpHost,
+        smtp_port: settings.smtpPort,
+        smtp_user: settings.smtpUser,
+        smtp_pass: settings.smtpPass,
+        smtp_from: settings.smtpFrom,
+        smtp_secure: settings.smtpSecure.toString(),
+        email_notifications: settings.emailNotifications.toString(),
+        contact_email: settings.contactEmail
+      };
+      
+      console.log('Saving settings:', settingsToSave);
+      
       const response = await fetch(API_ENDPOINTS.SETTINGS.UPDATE, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settingsToSave)
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('Settings saved successfully:', result);
         setMessage('Settings saved successfully!');
         setTimeout(() => setMessage(''), 3000);
       } else {
+        const error = await response.text();
+        console.error('Failed to save settings:', error);
         throw new Error('Failed to save settings');
       }
     } catch (error) {
