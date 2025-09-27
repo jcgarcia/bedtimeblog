@@ -8,7 +8,16 @@ export default function SiteSettings() {
     requireApproval: true,
     enableModeration: true,
     enableAutoSave: true,
-    autoSaveInterval: 30
+    autoSaveInterval: 30,
+    // SMTP Email Settings
+    smtpHost: '',
+    smtpPort: '587',
+    smtpUser: '',
+    smtpPass: '',
+    smtpFrom: '',
+    smtpSecure: false,
+    emailNotifications: true,
+    contactEmail: ''
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -159,6 +168,94 @@ export default function SiteSettings() {
               onChange={handleInputChange}
             />
             Enable comment moderation
+          </label>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3>Email & SMTP Configuration</h3>
+        <div className="setting-item">
+          <label>
+            <input 
+              type="checkbox" 
+              name="emailNotifications"
+              checked={settings.emailNotifications}
+              onChange={handleInputChange}
+            />
+            Enable email notifications
+          </label>
+        </div>
+        <div className="setting-item">
+          <label>Contact Email Address</label>
+          <input 
+            type="email" 
+            name="contactEmail"
+            value={settings.contactEmail}
+            onChange={handleInputChange}
+            placeholder="blog@ingasti.com"
+          />
+          <small>Email address where contact form messages will be sent</small>
+        </div>
+        <div className="setting-item">
+          <label>SMTP Host</label>
+          <input 
+            type="text" 
+            name="smtpHost"
+            value={settings.smtpHost}
+            onChange={handleInputChange}
+            placeholder="smtp.gmail.com"
+          />
+        </div>
+        <div className="setting-item">
+          <label>SMTP Port</label>
+          <input 
+            type="number" 
+            name="smtpPort"
+            value={settings.smtpPort}
+            onChange={handleInputChange}
+            placeholder="587"
+          />
+        </div>
+        <div className="setting-item">
+          <label>SMTP Username</label>
+          <input 
+            type="text" 
+            name="smtpUser"
+            value={settings.smtpUser}
+            onChange={handleInputChange}
+            placeholder="smtp@ingasti.com"
+          />
+        </div>
+        <div className="setting-item">
+          <label>SMTP Password</label>
+          <input 
+            type="password" 
+            name="smtpPass"
+            value={settings.smtpPass}
+            onChange={handleInputChange}
+            placeholder="App password or SMTP password"
+          />
+        </div>
+        <div className="setting-item">
+          <label>From Email Address</label>
+          <input 
+            type="email" 
+            name="smtpFrom"
+            value={settings.smtpFrom}
+            onChange={handleInputChange}
+            placeholder="blog@ingasti.com"
+          />
+          <small>Email address that will appear in the "From" field</small>
+        </div>
+        <div className="setting-item">
+          <label>
+            <input 
+              type="checkbox" 
+              name="smtpSecure"
+              checked={settings.smtpSecure}
+              onChange={handleInputChange}
+            />
+            Use SSL/TLS (enable for port 465, disable for port 587)
           </label>
         </div>
       </div>

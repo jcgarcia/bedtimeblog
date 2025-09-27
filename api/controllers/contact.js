@@ -1,20 +1,30 @@
 import { getDbPool } from "../db.js";
 import nodemailer from "nodemailer";
 
-// Create email transporter
-const createTransporter = () => {
-  // For production, you'll want to use environment variables for email configuration
-  const transporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER || process.env.EMAIL_USER,
-      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
-    },
-  });
+// Create email transporter using database settings
+const createTransporter = async (settings) => {
+  // Check if SMTP configuration is available
+  if (!settings.smtp_host || !settings.smtp_user || !settings.smtp_pass) {
+    console.warn('SMTP configuration incomplete in database. Email functionality will be disabled.');
+    return null;
+  }
 
-  return transporter;
+  try {
+    const transporter = nodemailer.createTransporter({
+      host: settings.smtp_host,
+      port: parseInt(settings.smtp_port) || 587,
+      secure: settings.smtp_secure === 'true', // true for 465, false for other ports
+      auth: {
+        user: settings.smtp_user,
+        pass: settings.smtp_pass,
+      },
+    });
+
+    return transporter;
+  } catch (error) {
+    console.error('Failed to create SMTP transporter:', error);
+    return null;
+  }
 };
 
 export const sendContactMessage = async (req, res) => {
@@ -37,27 +47,50 @@ export const sendContactMessage = async (req, res) => {
       });
     }
 
-    // Store the contact message in database (optional)
+    const pool = getDbPool();
+
+    // Store the contact message in database
+    let messageStored = false;
     try {
-      const pool = getDbPool();
       await pool.query(
         `INSERT INTO contact_messages (name, email, subject, message, created_at, status) 
          VALUES ($1, $2, $3, $4, NOW(), 'new')`,
         [name, email, subject, message]
       );
+      messageStored = true;
+      console.log('Contact message stored in database successfully');
     } catch (dbError) {
-      console.log("Database storage failed (continuing without storing):", dbError.message);
-      // Continue with email sending even if database storage fails
+      console.error("Database storage failed:", dbError.message);
+      // If we can't store in database and can't send email, this is a real error
+    }
+
+    // Get SMTP settings from database
+    let smtpSettings = {};
+    try {
+      const settingsResult = await pool.query(`
+        SELECT key, value FROM settings 
+        WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_secure', 'contact_email', 'email_notifications')
+      `);
+      
+      settingsResult.rows.forEach(row => {
+        smtpSettings[row.key] = row.value;
+      });
+      console.log('SMTP settings loaded from database:', Object.keys(smtpSettings));
+    } catch (settingsError) {
+      console.error('Failed to load SMTP settings from database:', settingsError);
     }
 
     // Send email notification
-    const transporter = createTransporter();
+    const transporter = await createTransporter(smtpSettings);
+    let emailSent = false;
     
-    const mailOptions = {
-      from: process.env.SMTP_FROM || `"Blog Contact Form" <${process.env.SMTP_USER}>`,
-      to: "blog@ingasti.com",
-      subject: `Contact Form: ${subject}`,
-      html: `
+    if (transporter && smtpSettings.email_notifications !== 'false') {
+      try {
+        const mailOptions = {
+          from: smtpSettings.smtp_from || `"Blog Contact Form" <${smtpSettings.smtp_user}>`,
+          to: smtpSettings.contact_email || smtpSettings.smtp_from || "blog@ingasti.com",
+          subject: `Contact Form: ${subject}`,
+          html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="margin: 0; font-size: 24px;">New Contact Form Message</h1>
@@ -120,12 +153,38 @@ Sent from Blog Contact Form on ${new Date().toLocaleString()}
       `
     };
 
-    await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions);
+        emailSent = true;
+        console.log('Contact email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send contact email:', emailError.message);
+        // Continue if database storage succeeded
+      }
+    } else {
+      console.log('Email transporter not available, skipping email notification');
+    }
 
-    res.status(200).json({
-      message: "Message sent successfully",
-      success: true
-    });
+    // Return appropriate response based on what succeeded
+    if (messageStored || emailSent) {
+      let responseMessage = "Message received successfully";
+      if (messageStored && emailSent) {
+        responseMessage = "Message sent and stored successfully";
+      } else if (messageStored) {
+        responseMessage = "Message stored successfully. Email notification pending.";
+      } else if (emailSent) {
+        responseMessage = "Message sent successfully";
+      }
+
+      res.status(200).json({
+        message: responseMessage,
+        success: true,
+        stored: messageStored,
+        emailed: emailSent
+      });
+    } else {
+      // Both database and email failed
+      throw new Error("Failed to store message in database and send email notification");
+    }
 
   } catch (error) {
     console.error("Contact form error:", error);
