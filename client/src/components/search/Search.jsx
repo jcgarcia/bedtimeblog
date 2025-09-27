@@ -31,10 +31,6 @@ export default function Search({ isOpen, onClose }) {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).trim() + '...';
   };
-      status: "public",
-      content: "ES6 introduced many powerful features like arrow functions, destructuring, template literals, and async/await that make JavaScript more expressive."
-    }
-  ];
 
   // Close search on Escape key
   useEffect(() => {
