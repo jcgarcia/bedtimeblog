@@ -32,6 +32,19 @@ export default function Search({ isOpen, onClose }) {
     return text.substring(0, maxLength).trim() + '...';
   };
 
+  // Format author name to prioritize real name over username
+  const formatAuthorName = (post) => {
+    if (post.first_name && post.last_name) {
+      return `${post.first_name} ${post.last_name}`;
+    } else if (post.first_name) {
+      return post.first_name;
+    } else if (post.username) {
+      return post.username;
+    } else {
+      return 'Unknown';
+    }
+  };
+
   // Close search on Escape key
   useEffect(() => {
     const handleEscape = (e) => {
@@ -176,7 +189,7 @@ export default function Search({ isOpen, onClose }) {
                       </span>
                       <span className="search-result-author">
                         <i className="fa-solid fa-user"></i>
-                        {post.first_name || post.username || 'Unknown'}
+                        {formatAuthorName(post)}
                       </span>
                     </div>
                   </div>

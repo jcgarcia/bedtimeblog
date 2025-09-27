@@ -210,6 +210,15 @@
     min-width: 200px;
 }
 
+.writeHelperText {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+    font-family: "Poppins", sans-serif;
+    font-style: italic;
+}
+
 .writeText{
     font-size: 16px;
     min-height: 400px;

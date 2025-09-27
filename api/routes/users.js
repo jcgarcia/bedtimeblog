@@ -5,6 +5,31 @@ import { requireAdminAuth } from "../controllers/admin.js";
 
 const router = express.Router();
 
+// Get authors (users who can write posts) - for post author selection
+router.get("/authors", requireAdminAuth, async (req, res) => {
+  try {
+    const pool = getDbPool();
+    const result = await pool.query(`
+      SELECT id, username, first_name, last_name, role
+      FROM users 
+      WHERE role IN ('admin', 'super_admin', 'editor', 'author', 'writer') 
+        AND is_active = true
+      ORDER BY first_name, last_name, username
+    `);
+
+    res.json({
+      success: true,
+      users: result.rows
+    });
+  } catch (error) {
+    console.error('Error fetching authors:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch authors'
+    });
+  }
+});
+
 // Get all users (admin only)
 router.get("/", requireAdminAuth, async (req, res) => {
   try {

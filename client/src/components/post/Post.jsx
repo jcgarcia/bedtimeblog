@@ -32,6 +32,19 @@ export default function Post({ post }) {
     return tags;
   };
 
+  // Format author name to prioritize real name over username
+  const formatAuthorName = (post) => {
+    if (post?.first_name && post?.last_name) {
+      return `${post.first_name} ${post.last_name}`;
+    } else if (post?.first_name) {
+      return post.first_name;
+    } else if (post?.username) {
+      return post.username;
+    } else {
+      return 'Unknown Author';
+    }
+  };
+
   return (
     <div className='post'>
         <img 
@@ -51,10 +64,15 @@ export default function Post({ post }) {
               </span>
             </Link>
             <hr />
-            <span className="postDate">
-              {post?.published_at ? formatDate(post.published_at) : 
-               post?.created_at ? formatDate(post.created_at) : 'Unknown date'}
-            </span>
+            <div className="postMeta">
+              <span className="postDate">
+                {post?.published_at ? formatDate(post.published_at) : 
+                 post?.created_at ? formatDate(post.created_at) : 'Unknown date'}
+              </span>
+              <span className="postAuthor">
+                by {formatAuthorName(post)}
+              </span>
+            </div>
         </div>
 
         <p className='postDescription'>

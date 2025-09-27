@@ -147,6 +147,19 @@ export default function SinglePost() {
     });
   };
 
+  // Format author name to prioritize real name over username
+  const formatAuthorName = (post) => {
+    if (post.first_name && post.last_name) {
+      return `${post.first_name} ${post.last_name}`;
+    } else if (post.first_name) {
+      return post.first_name;
+    } else if (post.username) {
+      return post.username;
+    } else {
+      return `Author ${post.author_id}` || 'Unknown';
+    }
+  };
+
   // Extract tags from available data
   const getTags = () => {
     const tags = [];
@@ -237,7 +250,7 @@ export default function SinglePost() {
             </div>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>
-                    Author: <b>{post.username || post.first_name || `Author ${post.author_id}` || 'Unknown'}</b>
+                    Author: <b>{formatAuthorName(post)}</b>
                 </span>
                 <span className='singlePostDate'>
                   {post.published_at ? formatDate(post.published_at) : 

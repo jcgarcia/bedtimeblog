@@ -362,13 +362,17 @@ export const addPost = async (req, res) => {
       RETURNING *
     `;
     
+    // Determine author ID - allow admins/editors to set custom author
+    const canChangeAuthor = userInfo.role === 'super_admin' || userInfo.role === 'admin' || userInfo.role === 'editor';
+    const authorId = canChangeAuthor && req.body.author_id ? req.body.author_id : userInfo.id;
+    
     const values = [
       req.body.title,
       slug,
       req.body.desc,  // This maps to content column
       req.body.img,   // This maps to featured_image column
       categoryId,     // Use validated category ID
-      userInfo.id,    // This maps to author_id column
+      authorId,       // This maps to author_id column (custom or current user)
       req.body.status || 'draft',
       req.body.status === 'published' ? new Date() : null
     ];
@@ -547,25 +551,89 @@ export const updatePost = async (req, res) => {
     // Get valid category ID (with fallback to default)
     const categoryId = await getCategoryIdForPost(req.body.cat);
     
-    // Allow super_admin to edit any post, others can only edit their own posts
+    // Determine if user can change author
+    const canChangeAuthor = userInfo.role === 'super_admin' || userInfo.role === 'admin' || userInfo.role === 'editor';
+    
+    // Allow super_admin/admin/editor to edit any post and change author, others can only edit their own posts
     let q, values;
     if (userInfo.role === 'super_admin' || userInfo.role === 'admin') {
-      q = `
-        UPDATE posts 
-        SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
-        WHERE id = $7
-        RETURNING *
-      `;
-      values = [
-        req.body.title, 
-        slug, 
-        req.body.content || req.body.desc, 
-        req.body.img, 
-        categoryId,  // Use validated category ID
-        req.body.status,
-        postId
-      ];
+      // Super admin and admin can edit any post and change author
+      const authorId = canChangeAuthor && req.body.author_id ? req.body.author_id : null;
+      
+      if (authorId) {
+        q = `
+          UPDATE posts 
+          SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, author_id=$7, updated_at=CURRENT_TIMESTAMP 
+          WHERE id = $8
+          RETURNING *
+        `;
+        values = [
+          req.body.title, 
+          slug, 
+          req.body.content || req.body.desc, 
+          req.body.img, 
+          categoryId,  // Use validated category ID
+          req.body.status,
+          authorId,
+          postId
+        ];
+      } else {
+        q = `
+          UPDATE posts 
+          SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
+          WHERE id = $7
+          RETURNING *
+        `;
+        values = [
+          req.body.title, 
+          slug, 
+          req.body.content || req.body.desc, 
+          req.body.img, 
+          categoryId,  // Use validated category ID
+          req.body.status,
+          postId
+        ];
+      }
+    } else if (userInfo.role === 'editor') {
+      // Editors can edit any post and change author
+      const authorId = canChangeAuthor && req.body.author_id ? req.body.author_id : null;
+      
+      if (authorId) {
+        q = `
+          UPDATE posts 
+          SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, author_id=$7, updated_at=CURRENT_TIMESTAMP 
+          WHERE id = $8
+          RETURNING *
+        `;
+        values = [
+          req.body.title, 
+          slug, 
+          req.body.content || req.body.desc, 
+          req.body.img, 
+          categoryId,  // Use validated category ID
+          req.body.status,
+          authorId,
+          postId
+        ];
+      } else {
+        q = `
+          UPDATE posts 
+          SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 
+          WHERE id = $7
+          RETURNING *
+        `;
+        values = [
+          req.body.title, 
+          slug, 
+          req.body.content || req.body.desc, 
+          req.body.img, 
+          categoryId,  // Use validated category ID
+          req.body.status,
+          postId
+        ];
+      }
     } else {
+      // Regular users can only edit their own posts and cannot change author
       q = `
         UPDATE posts 
         SET title=$1, slug=$2, content=$3, featured_image=$4, category_id=$5, status=$6, updated_at=CURRENT_TIMESTAMP 

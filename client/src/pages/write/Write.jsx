@@ -45,9 +45,11 @@ export default function Write() {
     excerpt: '',
     category: '',
     featuredImage: '',
-    status: 'draft'
+    status: 'draft',
+    authorId: currentUser?.id || ''
   });
   const [categories, setCategories] = useState([]);
+  const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -73,8 +75,9 @@ export default function Write() {
       setPostId(editPostId);
       loadPost(editPostId);
     }
-    // Load categories
+    // Load categories and authors
     loadCategories();
+    loadAuthors();
   }, [editPostId]);
 
   // Update featured image preview URL when featuredImage changes
@@ -103,6 +106,34 @@ export default function Write() {
     }
   };
 
+  // Load authors for dropdown (only for admins/editors)
+  const loadAuthors = async () => {
+    if (!canEditAuthor()) return;
+    
+    try {
+      const response = await fetch('https://bapi.ingasti.com/api/users/authors', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken') || localStorage.getItem('userToken')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAuthors(data.users || []);
+      }
+    } catch (err) {
+      console.error('Error loading authors:', err);
+    }
+  };
+
+  // Check if user can edit author
+  const canEditAuthor = () => {
+    if (!currentUser) return false;
+    const canEditRoles = ['admin', 'super_admin', 'editor'];
+    return canEditRoles.includes(currentUser.role);
+  };
+
   // Check if user can write posts
   const canWrite = () => {
     if (!currentUser) return false;
@@ -127,7 +158,8 @@ export default function Write() {
           excerpt: post.excerpt || '',
           category: post.category_id || '',
           featuredImage: post.featured_image || '',
-          status: post.status || 'draft'
+          status: post.status || 'draft',
+          authorId: post.author_id || currentUser?.id || ''
         });
       } else {
         setError('Failed to load post for editing');
@@ -231,6 +263,11 @@ export default function Write() {
         status: formData.status
       };
 
+      // Include author_id only if user can edit authors and author is selected
+      if (canEditAuthor() && formData.authorId) {
+        postData.author_id = formData.authorId;
+      }
+
       // Handle featured image - extract S3 key if it's a signed URL
       if (formData.featuredImage) {
         if (formData.featuredImage.includes('X-Amz-Algorithm')) {
@@ -282,7 +319,8 @@ export default function Write() {
             excerpt: '',
             category: '',
             featuredImage: '',
-            status: 'draft'
+            status: 'draft',
+            authorId: currentUser?.id || ''
           });
         } else {
           // Check for specific authentication errors
@@ -455,6 +493,29 @@ export default function Write() {
             <option value="scheduled">Scheduled</option>
           </select>
         </div>
+
+        {canEditAuthor() && (
+          <div className="writeFormGroup">
+            <select 
+              name="authorId"
+              className="writeInput writeSelect"
+              value={formData.authorId}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Author</option>
+              {authors.map(author => (
+                <option key={author.id} value={author.id}>
+                  {author.first_name && author.last_name 
+                    ? `${author.first_name} ${author.last_name}` 
+                    : author.username || `User ${author.id}`}
+                </option>
+              ))}
+            </select>
+            <small className="writeHelperText">
+              Change the author of this post (Admin/Editor only)
+            </small>
+          </div>
+        )}
         
         <div className="writeFormGroup writeFormGroupFull">
           <RichTextEditor
