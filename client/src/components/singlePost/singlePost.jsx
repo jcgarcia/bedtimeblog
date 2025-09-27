@@ -4,6 +4,7 @@ import { postsAPI } from '../../config/apiService';
 import { useUser } from '../../contexts/UserContext';
 import { useAdmin } from '../../contexts/AdminContext';
 import axios from 'axios';
+import { markdownToHtml } from '../../utils/markdownConverter';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
 
@@ -155,22 +156,12 @@ export default function SinglePost() {
     return tags;
   };
 
-  // Render content safely (basic HTML rendering)
+  // Render content safely using our comprehensive markdown converter
   const renderContent = (content) => {
-    if (!content) return 'No content available';
+    if (!content) return { __html: 'No content available' };
     
-    // Convert markdown-style content to basic HTML
-    let html = content
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
-    
-    // Wrap in paragraph tags
-    html = '<p>' + html + '</p>';
+    // Use our comprehensive markdown to HTML converter that handles images, links, etc.
+    const html = markdownToHtml(content);
     
     return { __html: html };
   };

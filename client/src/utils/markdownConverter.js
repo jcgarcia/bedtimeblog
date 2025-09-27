@@ -82,9 +82,16 @@ export const htmlToMarkdown = (html) => {
     return content.replace(/<li[^>]*>(.*?)<\/li>/gi, () => `${counter++}. $1\n`);
   });
   
-  // Convert images
-  markdown = markdown.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
-  markdown = markdown.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+  // Convert images - handle all attribute orders
+  markdown = markdown.replace(/<img[^>]*>/gi, (match) => {
+    const srcMatch = match.match(/src="([^"]*)"/);
+    const altMatch = match.match(/alt="([^"]*)"/);
+    
+    const src = srcMatch ? srcMatch[1] : '';
+    const alt = altMatch ? altMatch[1] : '';
+    
+    return `![${alt}](${src})`;
+  });
   
   // Convert links
   markdown = markdown.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
