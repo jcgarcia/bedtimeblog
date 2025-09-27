@@ -3,14 +3,27 @@ import nodemailer from "nodemailer";
 
 // Create email transporter using database settings
 const createTransporter = async (settings) => {
+  console.log('Creating transporter with settings:', {
+    hasHost: !!settings.smtp_host,
+    hasUser: !!settings.smtp_user,
+    hasPass: !!settings.smtp_pass,
+    host: settings.smtp_host,
+    port: settings.smtp_port,
+    secure: settings.smtp_secure
+  });
+
   // Check if SMTP configuration is available
   if (!settings.smtp_host || !settings.smtp_user || !settings.smtp_pass) {
-    console.warn('SMTP configuration incomplete in database. Email functionality will be disabled.');
+    console.warn('SMTP configuration incomplete in database:', {
+      smtp_host: !!settings.smtp_host,
+      smtp_user: !!settings.smtp_user,
+      smtp_pass: !!settings.smtp_pass
+    });
     return null;
   }
 
   try {
-    const transporter = nodemailer.createTransporter({
+    const transporterConfig = {
       host: settings.smtp_host,
       port: parseInt(settings.smtp_port) || 587,
       secure: settings.smtp_secure === 'true', // true for 465, false for other ports
@@ -18,11 +31,25 @@ const createTransporter = async (settings) => {
         user: settings.smtp_user,
         pass: settings.smtp_pass,
       },
+    };
+    
+    console.log('Creating nodemailer transporter with config:', {
+      host: transporterConfig.host,
+      port: transporterConfig.port,
+      secure: transporterConfig.secure,
+      user: transporterConfig.auth.user
     });
 
+    const transporter = nodemailer.createTransporter(transporterConfig);
+    
+    // Test the connection
+    console.log('Testing SMTP connection...');
+    await transporter.verify();
+    console.log('✅ SMTP connection verified successfully');
+    
     return transporter;
   } catch (error) {
-    console.error('Failed to create SMTP transporter:', error);
+    console.error('❌ Failed to create or verify SMTP transporter:', error);
     return null;
   }
 };
@@ -81,8 +108,19 @@ export const sendContactMessage = async (req, res) => {
     }
 
     // Send email notification
+    console.log('Creating email transporter with settings:', {
+      smtp_host: smtpSettings.smtp_host,
+      smtp_port: smtpSettings.smtp_port,  
+      smtp_user: smtpSettings.smtp_user,
+      smtp_secure: smtpSettings.smtp_secure,
+      email_notifications: smtpSettings.email_notifications
+    });
+    
     const transporter = await createTransporter(smtpSettings);
     let emailSent = false;
+    
+    console.log('Transporter created:', !!transporter);
+    console.log('Email notifications enabled:', smtpSettings.email_notifications !== 'false');
     
     if (transporter && smtpSettings.email_notifications !== 'false') {
       try {
@@ -153,9 +191,15 @@ Sent from Blog Contact Form on ${new Date().toLocaleString()}
       `
     };
 
-        await transporter.sendMail(mailOptions);
+        console.log('Attempting to send email with options:', {
+          from: mailOptions.from,
+          to: mailOptions.to,
+          subject: mailOptions.subject
+        });
+        
+        const emailResult = await transporter.sendMail(mailOptions);
         emailSent = true;
-        console.log('Contact email sent successfully');
+        console.log('Contact email sent successfully:', emailResult.messageId);
       } catch (emailError) {
         console.error('Failed to send contact email:', emailError.message);
         // Continue if database storage succeeded
