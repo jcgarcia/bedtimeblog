@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getSettings,
+  getAllSettings,
   updateSettings,
   getSocialMediaLinks,
   updateSocialMediaLinks,
@@ -19,8 +20,11 @@ const router = express.Router();
 // Get all public settings
 router.get("/", getSettings);
 
+// Get all settings including admin-only ones (admin only)
+router.get("/admin", requireAdminAuth, getAllSettings);
+
 // Update settings (admin only)
-router.put("/", updateSettings);
+router.put("/", requireAdminAuth, updateSettings);
 
 // Get social media links
 router.get("/social", getSocialMediaLinks);

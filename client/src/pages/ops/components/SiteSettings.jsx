@@ -30,7 +30,7 @@ export default function SiteSettings() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(API_ENDPOINTS.SETTINGS.GET, {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.GET_ADMIN, {
         credentials: 'include'
       });
       if (response.ok) {
