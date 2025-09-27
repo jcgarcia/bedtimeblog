@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MediaSelector from '../MediaSelector';
+import { markdownToHtml, htmlToMarkdown } from '../../utils/markdownConverter';
 import './RichTextEditor.css';
 
 export default function RichTextEditor({ value, onChange, placeholder = "Write your post..." }) {
@@ -9,8 +10,12 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
   const editorRef = useRef(null);
 
   useEffect(() => {
-    if (editorRef.current && value !== editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = value || '';
+    if (editorRef.current) {
+      // Convert markdown to HTML for WYSIWYG display
+      const htmlContent = markdownToHtml(value || '');
+      if (htmlContent !== editorRef.current.innerHTML) {
+        editorRef.current.innerHTML = htmlContent;
+      }
     }
   }, [value]);
 
@@ -29,7 +34,9 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
 
   const handleInput = () => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      // Convert HTML back to markdown for storage
+      const markdownContent = htmlToMarkdown(editorRef.current.innerHTML);
+      onChange(markdownContent);
       
       // Re-attach click handlers to all images after content change
       setTimeout(() => {
@@ -261,7 +268,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
               handleImageClick(e, e.target);
             }
           }}
-          dangerouslySetInnerHTML={{ __html: value || '' }}
+          suppressContentEditableWarning={true}
           style={{
             minHeight: '400px',
             padding: '15px',
