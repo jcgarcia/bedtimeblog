@@ -11,11 +11,11 @@ export default function Sidebar() {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  // Load categories from API (excluding Jumble category)
+  // Load categories from API (only sidebar-visible categories)
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await categoriesAPI.getCategories({ excludeJumble: true, hierarchical: true });
+        const response = await categoriesAPI.getCategories({ sidebarOnly: true, hierarchical: true });
         if (response.success) {
           setCategories(response.data);
         } else {

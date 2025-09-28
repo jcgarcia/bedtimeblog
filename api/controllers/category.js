@@ -50,14 +50,19 @@ export const getCategories = async (req, res) => {
   try {
     // Check if we should exclude Jumble category (for public/reader use)
     const excludeJumble = req.query.exclude_jumble === 'true';
+    // Check if we should only show sidebar-visible categories
+    const sidebarOnly = req.query.sidebar_only === 'true';
     
     let whereClause = 'WHERE is_active = true';
     if (excludeJumble) {
       whereClause += ' AND id != 0'; // Exclude Jumble category (ID 0)
     }
+    if (sidebarOnly) {
+      whereClause += ' AND show_in_sidebar = true'; // Only show sidebar-visible categories
+    }
     
     const q = `
-      SELECT id, name, slug, description, color, parent_id, sort_order,
+      SELECT id, name, slug, description, color, parent_id, sort_order, show_in_sidebar,
              (SELECT COUNT(*) FROM posts WHERE category_id = categories.id) as post_count
       FROM categories 
       ${whereClause}
@@ -104,7 +109,7 @@ export const addCategory = async (req, res) => {
       return res.status(403).json("You don't have permission to create categories!");
     }
     
-    const { name, description, color, parent_id } = req.body;
+    const { name, description, color, parent_id, show_in_sidebar } = req.body;
     
     if (!name || name.trim() === '') {
       return res.status(400).json("Category name is required!");
@@ -134,8 +139,8 @@ export const addCategory = async (req, res) => {
     const sortOrder = sortOrderResult.rows[0].next_order;
     
     const q = `
-      INSERT INTO categories (name, slug, description, color, parent_id, sort_order, is_active, created_at, updated_at) 
-      VALUES ($1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
+      INSERT INTO categories (name, slug, description, color, parent_id, sort_order, show_in_sidebar, is_active, created_at, updated_at) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) 
       RETURNING *
     `;
     
@@ -145,7 +150,8 @@ export const addCategory = async (req, res) => {
       description?.trim() || null,
       color || '#3B82F6',
       parent_id || null,
-      sortOrder
+      sortOrder,
+      show_in_sidebar !== undefined ? show_in_sidebar : true
     ]);
     
     return res.status(201).json({
@@ -249,7 +255,7 @@ export const updateCategory = async (req, res) => {
     }
     
     const categoryId = req.params.id;
-    const { name, description, color, parent_id } = req.body;
+    const { name, description, color, parent_id, show_in_sidebar } = req.body;
     
     // Check if category exists
     const existingCategory = await pool.query('SELECT * FROM categories WHERE id = $1', [categoryId]);
@@ -291,8 +297,9 @@ export const updateCategory = async (req, res) => {
           description = COALESCE($3, description),
           color = COALESCE($4, color),
           parent_id = $5,
+          show_in_sidebar = COALESCE($6, show_in_sidebar),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
+      WHERE id = $7
       RETURNING *
     `;
     
@@ -302,6 +309,7 @@ export const updateCategory = async (req, res) => {
       description?.trim() || null,
       color || null,
       parent_id || null,
+      show_in_sidebar !== undefined ? show_in_sidebar : null,
       categoryId
     ]);
     

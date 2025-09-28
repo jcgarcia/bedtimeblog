@@ -12,7 +12,7 @@ export default function ContentManagement() {
   const [activeSection, setActiveSection] = useState('posts');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#3B82F6', parent_id: null });
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#3B82F6', parent_id: null, show_in_sidebar: true });
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -83,13 +83,14 @@ export default function ContentManagement() {
         name: newCategory.name.trim(),
         description: newCategory.description?.trim() || '',
         color: newCategory.color || '#3B82F6',
-        parent_id: newCategory.parent_id || null
+        parent_id: newCategory.parent_id || null,
+        show_in_sidebar: newCategory.show_in_sidebar
       });
       
       if (response.success) {
         // Add the new category to the local state
         setCategories([...categories, response.data.category]);
-        setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null });
+        setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null, show_in_sidebar: true });
         setShowAddForm(false);
         alert('Category created successfully!');
       } else {
@@ -142,7 +143,8 @@ export default function ContentManagement() {
       name: category.name,
       description: category.description || '',
       color: category.color || '#3B82F6',
-      parent_id: category.parent_id || null
+      parent_id: category.parent_id || null,
+      show_in_sidebar: category.show_in_sidebar !== undefined ? category.show_in_sidebar : true
     });
     setShowAddForm(true);
   };
@@ -158,7 +160,8 @@ export default function ContentManagement() {
         name: newCategory.name.trim(),
         description: newCategory.description?.trim() || '',
         color: newCategory.color || '#3B82F6',
-        parent_id: newCategory.parent_id || null
+        parent_id: newCategory.parent_id || null,
+        show_in_sidebar: newCategory.show_in_sidebar
       });
       
       if (response.success) {
@@ -166,7 +169,7 @@ export default function ContentManagement() {
         setCategories(categories.map(cat => 
           cat.id === editingCategory.id ? response.data.category : cat
         ));
-        setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null });
+        setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null, show_in_sidebar: true });
         setEditingCategory(null);
         setShowAddForm(false);
         alert('Category updated successfully!');
@@ -180,7 +183,7 @@ export default function ContentManagement() {
   };
   
   const cancelCategoryForm = () => {
-    setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null });
+    setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null, show_in_sidebar: true });
     setEditingCategory(null);
     setShowAddForm(false);
   };
@@ -471,6 +474,17 @@ export default function ContentManagement() {
             </select>
             <small>Select a parent category to create a subcategory (e.g., "Ice Cream" under "Food")</small>
           </div>
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input 
+                type="checkbox" 
+                checked={newCategory.show_in_sidebar}
+                onChange={(e) => setNewCategory({...newCategory, show_in_sidebar: e.target.checked})}
+              />
+              <span className="checkbox-text">Show in sidebar menu</span>
+            </label>
+            <small>Uncheck to hide this category from the public sidebar menu</small>
+          </div>
           <div className="form-actions">
             <button className="btn-primary" onClick={editingCategory ? handleUpdateCategory : handleAddCategory}>
               {editingCategory ? 'Update Category' : 'Create Category'}
@@ -520,6 +534,11 @@ export default function ContentManagement() {
                   {category.description && (
                     <p className="category-description">{category.description}</p>
                   )}
+                  <div className="category-flags">
+                    {!category.show_in_sidebar && (
+                      <span className="hidden-flag">Hidden in sidebar</span>
+                    )}
+                  </div>
                 </div>
                 <div className="category-actions">
                   <button 

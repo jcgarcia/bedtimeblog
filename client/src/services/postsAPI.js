@@ -193,6 +193,10 @@ export const categoriesAPI = {
         params.push('exclude_jumble=true');
       }
       
+      if (options.sidebarOnly) {
+        params.push('sidebar_only=true');
+      }
+      
       if (options.hierarchical) {
         params.push('hierarchical=true');
       }
