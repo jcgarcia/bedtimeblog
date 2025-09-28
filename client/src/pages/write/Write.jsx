@@ -34,6 +34,58 @@ const getSignedUrl = async (s3Key) => {
   return s3Key; // Fallback to original
 };
 
+// Convert S3 keys in content to signed URLs for display
+const convertContentS3KeysToUrls = async (content) => {
+  if (!content) return content;
+  
+  // Find all image references in the content (both img tags and markdown format)
+  const imgRegex = /<img[^>]*src="([^"]*uploads\/[^"]*)"[^>]*>/g;
+  const markdownImgRegex = /!\[[^\]]*\]\(([^)]*uploads\/[^)]*)\)/g;
+  
+  let updatedContent = content;
+  let match;
+  
+  // Handle HTML img tags - preserve all attributes
+  const imgMatches = [];
+  while ((match = imgRegex.exec(content)) !== null) {
+    imgMatches.push({ full: match[0], src: match[1] });
+  }
+  
+  // Handle Markdown images
+  const markdownMatches = [];
+  while ((match = markdownImgRegex.exec(content)) !== null) {
+    markdownMatches.push({ full: match[0], src: match[1] });
+  }
+  
+  // Convert all found S3 keys to signed URLs
+  for (const imgMatch of imgMatches) {
+    if (imgMatch.src.startsWith('uploads/')) {
+      try {
+        const signedUrl = await getSignedUrl(imgMatch.src);
+        // Replace only the src attribute value, preserving all other attributes
+        const updatedImgTag = imgMatch.full.replace(imgMatch.src, signedUrl);
+        updatedContent = updatedContent.replace(imgMatch.full, updatedImgTag);
+      } catch (error) {
+        console.error('Error generating signed URL:', error);
+      }
+    }
+  }
+  
+  // Handle markdown images separately
+  for (const markdownMatch of markdownMatches) {
+    if (markdownMatch.src.startsWith('uploads/')) {
+      try {
+        const signedUrl = await getSignedUrl(markdownMatch.src);
+        updatedContent = updatedContent.replace(markdownMatch.src, signedUrl);
+      } catch (error) {
+        console.error('Error converting S3 key to signed URL:', error);
+      }
+    }
+  }
+  
+  return updatedContent;
+};
+
 export default function Write() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -157,12 +209,22 @@ export default function Write() {
       if (response.success && response.data) {
         const post = response.data;
         console.log('Setting post data:', post); // Debug log
+        
+        // Convert S3 keys in content to signed URLs for display
+        const contentWithSignedUrls = await convertContentS3KeysToUrls(post.content || '');
+        
+        // Handle featured image - convert S3 key to signed URL if needed
+        let featuredImageUrl = post.featured_image || '';
+        if (featuredImageUrl && featuredImageUrl.startsWith('uploads/')) {
+          featuredImageUrl = await getSignedUrl(featuredImageUrl);
+        }
+        
         setFormData({
           title: post.title || '',
-          content: post.content || '',
+          content: contentWithSignedUrls,
           excerpt: post.excerpt || '',
           category: post.category_id || '',
-          featuredImage: post.featured_image || '',
+          featuredImage: featuredImageUrl,
           status: post.status || 'draft',
           authorId: post.author_id || currentUser?.id || ''
         });

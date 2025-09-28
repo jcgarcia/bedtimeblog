@@ -15,6 +15,31 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
       const htmlContent = markdownToHtml(value || '');
       if (htmlContent !== editorRef.current.innerHTML) {
         editorRef.current.innerHTML = htmlContent;
+        
+        // Restore image sizes from data-size attributes
+        const images = editorRef.current.querySelectorAll('img[data-size]');
+        images.forEach(img => {
+          const size = img.getAttribute('data-size');
+          let width, maxWidth;
+          switch (size) {
+            case 'small':
+              width = '300px';
+              maxWidth = '300px';
+              break;
+            case 'medium':
+              width = '500px';
+              maxWidth = '500px';
+              break;
+            case 'large':
+            default:
+              width = '100%';
+              maxWidth = '100%';
+              break;
+          }
+          img.style.width = width;
+          img.style.maxWidth = maxWidth;
+          img.style.height = 'auto';
+        });
       }
     }
   }, [value]);
@@ -68,7 +93,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
       
       // Insert image at cursor position with unique ID for management
       const imageId = 'img_' + Date.now();
-      const img = `<img id="${imageId}" src="${imageUrl}" alt="Image" style="max-width: 100%; height: auto; margin: 10px 0; cursor: pointer;" onclick="event.stopPropagation();" />`;
+      const img = `<img id="${imageId}" src="${imageUrl}" alt="Image" data-size="large" style="max-width: 100%; height: auto; margin: 10px 0; cursor: pointer;" onclick="event.stopPropagation();" />`;
       formatText('insertHTML', img);
       
       // Add click handler to the newly inserted image
@@ -123,6 +148,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
       selectedImage.style.width = width;
       selectedImage.style.maxWidth = maxWidth;
       selectedImage.style.height = 'auto';
+      selectedImage.setAttribute('data-size', size); // Preserve size info
       
       handleInput(); // Update the content
       setImageControls({ show: false, x: 0, y: 0 });
