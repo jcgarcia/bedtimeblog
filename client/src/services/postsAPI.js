@@ -197,6 +197,13 @@ export const categoriesAPI = {
         params.push('sidebar_only=true');
       }
       
+      if (options.includeAll) {
+        // For admin panel - don't apply any filters, get all categories
+        // This overrides other filtering options
+      } else {
+        // Apply default filtering for public use
+      }
+      
       if (options.hierarchical) {
         params.push('hierarchical=true');
       }

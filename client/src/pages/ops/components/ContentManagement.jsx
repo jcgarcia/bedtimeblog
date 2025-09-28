@@ -13,6 +13,11 @@ export default function ContentManagement() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#3B82F6', parent_id: null, show_in_sidebar: true });
+  
+  // Debug logging for state changes
+  React.useEffect(() => {
+    console.log('State change - showAddForm:', showAddForm, 'editingCategory:', editingCategory);
+  }, [showAddForm, editingCategory]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -24,8 +29,10 @@ export default function ContentManagement() {
 
   const fetchCategories = async () => {
     try {
+      // For admin panel, fetch ALL categories (including hidden ones) so we can manage their visibility
       const response = await categoriesAPI.getCategories();
       if (response.success) {
+        console.log('Fetched categories for admin:', response.data);
         setCategories(response.data);
       } else {
         console.error('Failed to fetch categories:', response.error);
