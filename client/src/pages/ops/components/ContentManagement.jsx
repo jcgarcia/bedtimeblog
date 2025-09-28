@@ -14,10 +14,17 @@ export default function ContentManagement() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#3B82F6', parent_id: null, show_in_sidebar: true });
   
-  // Debug logging for state changes
+  // Auto-scroll to form when it opens
   React.useEffect(() => {
-    console.log('State change - showAddForm:', showAddForm, 'editingCategory:', editingCategory);
-  }, [showAddForm, editingCategory]);
+    if (showAddForm) {
+      setTimeout(() => {
+        const formElement = document.querySelector('.add-category-form');
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [showAddForm]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -155,6 +162,19 @@ export default function ContentManagement() {
       show_in_sidebar: category.show_in_sidebar !== undefined ? category.show_in_sidebar : true
     });
     setShowAddForm(true);
+    
+    // Scroll to form and highlight it
+    setTimeout(() => {
+      const formElement = document.querySelector('.add-category-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        formElement.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
+        setTimeout(() => {
+          formElement.style.boxShadow = '';
+        }, 2000);
+      }
+    }, 100);
+    
     console.log('Form should be visible now, showAddForm:', true);
   };
   
@@ -437,8 +457,13 @@ export default function ContentManagement() {
   const renderCategoriesSection = () => (
     <div className="categories-section">
       {showAddForm && (
-        <div className="add-category-form">
-          <h3>{editingCategory ? 'Edit Category' : 'Add New Category'}</h3>
+        <div className="add-category-form category-form-overlay">
+          <div className="form-header">
+            <h3>{editingCategory ? '✏️ Edit Category' : '➕ Add New Category'}</h3>
+            <button className="close-form-btn" onClick={cancelCategoryForm} title="Close form">
+              ✕
+            </button>
+          </div>
           <div className="form-group">
             <label>Category Name *</label>
             <input 

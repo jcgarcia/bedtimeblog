@@ -94,12 +94,15 @@ export default function Write() {
     updatePreviewUrl();
   }, [formData.featuredImage]);
 
-  // Load categories for dropdown
+  // Load categories for dropdown (all active categories for post selection)
   const loadCategories = async () => {
     try {
       const response = await categoriesAPI.getCategories();
-      if (response.data) {
+      if (response.success && response.data) {
+        console.log('Categories loaded for post editor:', response.data);
         setCategories(response.data);
+      } else {
+        console.error('Failed to load categories:', response.error);
       }
     } catch (err) {
       console.error('Error loading categories:', err);

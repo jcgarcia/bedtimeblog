@@ -180,6 +180,49 @@
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 30px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.category-form-overlay {
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  border: 2px solid #007bff;
+  box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
+  z-index: 100;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #007bff;
+}
+
+.form-header h3 {
+  margin: 0;
+  color: #007bff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.close-form-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.close-form-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
 }
 
 .form-group {
