@@ -39,6 +39,11 @@ export default function Write() {
   const navigate = useNavigate();
   const { user } = useUser();
   const { adminUser, isAdmin } = useAdmin();
+  
+  // Define currentUser before using it in state initialization
+  const currentUser = isAdmin && adminUser ? adminUser : user;
+  const editPostId = searchParams.get('edit');
+  
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -59,9 +64,6 @@ export default function Write() {
   const [authChecked, setAuthChecked] = useState(false);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [featuredImagePreviewUrl, setFeaturedImagePreviewUrl] = useState('');
-
-  const currentUser = isAdmin && adminUser ? adminUser : user;
-  const editPostId = searchParams.get('edit');
 
   // Add auth check delay
   useEffect(() => {
