@@ -138,6 +138,7 @@ export default function ContentManagement() {
   };
   
   const handleEditCategory = (category) => {
+    console.log('Edit category clicked:', category);
     setEditingCategory(category);
     setNewCategory({
       name: category.name,
@@ -147,6 +148,7 @@ export default function ContentManagement() {
       show_in_sidebar: category.show_in_sidebar !== undefined ? category.show_in_sidebar : true
     });
     setShowAddForm(true);
+    console.log('Form should be visible now, showAddForm:', true);
   };
   
   const handleUpdateCategory = async () => {
