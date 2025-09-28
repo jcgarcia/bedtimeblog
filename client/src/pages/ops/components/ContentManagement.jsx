@@ -11,7 +11,8 @@ export default function ContentManagement() {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('posts');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: '', slug: '', description: '' });
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [newCategory, setNewCategory] = useState({ name: '', description: '', color: '#3B82F6', parent_id: null });
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -72,38 +73,116 @@ export default function ContentManagement() {
   };
 
   const handleAddCategory = async () => {
-    if (newCategory.name && newCategory.slug) {
-      try {
-        const response = await categoriesAPI.createCategory({
-          name: newCategory.name,
-          description: newCategory.description || ''
-        });
-        
-        if (response.success) {
-          // Add the new category to the local state
-          setCategories([...categories, response.data.category]);
-          setNewCategory({ name: '', slug: '', description: '' });
-          setShowAddForm(false);
-          alert('Category created successfully!');
-        } else {
-          alert(`Failed to create category: ${response.error}`);
-        }
-      } catch (error) {
-        console.error('Error creating category:', error);
-        alert('Error creating category. Please try again.');
+    if (!newCategory.name || newCategory.name.trim() === '') {
+      alert('Category name is required!');
+      return;
+    }
+    
+    try {
+      const response = await categoriesAPI.createCategory({
+        name: newCategory.name.trim(),
+        description: newCategory.description?.trim() || '',
+        color: newCategory.color || '#3B82F6',
+        parent_id: newCategory.parent_id || null
+      });
+      
+      if (response.success) {
+        // Add the new category to the local state
+        setCategories([...categories, response.data.category]);
+        setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null });
+        setShowAddForm(false);
+        alert('Category created successfully!');
+      } else {
+        alert(`Failed to create category: ${response.error}`);
       }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      alert('Error creating category. Please try again.');
     }
   };
 
-  const generateSlug = (name) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const handleDeleteCategory = async (categoryId, categoryName) => {
+    // Prevent deletion of Jumble category
+    if (parseInt(categoryId) === 0) {
+      alert('Cannot delete the default "Jumble" category!');
+      return;
+    }
+    
+    if (window.confirm(`Delete category "${categoryName}"? This cannot be undone. Any posts in this category will be moved to "Jumble".`)) {
+      try {
+        const response = await categoriesAPI.deleteCategory(categoryId);
+        
+        if (response.success) {
+          // Remove the category from local state
+          setCategories(categories.filter(cat => cat.id !== categoryId));
+          
+          // Show success message with details
+          const { postsReassigned, subcategoriesUpdated } = response.data;
+          let message = 'Category deleted successfully!';
+          if (postsReassigned > 0) {
+            message += `\n${postsReassigned} posts moved to "Jumble" category.`;
+          }
+          if (subcategoriesUpdated > 0) {
+            message += `\n${subcategoriesUpdated} subcategories converted to main categories.`;
+          }
+          alert(message);
+        } else {
+          alert(`Failed to delete category: ${response.error}`);
+        }
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        alert('Error deleting category. Please try again.');
+      }
+    }
   };
-
-  const handleNameChange = (name) => {
+  
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
     setNewCategory({
-      name,
-      slug: generateSlug(name)
+      name: category.name,
+      description: category.description || '',
+      color: category.color || '#3B82F6',
+      parent_id: category.parent_id || null
     });
+    setShowAddForm(true);
+  };
+  
+  const handleUpdateCategory = async () => {
+    if (!newCategory.name || newCategory.name.trim() === '') {
+      alert('Category name is required!');
+      return;
+    }
+    
+    try {
+      const response = await categoriesAPI.updateCategory(editingCategory.id, {
+        name: newCategory.name.trim(),
+        description: newCategory.description?.trim() || '',
+        color: newCategory.color || '#3B82F6',
+        parent_id: newCategory.parent_id || null
+      });
+      
+      if (response.success) {
+        // Update the category in local state
+        setCategories(categories.map(cat => 
+          cat.id === editingCategory.id ? response.data.category : cat
+        ));
+        setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null });
+        setEditingCategory(null);
+        setShowAddForm(false);
+        alert('Category updated successfully!');
+      } else {
+        alert(`Failed to update category: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Error updating category. Please try again.');
+    }
+  };
+  
+  const cancelCategoryForm = () => {
+    setNewCategory({ name: '', description: '', color: '#3B82F6', parent_id: null });
+    setEditingCategory(null);
+    setShowAddForm(false);
   };
 
   const handleFileUpload = async (event) => {
@@ -347,29 +426,56 @@ export default function ContentManagement() {
     <div className="categories-section">
       {showAddForm && (
         <div className="add-category-form">
+          <h3>{editingCategory ? 'Edit Category' : 'Add New Category'}</h3>
           <div className="form-group">
-            <label>Category Name</label>
+            <label>Category Name *</label>
             <input 
               type="text" 
               placeholder="e.g., Technology"
               value={newCategory.name}
-              onChange={(e) => handleNameChange(e.target.value)}
+              onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
             />
           </div>
           <div className="form-group">
-            <label>Slug (URL-friendly)</label>
-            <input 
-              type="text" 
-              placeholder="e.g., technology"
-              value={newCategory.slug}
-              onChange={(e) => setNewCategory({...newCategory, slug: e.target.value})}
+            <label>Description</label>
+            <textarea 
+              placeholder="Optional description for this category"
+              value={newCategory.description}
+              onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+              rows={3}
             />
           </div>
+          <div className="form-group">
+            <label>Color</label>
+            <input 
+              type="color" 
+              value={newCategory.color}
+              onChange={(e) => setNewCategory({...newCategory, color: e.target.value})}
+            />
+          </div>
+          <div className="form-group">
+            <label>Parent Category (Optional)</label>
+            <select 
+              value={newCategory.parent_id || ''}
+              onChange={(e) => setNewCategory({...newCategory, parent_id: e.target.value || null})}
+            >
+              <option value="">-- Main Category --</option>
+              {categories
+                .filter(cat => cat.id !== editingCategory?.id) // Prevent self-parent
+                .filter(cat => cat.id !== 0) // Hide Jumble category
+                .filter(cat => !cat.parent_id) // Only show main categories as parent options
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))
+              }
+            </select>
+            <small>Select a parent category to create a subcategory (e.g., "Ice Cream" under "Food")</small>
+          </div>
           <div className="form-actions">
-            <button className="btn-primary" onClick={handleAddCategory}>
-              Create Category
+            <button className="btn-primary" onClick={editingCategory ? handleUpdateCategory : handleAddCategory}>
+              {editingCategory ? 'Update Category' : 'Create Category'}
             </button>
-            <button className="btn-secondary" onClick={() => setShowAddForm(false)}>
+            <button className="btn-secondary" onClick={cancelCategoryForm}>
               Cancel
             </button>
           </div>
@@ -377,42 +483,66 @@ export default function ContentManagement() {
       )}
 
       <div className="categories-grid">
-        {categories.map(category => (
-          <div key={category.id} className="category-card">
-            <div className="category-info">
-              <h3>{category.name}</h3>
-              <p className="category-slug">/{category.slug}</p>
-              <p className="post-count">{category.post_count} posts</p>
-            </div>
-            <div className="category-actions">
-              <button 
-                className="btn-secondary"
-                onClick={() => {
-                  const newName = prompt('Enter new category name:', category.name);
-                  if (newName && newName !== category.name) {
-                    setCategories(categories.map(cat => 
-                      cat.id === category.id 
-                        ? {...cat, name: newName, slug: generateSlug(newName)}
-                        : cat
-                    ));
-                  }
-                }}
-              >
-                <i className="fa-solid fa-edit"></i> Edit
-              </button>
-              <button 
-                className="btn-danger"
-                onClick={() => {
-                  if (window.confirm(`Delete category "${category.name}"? This cannot be undone.`)) {
-                    setCategories(categories.filter(cat => cat.id !== category.id));
-                  }
-                }}
-              >
-                <i className="fa-solid fa-trash"></i> Delete
-              </button>
-            </div>
-          </div>
-        ))}
+        {categories
+          .sort((a, b) => {
+            // Sort by parent-child relationship, then by name
+            if (!a.parent_id && b.parent_id) return -1;
+            if (a.parent_id && !b.parent_id) return 1;
+            if (a.parent_id && b.parent_id) {
+              const parentA = categories.find(c => c.id === a.parent_id)?.name || '';
+              const parentB = categories.find(c => c.id === b.parent_id)?.name || '';
+              if (parentA !== parentB) return parentA.localeCompare(parentB);
+            }
+            return a.name.localeCompare(b.name);
+          })
+          .map(category => {
+            const parentCategory = category.parent_id ? categories.find(c => c.id === category.parent_id) : null;
+            const subcategories = categories.filter(c => c.parent_id === category.id);
+            
+            return (
+              <div key={category.id} className={`category-card ${category.parent_id ? 'subcategory' : ''}`}>
+                <div className="category-info">
+                  <div className="category-header">
+                    <h3 style={{ color: category.color }}>
+                      {category.parent_id && <span className="subcategory-indicator">↳ </span>}
+                      {category.name}
+                      {category.id === 0 && <span className="default-badge">Default</span>}
+                    </h3>
+                    {parentCategory && (
+                      <p className="parent-category">under {parentCategory.name}</p>
+                    )}
+                  </div>
+                  <p className="category-slug">/{category.slug}</p>
+                  <p className="post-count">{category.post_count || 0} posts</p>
+                  {subcategories.length > 0 && (
+                    <p className="subcategory-count">{subcategories.length} subcategories</p>
+                  )}
+                  {category.description && (
+                    <p className="category-description">{category.description}</p>
+                  )}
+                </div>
+                <div className="category-actions">
+                  <button 
+                    className="btn-secondary"
+                    onClick={() => handleEditCategory(category)}
+                    disabled={category.id === 0} // Disable editing Jumble category
+                    title={category.id === 0 ? 'Cannot edit default category' : 'Edit category'}
+                  >
+                    <i className="fa-solid fa-edit"></i> Edit
+                  </button>
+                  <button 
+                    className="btn-danger"
+                    onClick={() => handleDeleteCategory(category.id, category.name)}
+                    disabled={category.id === 0} // Disable deleting Jumble category
+                    title={category.id === 0 ? 'Cannot delete default category' : 'Delete category'}
+                  >
+                    <i className="fa-solid fa-trash"></i> Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        }
       </div>
 
       <div className="category-info-box">
@@ -461,9 +591,15 @@ export default function ContentManagement() {
           ) : (
             <button 
               className="btn-primary"
-              onClick={() => setShowAddForm(!showAddForm)}
+              onClick={() => {
+                if (showAddForm) {
+                  cancelCategoryForm();
+                } else {
+                  setShowAddForm(true);
+                }
+              }}
             >
-              <i className="fa-solid fa-plus"></i> Add Category
+              <i className="fa-solid fa-plus"></i> {showAddForm ? 'Cancel' : 'Add Category'}
             </button>
           )}
         </div>

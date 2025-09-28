@@ -11,11 +11,11 @@ export default function Sidebar() {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  // Load categories from API
+  // Load categories from API (excluding Jumble category)
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await categoriesAPI.getCategories();
+        const response = await categoriesAPI.getCategories({ excludeJumble: true, hierarchical: true });
         if (response.success) {
           setCategories(response.data);
         } else {
@@ -65,17 +65,41 @@ export default function Sidebar() {
             </li>
           ) : categories.length > 0 ? (
             categories.map((category) => (
-              <li 
-                key={category.slug} 
-                className={`sidebarListItem ${currentCategory === category.slug ? 'active' : ''}`}
-              >
-                <Link 
-                  to={`/category/${category.slug}`} 
-                  className="sidebar-link"
+              <div key={category.slug}>
+                <li 
+                  className={`sidebarListItem ${currentCategory === category.slug ? 'active' : ''}`}
                 >
-                  {category.name}
-                </Link>
-              </li>
+                  <Link 
+                    to={`/category/${category.slug}`} 
+                    className="sidebar-link"
+                  >
+                    {category.name}
+                    {category.post_count > 0 && (
+                      <span className="category-post-count">({category.post_count})</span>
+                    )}
+                  </Link>
+                </li>
+                {category.subcategories && category.subcategories.length > 0 && (
+                  <ul className="subcategory-list">
+                    {category.subcategories.map((subcategory) => (
+                      <li 
+                        key={subcategory.slug}
+                        className={`sidebarListItem subcategory ${currentCategory === subcategory.slug ? 'active' : ''}`}
+                      >
+                        <Link 
+                          to={`/category/${subcategory.slug}`} 
+                          className="sidebar-link"
+                        >
+                          {subcategory.name}
+                          {subcategory.post_count > 0 && (
+                            <span className="category-post-count">({subcategory.post_count})</span>
+                          )}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             ))
           ) : (
             <li className="sidebarListItem">

@@ -184,9 +184,24 @@ ${postData.content || postData.desc || description}`;
 // Categories API
 export const categoriesAPI = {
   // Get all categories
-  getCategories: async () => {
+  getCategories: async (options = {}) => {
     try {
-      const response = await api.get('/categories');
+      let url = '/categories';
+      const params = [];
+      
+      if (options.excludeJumble) {
+        params.push('exclude_jumble=true');
+      }
+      
+      if (options.hierarchical) {
+        params.push('hierarchical=true');
+      }
+      
+      if (params.length > 0) {
+        url += '?' + params.join('&');
+      }
+      
+      const response = await api.get(url);
       return {
         success: true,
         data: response.data
@@ -213,6 +228,40 @@ export const categoriesAPI = {
       return {
         success: false,
         error: error.response?.data?.message || error.response?.data || 'Failed to create category'
+      };
+    }
+  },
+
+  // Update an existing category
+  updateCategory: async (id, categoryData) => {
+    try {
+      const response = await api.put(`/categories/${id}`, categoryData);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error updating category:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.response?.data?.message || 'Failed to update category'
+      };
+    }
+  },
+
+  // Delete a category
+  deleteCategory: async (id) => {
+    try {
+      const response = await api.delete(`/categories/${id}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.response?.data?.message || 'Failed to delete category'
       };
     }
   },
