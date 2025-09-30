@@ -361,7 +361,7 @@ export default function MediaManagement() {
   // Load existing AWS configuration from database
   const loadAwsConfiguration = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.SETTINGS.AWS_CONFIG, {
+      const response = await fetch(API_ENDPOINTS.SETTINGS.GET_ADMIN, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
