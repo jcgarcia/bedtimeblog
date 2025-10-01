@@ -109,6 +109,7 @@ export default function MediaManagement() {
         const data = await response.json();
         if (data.config) {
           // Set the correct storage type from database
+          console.log('Loading storage config:', data.config.storageType);
           setMediaServerType(data.config.storageType || 'internal');
           
           // Load cloud configurations if available

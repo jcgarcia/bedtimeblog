@@ -398,6 +398,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
         <MediaSelector
           onSelect={insertImage}
           onClose={() => setShowMediaSelector(false)}
+          title="Insert Image"
         />
       )}
     </div>

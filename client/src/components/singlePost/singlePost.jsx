@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { postsAPI } from '../../config/apiService';
 import { useUser } from '../../contexts/UserContext';
 import { useAdmin } from '../../contexts/AdminContext';
-import axios from 'axios';
 import { markdownToHtml } from '../../utils/markdownConverter';
+import LikeButton from '../Social/LikeButton';
+import Comments from '../Social/Comments';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
 
@@ -16,8 +17,6 @@ export default function SinglePost() {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [likeCount, setLikeCount] = useState(0);
-  const [liked, setLiked] = useState(false);
 
   // Get current user (admin or regular user)
   const currentUser = isAdmin && adminUser ? adminUser : user;
@@ -25,7 +24,6 @@ export default function SinglePost() {
   useEffect(() => {
     if (postId) {
       fetchPost();
-      fetchLikes();
     }
   }, [postId]);
 
@@ -49,37 +47,7 @@ export default function SinglePost() {
     }
   };
 
-  const fetchLikes = async () => {
-    try {
-      const res = await axios.get(`/api/likes/${postId}`);
-      setLikeCount(res.data.likes);
-      // Optionally, check if current user has liked (requires backend support)
-    } catch (err) {
-      setLikeCount(0);
-    }
-  };
 
-  const handleLike = async () => {
-    if (!currentUser) return;
-    try {
-      await axios.post(`/api/likes/${postId}`, { userId: currentUser.id });
-      setLiked(true);
-      setLikeCount(likeCount + 1);
-    } catch (err) {
-      alert('Failed to like post.');
-    }
-  };
-
-  const handleUnlike = async () => {
-    if (!currentUser) return;
-    try {
-      await axios.delete(`/api/likes/${postId}`, { data: { userId: currentUser.id } });
-      setLiked(false);
-      setLikeCount(likeCount - 1);
-    } catch (err) {
-      alert('Failed to unlike post.');
-    }
-  };
 
   // Check if current user can edit this post
   const canEditPost = () => {
@@ -237,17 +205,6 @@ export default function SinglePost() {
               </div>
             )}
             </h1>
-            {/* Likes button and count */}
-            <div className="singlePostLikes">
-              <button 
-                className={liked ? "liked-btn" : "like-btn"}
-                onClick={liked ? handleUnlike : handleLike}
-                disabled={!currentUser}
-              >
-                {liked ? '❤️ Unlike' : '🤍 Like'}
-              </button>
-              <span>{likeCount} likes</span>
-            </div>
             <div className="singlePostInfo">
                 <span className='singlePostAuthor'>
                     Author: <b>{formatAuthorName(post)}</b>
@@ -294,6 +251,14 @@ export default function SinglePost() {
               <span>💬 {post.comment_count || 0} comments</span>
               {post.reading_time && <span>📖 {post.reading_time} min read</span>}
             </div>
+
+            {/* Social Features */}
+            <LikeButton 
+              postId={postId} 
+              initialLikes={post.like_count || 0}
+            />
+            
+            <Comments postId={postId} />
       </div>
     </div>
   );

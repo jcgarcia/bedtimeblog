@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './MediaSelector.css';
 
-const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
+const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featured Image" }) => {
   const [media, setMedia] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -118,7 +118,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
       <div className="media-selector-overlay">
         <div className="media-selector-modal">
           <div className="media-selector-header">
-            <h3>Select Featured Image</h3>
+            <h3>{title}</h3>
             <button className="close-btn" onClick={onClose}>×</button>
           </div>
           <div className="media-selector-loading">Loading media...</div>
@@ -132,7 +132,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
       <div className="media-selector-overlay">
         <div className="media-selector-modal">
           <div className="media-selector-header">
-            <h3>Select Featured Image</h3>
+            <h3>{title}</h3>
             <button className="close-btn" onClick={onClose}>×</button>
           </div>
           <div className="media-selector-error">Error: {error}</div>
@@ -145,7 +145,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose }) => {
     <div className="media-selector-overlay">
       <div className="media-selector-modal">
         <div className="media-selector-header">
-          <h3>Select Featured Image</h3>
+          <h3>{title}</h3>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         
