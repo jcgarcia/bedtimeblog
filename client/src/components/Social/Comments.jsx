@@ -43,6 +43,12 @@ const Comments = ({ postId }) => {
 
   // Build threaded comment structure
   const buildCommentTree = (comments) => {
+    // If comments already have replies (API provides threaded structure)
+    if (comments.length > 0 && comments[0].replies !== undefined) {
+      return comments;
+    }
+
+    // Fallback: build tree structure manually
     const commentMap = {};
     const rootComments = [];
 
@@ -53,8 +59,9 @@ const Comments = ({ postId }) => {
 
     // Second pass: organize into tree structure
     comments.forEach(comment => {
-      if (comment.parent_id && commentMap[comment.parent_id]) {
-        commentMap[comment.parent_id].replies.push(commentMap[comment.id]);
+      const parentId = comment.parentId || comment.parent_id;
+      if (parentId && commentMap[parentId]) {
+        commentMap[parentId].replies.push(commentMap[comment.id]);
       } else {
         rootComments.push(commentMap[comment.id]);
       }

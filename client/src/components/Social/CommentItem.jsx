@@ -108,10 +108,17 @@ const CommentItem = forwardRef(({ comment, postId, onCommentUpdated, level = 0 }
   };
 
   const getAuthorName = () => {
-    if (comment.first_name && comment.last_name) {
-      return `${comment.first_name} ${comment.last_name}`;
-    } else if (comment.first_name) {
-      return comment.first_name;
+    const author = comment.author || comment;
+    if (author.firstName && author.lastName) {
+      return `${author.firstName} ${author.lastName}`;
+    } else if (author.first_name && author.last_name) {
+      return `${author.first_name} ${author.last_name}`;
+    } else if (author.firstName) {
+      return author.firstName;
+    } else if (author.first_name) {
+      return author.first_name;
+    } else if (author.username) {
+      return author.username;
     } else if (comment.username) {
       return comment.username;
     } else {
@@ -124,8 +131,8 @@ const CommentItem = forwardRef(({ comment, postId, onCommentUpdated, level = 0 }
       <div className="comment-header">
         <div className="comment-author">
           <strong>{getAuthorName()}</strong>
-          <span className="comment-date">{formatDate(comment.created_at)}</span>
-          {comment.updated_at !== comment.created_at && (
+          <span className="comment-date">{formatDate(comment.createdAt || comment.created_at)}</span>
+          {(comment.updatedAt || comment.updated_at) !== (comment.createdAt || comment.created_at) && (
             <span className="comment-edited">(edited)</span>
           )}
         </div>
