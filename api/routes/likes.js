@@ -1,15 +1,16 @@
 import express from 'express';
-import { addLike, removeLike, getLikes } from '../controllers/likes.js';
+import { addLike, removeLike, getLikes, toggleLike } from '../controllers/likes.js';
 
 const router = express.Router();
 
-// Get likes for a post
+// Get likes for a post (includes user's like status if authenticated)
 router.get('/:postId', getLikes);
 
-// Add a like to a post
-router.post('/:postId', addLike);
+// Toggle like on a post (preferred method)
+router.post('/:postId/toggle', toggleLike);
 
-// Remove a like from a post
+// Legacy endpoints for backward compatibility
+router.post('/:postId', addLike);
 router.delete('/:postId', removeLike);
 
 export default router;
