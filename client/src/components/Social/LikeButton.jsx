@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import { useAdmin } from '../../contexts/AdminContext';
+import { API_URL } from '../../config/api';
 import axios from 'axios';
 import './Social.css';
 
@@ -20,7 +21,7 @@ const LikeButton = ({ postId, initialLikes = 0, initialUserHasLiked = false }) =
 
   const fetchLikes = async () => {
     try {
-      const response = await axios.get(`/api/likes/${postId}`);
+      const response = await axios.get(`${API_URL}/api/likes/${postId}`);
       setLikeCount(response.data.likes);
       setUserHasLiked(response.data.userHasLiked || false);
     } catch (error) {
@@ -37,7 +38,7 @@ const LikeButton = ({ postId, initialLikes = 0, initialUserHasLiked = false }) =
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
       
-      const response = await axios.post(`/api/likes/${postId}/toggle`, {}, {
+      const response = await axios.post(`${API_URL}/api/likes/${postId}/toggle`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

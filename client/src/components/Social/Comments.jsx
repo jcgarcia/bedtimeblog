@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../../config/api';
 import axios from 'axios';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
@@ -21,7 +22,7 @@ const Comments = ({ postId }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get(`/api/social/posts/${postId}/comments`);
+      const response = await axios.get(`${API_URL}/api/social/posts/${postId}/comments`);
       
       if (response.data.success) {
         setComments(response.data.comments || []);

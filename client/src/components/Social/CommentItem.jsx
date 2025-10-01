@@ -1,6 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import { useAdmin } from '../../contexts/AdminContext';
+import { API_URL } from '../../config/api';
 import axios from 'axios';
 import CommentForm from './CommentForm';
 import './Social.css';
@@ -40,7 +41,7 @@ const CommentItem = forwardRef(({ comment, postId, onCommentUpdated, level = 0 }
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
       
-      const response = await axios.put(`/api/social/comments/${comment.id}`, {
+      const response = await axios.put(`${API_URL}/api/social/comments/${comment.id}`, {
         content: editContent.trim()
       }, {
         headers: {
@@ -70,7 +71,7 @@ const CommentItem = forwardRef(({ comment, postId, onCommentUpdated, level = 0 }
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
       
-      const response = await axios.delete(`/api/social/comments/${comment.id}`, {
+      const response = await axios.delete(`${API_URL}/api/social/comments/${comment.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

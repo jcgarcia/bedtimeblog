@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../contexts/UserContext';
 import { useAdmin } from '../../contexts/AdminContext';
+import { API_URL } from '../../config/api';
 import axios from 'axios';
 import './Social.css';
 
@@ -22,8 +23,8 @@ const CommentForm = ({ postId, parentId = null, onCommentAdded, onCancel }) => {
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
       
       const url = parentId 
-        ? `/api/social/comments/${parentId}/reply`
-        : `/api/social/posts/${postId}/comments`;
+        ? `${API_URL}/api/social/comments/${parentId}/reply`
+        : `${API_URL}/api/social/posts/${postId}/comments`;
       
       const payload = parentId 
         ? { postId: parseInt(postId), content: content.trim() }
