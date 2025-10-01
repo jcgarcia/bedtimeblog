@@ -1,8 +1,9 @@
-import pool from '../config/database.js';
+import { getDbPool } from '../db.js';
 
 // Track a view for a post
-const trackView = async (req, res) => {
+export async function trackView(req, res) {
   const { postId } = req.params;
+  const pool = getDbPool();
   
   try {
     // Validate post ID
@@ -77,8 +78,9 @@ const trackView = async (req, res) => {
 };
 
 // Get view count for a post
-const getViewCount = async (req, res) => {
+export const getViewCount = async (req, res) => {
   const { postId } = req.params;
+  const pool = getDbPool();
   
   try {
     if (!postId || isNaN(postId)) {
@@ -116,7 +118,4 @@ const getViewCount = async (req, res) => {
   }
 };
 
-export {
-  trackView,
-  getViewCount
-};
+// Functions are already exported above
