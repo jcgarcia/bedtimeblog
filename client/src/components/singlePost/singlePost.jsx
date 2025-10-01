@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { postsAPI } from '../../config/apiService';
 import { useUser } from '../../contexts/UserContext';
 import { useAdmin } from '../../contexts/AdminContext';
+import { API_URL } from '../../config/api';
 import { markdownToHtml } from '../../utils/markdownConverter';
 import LikeButton from '../Social/LikeButton';
 import Comments from '../Social/Comments';
+import axios from 'axios';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
 
@@ -36,6 +38,8 @@ export default function SinglePost() {
       
       if (response.success && response.data) {
         setPost(response.data);
+        // Track view after successfully loading the post
+        trackView(postId);
       } else {
         setError('Post not found');
       }
@@ -44,6 +48,17 @@ export default function SinglePost() {
       setError('Failed to load post. Please try again later.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Track a view for this post
+  const trackView = async (postId) => {
+    try {
+      await axios.post(`${API_URL}/api/views/${postId}/track`);
+      // View tracking is silent - no need to show success/error to user
+    } catch (error) {
+      // Silently fail view tracking - don't disturb user experience
+      console.log('View tracking failed (optional):', error.message);
     }
   };
 

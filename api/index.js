@@ -11,6 +11,7 @@ import staticPagesRoutes from "./routes/staticPages.js";
 import mediaRoutes from "./routes/media.js";
 import likesRoutes from "./routes/likes.js";
 import socialFeaturesRoutes from "./routes/socialFeatures.js";
+import viewsRoutes from "./routes/views.js";
 import awsRoutes from "./routes/aws.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
@@ -165,6 +166,7 @@ app.use("/api/pages", staticPagesRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/likes", likesRoutes);
 app.use("/api/social", socialFeaturesRoutes);
+app.use("/api/views", viewsRoutes);
 app.use("/api/aws", awsRoutes);
 
 const PORT = process.env.PORT || 5000;
