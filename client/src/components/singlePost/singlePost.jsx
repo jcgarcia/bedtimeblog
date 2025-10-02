@@ -277,8 +277,8 @@ export default function SinglePost() {
               />
               <ShareButton 
                 postId={postId}
-                postTitle={post.title || 'Check out this post'}
-                postDescription={post.excerpt || post.meta_description || 'Interesting blog post'}
+                postTitle={post.title}
+                postDescription={post.excerpt || post.meta_description || (post.content ? post.content.replace(/<[^>]*>/g, '').replace(/#+\s*/g, '').substring(0, 150) + '...' : null)}
                 postUrl={window.location.href}
                 initialShareCount={post.share_count || 0}
                 onShareCountUpdate={(count) => {

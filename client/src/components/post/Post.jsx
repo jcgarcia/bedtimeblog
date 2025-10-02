@@ -89,8 +89,8 @@ export default function Post({ post }) {
           />
           <ShareButton 
             postId={post?.id}
-            postTitle={post?.title || 'Check out this post'}
-            postDescription={post?.excerpt || getDescription(post?.content) || 'Interesting blog post'}
+            postTitle={post?.title}
+            postDescription={post?.excerpt || getDescription(post?.content)}
             postUrl={`${window.location.origin}/post/${post?.id}`}
             initialShareCount={post?.share_count || 0}
           />

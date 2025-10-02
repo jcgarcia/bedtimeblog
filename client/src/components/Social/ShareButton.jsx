@@ -11,10 +11,14 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
   // Get the full post URL
   const fullPostUrl = postUrl || `${window.location.origin}/post/${postId}`;
   
+  // Ensure we have valid strings for encoding
+  const safeTitle = postTitle && postTitle !== 'null' && postTitle !== 'undefined' ? postTitle : 'Check out this interesting post';
+  const safeDescription = postDescription && postDescription !== 'null' && postDescription !== 'undefined' ? postDescription : 'Discover interesting content on our blog';
+  
   // Encode content for sharing
-  const encodedTitle = encodeURIComponent(postTitle || 'Check out this post');
+  const encodedTitle = encodeURIComponent(safeTitle);
   const encodedUrl = encodeURIComponent(fullPostUrl);
-  const encodedDescription = encodeURIComponent(postDescription || '');
+  const encodedDescription = encodeURIComponent(safeDescription);
 
   // Fetch initial share count
   useEffect(() => {
@@ -108,8 +112,8 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
     if (navigator.share) {
       try {
         await navigator.share({
-          title: postTitle,
-          text: postDescription,
+          title: safeTitle,
+          text: safeDescription,
           url: fullPostUrl,
         });
         trackShare('native');
