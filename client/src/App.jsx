@@ -1,8 +1,5 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import React, { useEffect, useSt            </Router>
-          </AdminProvider>
-        </UserProvider>
-      </HelmetProvider> } from 'react';
+import React, { useEffect, useState } from 'react';
 import Single from "./pages/single/Single";
 import TopBar from "./components/topbar/TopBar";
 import Footer from "./components/footer/Footer";
@@ -112,6 +109,7 @@ function App() {
           </Router>
         </AdminProvider>
       </UserProvider>
+      </HelmetProvider>
     </div>
   );
 }
