@@ -68,12 +68,13 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
               const imageFiles = data.media.filter(item => {
                 return item.file_type && (
                   item.file_type.startsWith('image/') || 
-                  (item.file_name || item.original_name)?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                  (item.filename || item.file_name || item.original_name)?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
                 );
               }).map(item => ({
                 ...item,
-                // Ensure we have the right properties for display
-                file_name: item.file_name || item.original_name,
+                // Preserve both original_name for display and filename for serving
+                display_name: item.original_name || item.file_name || item.filename,
+                filename: item.filename || item.file_name,
                 public_url: item.public_url || item.signed_url || item.url
               }));
               
@@ -103,9 +104,12 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
       // Always use the permanent media serving endpoint to avoid URL expiration
       let imageUrl;
       
-      if (selectedItem.file_name) {
+      // Use the actual filename from database (not original_name)
+      const actualFilename = selectedItem.filename || selectedItem.file_name;
+      
+      if (actualFilename) {
         // Use the media serving endpoint for permanent URLs
-        imageUrl = `https://bapi.ingasti.com/api/media/serve/${selectedItem.file_name}`;
+        imageUrl = `https://bapi.ingasti.com/api/media/serve/${actualFilename}`;
       } else if (selectedItem.public_url && !selectedItem.public_url.includes('PRIVATE_BUCKET') && !selectedItem.public_url.includes('X-Amz-')) {
         // Only use public_url if it's not a signed URL (doesn't contain X-Amz-)
         imageUrl = selectedItem.public_url;
@@ -172,11 +176,11 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
                 >
                   <img 
                     src={item.public_url} 
-                    alt={item.file_name}
+                    alt={item.display_name}
                     className="media-thumbnail"
                   />
                   <div className="media-info">
-                    <div className="media-name">{item.file_name}</div>
+                    <div className="media-name">{item.display_name}</div>
                     <div className="media-details">
                       {item.file_size && <span className="media-size">{item.file_size}</span>}
                       {item.file_type && <span className="media-type">{item.file_type}</span>}
@@ -196,7 +200,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
         <div className="media-selector-footer">
           <div className="selection-info">
             {selectedItem ? (
-              <span>Selected: {selectedItem.file_name}</span>
+              <span>Selected: {selectedItem.display_name}</span>
             ) : (
               <span>Click an image to select it</span>
             )}
