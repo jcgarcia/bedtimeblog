@@ -95,14 +95,15 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
 
   const handleInsert = () => {
     if (selectedItem) {
-      // Use the public_url if available, otherwise construct the serve URL from filename
+      // Always use the permanent media serving endpoint to avoid URL expiration
       let imageUrl;
       
-      if (selectedItem.public_url && !selectedItem.public_url.includes('PRIVATE_BUCKET')) {
-        imageUrl = selectedItem.public_url;
-      } else if (selectedItem.file_name) {
-        // Use the media serving endpoint
+      if (selectedItem.file_name) {
+        // Use the media serving endpoint for permanent URLs
         imageUrl = `https://bapi.ingasti.com/api/media/serve/${selectedItem.file_name}`;
+      } else if (selectedItem.public_url && !selectedItem.public_url.includes('PRIVATE_BUCKET') && !selectedItem.public_url.includes('X-Amz-')) {
+        // Only use public_url if it's not a signed URL (doesn't contain X-Amz-)
+        imageUrl = selectedItem.public_url;
       } else {
         // Fallback to s3_key if we have it
         imageUrl = selectedItem.s3_key || selectedItem.file_path;
