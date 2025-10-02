@@ -15,12 +15,17 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
     try {
       setLoading(true);
       
-      const adminToken = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
+      
+      if (!token) {
+        setError('Authentication required. Please log in to access media library.');
+        return;
+      }
       
       // Get the actual folder list from the API
       const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
         headers: {
-          'Authorization': `Bearer ${adminToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -50,7 +55,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
           
           const response = await fetch(mediaUrl, {
             headers: {
-              'Authorization': `Bearer ${adminToken}`,
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
@@ -83,7 +88,7 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
       setMedia(allMedia);
     } catch (err) {
       console.error('Error fetching media:', err);
-      setError(err.message);
+      setError(`Failed to load media: ${err.message}. Please make sure you're logged in.`);
     } finally {
       setLoading(false);
     }
