@@ -8,8 +8,9 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
   const [copySuccess, setCopySuccess] = useState(false);
   const [shareCount, setShareCount] = useState(initialShareCount);
 
-  // Get the full post URL
-  const fullPostUrl = postUrl || `${window.location.origin}/post/${postId}`;
+  // Get URLs for sharing
+  const regularPostUrl = postUrl || `${window.location.origin}/post/${postId}`;
+  const sharePostUrl = postId ? `${API_URL}/share/post/${postId}` : `${API_URL}/share`;
   
   // Ensure we have valid strings for encoding
   const safeTitle = postTitle && postTitle !== 'null' && postTitle !== 'undefined' ? postTitle : 'Check out this interesting post';
@@ -17,7 +18,8 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
   
   // Encode content for sharing
   const encodedTitle = encodeURIComponent(safeTitle);
-  const encodedUrl = encodeURIComponent(fullPostUrl);
+  const encodedShareUrl = encodeURIComponent(sharePostUrl); // Use share URL for social media
+  const encodedRegularUrl = encodeURIComponent(regularPostUrl); // Use regular URL for copy/native
   const encodedDescription = encodeURIComponent(safeDescription);
 
   // Fetch initial share count
@@ -64,31 +66,31 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
   // Share on different platforms
   const shareOnFacebook = () => {
     trackShare('facebook');
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl}`, '_blank');
     setShowDropdown(false);
   };
 
   const shareOnTwitter = () => {
     trackShare('twitter');
-    window.open(`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`, '_blank');
+    window.open(`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedShareUrl}`, '_blank');
     setShowDropdown(false);
   };
 
   const shareOnLinkedIn = () => {
     trackShare('linkedin');
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`, '_blank');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodedShareUrl}`, '_blank');
     setShowDropdown(false);
   };
 
   const shareOnWhatsApp = () => {
     trackShare('whatsapp');
-    window.open(`https://wa.me/?text=${encodedTitle}%20${encodedUrl}`, '_blank');
+    window.open(`https://wa.me/?text=${encodedTitle}%20${encodedShareUrl}`, '_blank');
     setShowDropdown(false);
   };
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(fullPostUrl);
+      await navigator.clipboard.writeText(regularPostUrl); // Use regular URL for copying
       setCopySuccess(true);
       trackShare('copy_link');
       setTimeout(() => setCopySuccess(false), 2000);
@@ -96,7 +98,7 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
       console.error('Failed to copy URL:', error);
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = fullPostUrl;
+      textArea.value = regularPostUrl;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
@@ -114,7 +116,7 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCount
         await navigator.share({
           title: safeTitle,
           text: safeDescription,
-          url: fullPostUrl,
+          url: regularPostUrl, // Use regular URL for native sharing
         });
         trackShare('native');
       } catch (error) {
