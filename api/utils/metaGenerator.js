@@ -124,12 +124,21 @@ export async function getPostForMeta(postId) {
         p.updated_at,
         u.username as author
       FROM posts p
-      LEFT JOIN users u ON p.uid = u.id
+      LEFT JOIN users u ON p.author_id = u.id
       WHERE p.id = $1 AND p.status = 'published'
     `;
     
+    console.log('Querying for post ID:', postId);
     const result = await pool.query(query, [postId]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    console.log('Query result rows count:', result.rows.length);
+    
+    if (result.rows.length > 0) {
+      console.log('Found post:', result.rows[0].title);
+      return result.rows[0];
+    } else {
+      console.log('No post found for ID:', postId, 'with status published');
+      return null;
+    }
   } catch (error) {
     console.error('Error fetching post for meta tags:', error);
     return null;
