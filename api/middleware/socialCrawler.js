@@ -33,6 +33,10 @@ function isCrawler(userAgent) {
 export const socialCrawlerMiddleware = async (req, res, next) => {
   const userAgent = req.get('User-Agent');
   
+  console.log('Social crawler middleware called for path:', req.path);
+  console.log('User agent:', userAgent);
+  console.log('Is crawler:', isCrawler(userAgent));
+  
   // Only handle crawler requests
   if (!isCrawler(userAgent)) {
     return next();
@@ -42,17 +46,22 @@ export const socialCrawlerMiddleware = async (req, res, next) => {
     let metaTags, htmlPage;
     
     // Check if this is a post route
-    const postMatch = req.path.match(/^\/post\/(\d+)$/);
+    const postMatch = req.path.match(/^\/share\/post\/(\d+)$/);
+    console.log('Post match result:', postMatch);
     
     if (postMatch) {
       // Handle post pages
       const postId = parseInt(postMatch[1]);
+      console.log('Looking for post ID:', postId);
       const post = await getPostForMeta(postId);
+      console.log('Post found:', post ? post.title : 'null');
       
       if (post) {
         metaTags = generateMetaTags('post', post);
         htmlPage = generateSocialPreviewPage(metaTags, 'post', post);
+        console.log('Generated post-specific HTML for crawler');
       } else {
+        console.log('Post not found, returning 404');
         // Post not found, serve 404
         return res.status(404).send(`
           <!DOCTYPE html>
@@ -71,6 +80,7 @@ export const socialCrawlerMiddleware = async (req, res, next) => {
         `);
       }
     } else {
+      console.log('No post match, serving homepage content');
       // Handle homepage and other routes
       metaTags = generateMetaTags('home', {});
       htmlPage = generateSocialPreviewPage(metaTags, 'home');
