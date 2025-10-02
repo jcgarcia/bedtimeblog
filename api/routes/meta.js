@@ -143,7 +143,7 @@ router.get('/data/post/:id', async (req, res) => {
         title: post.title,
         description: post.excerpt || post.content?.substring(0, 160),
         image: post.featured_image 
-          ? `/api/media/serve/${post.featured_image}`
+          ? (post.featured_image.startsWith('http') ? post.featured_image : `/api/media/serve/${post.featured_image}`)
           : '/favicon.ico',
         url: `/post/${post.id}`,
         author: post.author,

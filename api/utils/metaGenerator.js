@@ -15,7 +15,7 @@ export function generateMetaTags(type, data, baseUrl = 'https://bedtime.ingasti.
       title = data.title || 'Bedtime Blog';
       description = data.excerpt || data.content?.substring(0, 160) || 'Read this interesting post on Bedtime Blog';
       image = data.featured_image 
-        ? `${baseUrl}/api/media/serve/${data.featured_image}`
+        ? (data.featured_image.startsWith('http') ? data.featured_image : `${baseUrl}/api/media/serve/${data.featured_image}`)
         : `${baseUrl}/favicon.ico`;
       url = `${baseUrl}/post/${data.id}`;
       
