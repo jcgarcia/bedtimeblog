@@ -1,5 +1,8 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useSt            </Router>
+          </AdminProvider>
+        </UserProvider>
+      </HelmetProvider> } from 'react';
 import Single from "./pages/single/Single";
 import TopBar from "./components/topbar/TopBar";
 import Footer from "./components/footer/Footer";
@@ -23,6 +26,7 @@ import AdminLogin from "./pages/adminlogin/AdminLogin";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import { AdminProvider } from "./contexts/AdminContext";
 import { UserProvider } from "./contexts/UserContext";
+import { HelmetProvider } from 'react-helmet-async';
 
 function App() {
   const [showCookiesBanner, setShowCookiesBanner] = useState(false);
@@ -65,9 +69,10 @@ function App() {
           </button>
         </div>
       )}
-      <UserProvider>
-        <AdminProvider>
-          <Router>
+      <HelmetProvider>
+        <UserProvider>
+          <AdminProvider>
+            <Router>
             <ScrollToTop />
             <TopBar />
             <Routes>

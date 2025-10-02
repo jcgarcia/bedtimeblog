@@ -11,6 +11,7 @@
     "jwks-rsa": "^3.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^6.30.1",
     "video.js": "^8.23.4"
   },

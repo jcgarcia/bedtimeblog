@@ -8,6 +8,7 @@ import { markdownToHtml } from '../../utils/markdownConverter';
 import LikeButton from '../Social/LikeButton';
 import Comments from '../Social/Comments';
 import ShareButton from '../Social/ShareButton';
+import MetaTags from '../MetaTags/MetaTags';
 import axios from 'axios';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
@@ -198,6 +199,17 @@ export default function SinglePost() {
 
   return (
     <div className='singlePost'>
+      <MetaTags 
+        title={post.title || 'Bedtime Blog'}
+        description={post.excerpt || post.meta_description || (post.content ? post.content.replace(/<[^>]*>/g, '').replace(/#+\s*/g, '').substring(0, 160) : 'Discover insightful articles and stories on our blog')}
+        image={post.featured_image}
+        url={window.location.href}
+        type="article"
+        author={formatAuthorName(post)}
+        publishedTime={post.published_at || post.created_at}
+        modifiedTime={post.updated_at}
+        tags={post.category_name ? [post.category_name] : []}
+      />
       <div className="singlePostWrapper">
           <img 
             src={post.featured_image || PostImg}
