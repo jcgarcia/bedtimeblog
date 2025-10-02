@@ -7,6 +7,7 @@ import { API_URL } from '../../config/api';
 import { markdownToHtml } from '../../utils/markdownConverter';
 import LikeButton from '../Social/LikeButton';
 import Comments from '../Social/Comments';
+import ShareButton from '../Social/ShareButton';
 import axios from 'axios';
 import "./singlePost.css";
 import PostImg from '../../media/NewPost.jpg';
@@ -264,14 +265,23 @@ export default function SinglePost() {
               <span>👁️ {post.view_count || 0} views</span>
               <span>❤️ {post.like_count || 0} likes</span>
               <span>💬 {post.comment_count || 0} comments</span>
+              <span>🔗 {post.share_count || 0} shares</span>
               {post.reading_time && <span>📖 {post.reading_time} min read</span>}
             </div>
 
             {/* Social Features */}
-            <LikeButton 
-              postId={postId} 
-              initialLikes={post.like_count || 0}
-            />
+            <div className="social-actions">
+              <LikeButton 
+                postId={postId} 
+                initialLikes={post.like_count || 0}
+              />
+              <ShareButton 
+                postId={postId}
+                postTitle={post.title}
+                postDescription={post.excerpt || post.meta_description}
+                postUrl={window.location.href}
+              />
+            </div>
             
             <Comments postId={postId} />
       </div>

@@ -286,3 +286,120 @@ export async function deleteComment(req, res) {
     res.status(500).json({ error: 'Failed to delete comment' });
   }
 }
+
+// Track social media shares
+export async function trackShare(req, res) {
+  const { postId } = req.params;
+  const { platform } = req.body;
+  const pool = getDbPool();
+  
+  try {
+    let userId = null;
+    
+    // Try to get user from token (optional for sharing)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (tokenError) {
+        // Ignore token errors for sharing (allow anonymous sharing)
+        console.log('Anonymous share tracked');
+      }
+    }
+    
+    // Validate platform
+    const validPlatforms = ['facebook', 'twitter', 'linkedin', 'whatsapp', 'copy_link', 'native'];
+    if (!validPlatforms.includes(platform)) {
+      return res.status(400).json({ error: 'Invalid platform' });
+    }
+    
+    // Check if post exists
+    const postCheck = await pool.query('SELECT id FROM posts WHERE id = $1', [postId]);
+    if (postCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    // Get client IP for anonymous tracking
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+    
+    // Record the share
+    await pool.query(`
+      INSERT INTO post_shares (post_id, platform, user_id, ip_address, created_at)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+    `, [postId, platform, userId, clientIP]);
+    
+    // Update share count in posts table
+    const countResult = await pool.query('SELECT COUNT(*) AS count FROM post_shares WHERE post_id = $1', [postId]);
+    const newShareCount = parseInt(countResult.rows[0].count);
+    
+    await pool.query('UPDATE posts SET share_count = $1 WHERE id = $2', [newShareCount, postId]);
+    
+    res.json({
+      success: true,
+      message: 'Share tracked successfully',
+      shareCount: newShareCount
+    });
+  } catch (err) {
+    console.error('Error tracking share:', err);
+    res.status(500).json({ error: 'Failed to track share' });
+  }
+}
+
+// Get share statistics for a post
+export async function getShareStats(req, res) {
+  const { postId } = req.params;
+  const pool = getDbPool();
+  
+  try {
+    // Check if post exists
+    const postCheck = await pool.query('SELECT id, share_count FROM posts WHERE id = $1', [postId]);
+    if (postCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    
+    // Get share breakdown by platform
+    const platformStats = await pool.query(`
+      SELECT platform, COUNT(*) as count
+      FROM post_shares 
+      WHERE post_id = $1 
+      GROUP BY platform
+      ORDER BY count DESC
+    `, [postId]);
+    
+    // Get recent shares (last 10)
+    const recentShares = await pool.query(`
+      SELECT ps.platform, ps.created_at, u.username, u.first_name, u.last_name
+      FROM post_shares ps
+      LEFT JOIN users u ON ps.user_id = u.id
+      WHERE ps.post_id = $1
+      ORDER BY ps.created_at DESC
+      LIMIT 10
+    `, [postId]);
+    
+    res.json({
+      success: true,
+      data: {
+        totalShares: postCheck.rows[0].share_count || 0,
+        platformBreakdown: platformStats.rows.reduce((acc, row) => {
+          acc[row.platform] = parseInt(row.count);
+          return acc;
+        }, {}),
+        recentShares: recentShares.rows.map(row => ({
+          platform: row.platform,
+          createdAt: row.created_at,
+          user: row.username ? {
+            username: row.username,
+            displayName: row.first_name && row.last_name 
+              ? `${row.first_name} ${row.last_name}`
+              : row.username
+          } : null
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('Error getting share stats:', err);
+    res.status(500).json({ error: 'Failed to get share statistics' });
+  }
+}

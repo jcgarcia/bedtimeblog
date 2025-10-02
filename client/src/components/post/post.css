@@ -99,6 +99,20 @@
 
 }
 
+.postSocialActions {
+    padding: 15px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #f8f9fa;
+    min-height: 50px;
+}
+
+.postSocialActions > * {
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
     .postImg {
         height: 200px;
@@ -110,6 +124,11 @@
     
     .postTitle {
         font-size: 20px;
+    }
+    
+    .postSocialActions {
+        padding: 12px 15px;
+        gap: 12px;
     }
 }
 
@@ -128,5 +147,10 @@
     
     .postCat {
         font-size: 16px;
+    }
+    
+    .postSocialActions {
+        padding: 10px 12px;
+        gap: 10px;
     }
 }

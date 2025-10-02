@@ -1,6 +1,8 @@
 import './post.css'
 import PostBox from '../../media/NewPost.jpg'
 import { Link } from 'react-router-dom'
+import LikeButton from '../Social/LikeButton'
+import ShareButton from '../Social/ShareButton'
 
 export default function Post({ post }) {
   // Format date to be more readable
@@ -78,6 +80,20 @@ export default function Post({ post }) {
         <p className='postDescription'>
           {getDescription(post?.content || post?.excerpt)}
         </p>
+
+        {/* Social Actions */}
+        <div className="postSocialActions">
+          <LikeButton 
+            postId={post?.id} 
+            initialLikes={post?.like_count || 0}
+          />
+          <ShareButton 
+            postId={post?.id}
+            postTitle={post?.title}
+            postDescription={post?.excerpt || getDescription(post?.content)}
+            postUrl={`${window.location.origin}/post/${post?.id}`}
+          />
+        </div>
    
     </div>
   )

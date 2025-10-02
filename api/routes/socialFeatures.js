@@ -3,7 +3,9 @@ import {
   getComments, 
   addComment, 
   updateComment, 
-  deleteComment
+  deleteComment,
+  trackShare,
+  getShareStats
 } from '../controllers/socialFeatures.js';
 
 const router = express.Router();
@@ -21,5 +23,9 @@ router.post('/comments/:commentId/reply', (req, res) => {
   req.body.parentId = req.params.commentId;
   addComment(req, res);
 });
+
+// Share tracking routes
+router.post('/posts/:postId/share', trackShare);
+router.get('/posts/:postId/shares', getShareStats);
 
 export default router;
