@@ -277,9 +277,13 @@ export default function SinglePost() {
               />
               <ShareButton 
                 postId={postId}
-                postTitle={post.title}
-                postDescription={post.excerpt || post.meta_description}
+                postTitle={post.title || 'Check out this post'}
+                postDescription={post.excerpt || post.meta_description || 'Interesting blog post'}
                 postUrl={window.location.href}
+                initialShareCount={post.share_count || 0}
+                onShareCountUpdate={(count) => {
+                  setPost(prev => ({ ...prev, share_count: count }));
+                }}
               />
             </div>
             

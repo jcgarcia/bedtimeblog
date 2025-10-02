@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_URL } from '../../config/api';
 import axios from 'axios';
 import './Social.css';
 
-const ShareButton = ({ postId, postTitle, postUrl, postDescription }) => {
+const ShareButton = ({ postId, postTitle, postUrl, postDescription, onShareCountUpdate, initialShareCount = 0 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [shareCount, setShareCount] = useState(initialShareCount);
 
   // Get the full post URL
   const fullPostUrl = postUrl || `${window.location.origin}/post/${postId}`;
@@ -15,15 +16,42 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription }) => {
   const encodedUrl = encodeURIComponent(fullPostUrl);
   const encodedDescription = encodeURIComponent(postDescription || '');
 
+  // Fetch initial share count
+  useEffect(() => {
+    const fetchShareCount = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/social/posts/${postId}/shares`);
+        if (response.data.success) {
+          setShareCount(response.data.data.totalShares || 0);
+        }
+      } catch (error) {
+        console.log('Could not fetch share count:', error);
+        // Don't throw error, just use default of 0
+      }
+    };
+
+    if (postId && initialShareCount === 0) {
+      fetchShareCount();
+    }
+  }, [postId, initialShareCount]);
+
   // Track share analytics
   const trackShare = async (platform) => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      await axios.post(`${API_URL}/api/social/posts/${postId}/share`, {
+      const response = await axios.post(`${API_URL}/api/social/posts/${postId}/share`, {
         platform: platform
       }, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
+      
+      // Update share count
+      if (response.data.shareCount) {
+        setShareCount(response.data.shareCount);
+        if (onShareCountUpdate) {
+          onShareCountUpdate(response.data.shareCount);
+        }
+      }
     } catch (error) {
       console.error('Error tracking share:', error);
     }
@@ -101,7 +129,7 @@ const ShareButton = ({ postId, postTitle, postUrl, postDescription }) => {
         title="Share this post"
       >
         <span className="share-icon">🔗</span>
-        <span className="share-text">Share</span>
+        <span className="share-text">{shareCount > 0 ? `${shareCount} shares` : 'Share'}</span>
       </button>
 
       {showDropdown && (
