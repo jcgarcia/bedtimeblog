@@ -278,6 +278,7 @@ export default function Write() {
 
   // Handle media library selection
   const handleMediaSelect = (imageUrl) => {
+    console.log('Write.jsx: Received imageUrl from MediaSelector:', imageUrl);
     setFormData(prev => ({
       ...prev,
       featuredImage: imageUrl

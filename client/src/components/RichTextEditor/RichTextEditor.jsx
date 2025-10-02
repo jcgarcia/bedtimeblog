@@ -87,6 +87,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
   };
 
   const insertImage = (imageUrl) => {
+    console.log('RichTextEditor: Received imageUrl:', imageUrl);
     if (editorRef.current) {
       // Focus the editor first
       editorRef.current.focus();
@@ -94,6 +95,7 @@ export default function RichTextEditor({ value, onChange, placeholder = "Write y
       // Insert image at cursor position with unique ID for management
       const imageId = 'img_' + Date.now();
       const img = `<img id="${imageId}" src="${imageUrl}" alt="Image" data-size="large" style="max-width: 100%; height: auto; margin: 10px 0; cursor: pointer;" onclick="event.stopPropagation();" />`;
+      console.log('RichTextEditor: Inserting HTML:', img);
       formatText('insertHTML', img);
       
       // Add click handler to the newly inserted image

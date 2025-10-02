@@ -114,6 +114,10 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
         imageUrl = selectedItem.s3_key || selectedItem.file_path;
       }
       
+      console.log('MediaSelector: Selected item:', selectedItem);
+      console.log('MediaSelector: Generated URL:', imageUrl);
+      console.log('MediaSelector: Calling onSelect with URL:', imageUrl);
+      
       onSelect(imageUrl);
       onClose();
     }
