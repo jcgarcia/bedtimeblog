@@ -119,18 +119,25 @@ pipeline {
             steps {
                 script {
                     echo "🧪 Testing backend container..."
-                    sh """
-                        # Start backend container for testing with all required PG* env vars
-                        docker run -d -p 5002:5000 --name test-backend-${BUILD_NUMBER} \
-                            -e PGHOST='ingasti-pg-ingasti.c.aivencloud.com' \
-                            -e PGPORT='25306' \
-                            -e PGDATABASE='blog' \
-                            -e PGUSER='avnadmin' \
-                            -e PGPASSWORD="${DB_PASSWORD}" \
-                            -e PGSSLMODE='require' \
-                            -e CORS_ORIGIN="${CORS_ORIGIN}" \
-                            -e NODE_ENV=production \
-                            ${env.BACKEND_IMAGE}
+                    withCredentials([
+                        string(credentialsId: 'db-host', variable: 'PGHOST'),
+                        string(credentialsId: 'db-port', variable: 'PGPORT'),
+                        string(credentialsId: 'db-name', variable: 'PGDATABASE'),
+                        string(credentialsId: 'db-user', variable: 'PGUSER'),
+                        string(credentialsId: 'db-key', variable: 'PGPASSWORD')
+                    ]) {
+                        sh """
+                            # Start backend container for testing with AWS RDS credentials from Jenkins
+                            docker run -d -p 5002:5000 --name test-backend-${BUILD_NUMBER} \
+                                -e PGHOST="\${PGHOST}" \
+                                -e PGPORT="\${PGPORT}" \
+                                -e PGDATABASE="\${PGDATABASE}" \
+                                -e PGUSER="\${PGUSER}" \
+                                -e PGPASSWORD="\${PGPASSWORD}" \
+                                -e PGSSLMODE='require' \
+                                -e CORS_ORIGIN="${CORS_ORIGIN}" \
+                                -e NODE_ENV=production \
+                                ${env.BACKEND_IMAGE}
                         
                         # Wait for container to start
                         sleep 15
@@ -149,9 +156,9 @@ pipeline {
                             echo "❌ Container failed to start or exited"
                             exit 1
                         fi
-                    """
+                        """
+                    }
                 }
-            }
             post {
                 always {
                     script {
@@ -217,6 +224,10 @@ pipeline {
                 script {
                     echo "🔐 Updating Kubernetes secrets with Jenkins credentials..."
                     withCredentials([
+                        string(credentialsId: 'db-host', variable: 'PGHOST'),
+                        string(credentialsId: 'db-port', variable: 'PGPORT'),
+                        string(credentialsId: 'db-name', variable: 'PGDATABASE'),
+                        string(credentialsId: 'db-user', variable: 'PGUSER'),
                         string(credentialsId: 'db-key', variable: 'PGPASSWORD'),
                         string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET')
                     ]) {
@@ -224,12 +235,12 @@ pipeline {
                             # Delete existing secret if it exists (ignore errors)
                             kubectl delete secret blog-secrets -n blog || true
                             
-                            # Create new secret with current credentials
+                            # Create new secret with current credentials from Jenkins
                             kubectl create secret generic blog-secrets -n blog \
-                                --from-literal=PGHOST='ingasti-pg-ingasti.c.aivencloud.com' \
-                                --from-literal=PGPORT='25306' \
-                                --from-literal=PGDATABASE='blog' \
-                                --from-literal=PGUSER='avnadmin' \
+                                --from-literal=PGHOST="\${PGHOST}" \
+                                --from-literal=PGPORT="\${PGPORT}" \
+                                --from-literal=PGDATABASE="\${PGDATABASE}" \
+                                --from-literal=PGUSER="\${PGUSER}" \
                                 --from-literal=PGPASSWORD="\${PGPASSWORD}" \
                                 --from-literal=BLOG_API_KEY='81128b70915fe2d690a4e55eebeb13cedf069659e8e524c1198426d7665462b0' \
                                 --from-literal=GOOGLE_CLIENT_ID='dummy-google-client-id' \
