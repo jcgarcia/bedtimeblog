@@ -6,25 +6,44 @@ const pool = getDbPool();
 // Get all public settings
 export const getSettings = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT key, value, type FROM settings WHERE is_public = true ORDER BY key"
+    // Check available columns
+    const hasTypeColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'type'"
     );
+    const hasPublicColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'is_public'"
+    );
+    
+    // Build query based on available columns
+    let query = "SELECT key, value";
+    if (hasTypeColumn.rows.length > 0) {
+      query += ", type";
+    }
+    query += " FROM settings";
+    if (hasPublicColumn.rows.length > 0) {
+      query += " WHERE is_public = true";
+    }
+    query += " ORDER BY key";
+    
+    const result = await pool.query(query);
     
     // Convert settings array to object for easier frontend use
     const settings = {};
     result.rows.forEach(row => {
       let value = row.value;
       
-      // Parse value based on type
-      if (row.type === 'boolean') {
-        value = value === 'true';
-      } else if (row.type === 'number') {
-        value = parseFloat(value);
-      } else if (row.type === 'json') {
-        try {
-          value = JSON.parse(value);
-        } catch (e) {
-          console.error(`Error parsing JSON setting ${row.key}:`, e);
+      // Parse value based on type if type column exists
+      if (row.type) {
+        if (row.type === 'boolean') {
+          value = value === 'true';
+        } else if (row.type === 'number') {
+          value = parseFloat(value);
+        } else if (row.type === 'json') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            console.error(`Error parsing JSON setting ${row.key}:`, e);
+          }
         }
       }
       
@@ -41,25 +60,59 @@ export const getSettings = async (req, res) => {
 // Get all settings including admin-only ones (admin only)
 export const getAllSettings = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT key, value, type, group_name, description, is_public FROM settings ORDER BY group_name, key"
+    // Check available columns
+    const hasTypeColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'type'"
     );
+    const hasGroupColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'group_name'"
+    );
+    const hasDescriptionColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'description'"
+    );
+    const hasPublicColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'is_public'"
+    );
+    
+    // Build query based on available columns
+    let query = "SELECT key, value";
+    if (hasTypeColumn.rows.length > 0) {
+      query += ", type";
+    }
+    if (hasGroupColumn.rows.length > 0) {
+      query += ", group_name";
+    }
+    if (hasDescriptionColumn.rows.length > 0) {
+      query += ", description";
+    }
+    if (hasPublicColumn.rows.length > 0) {
+      query += ", is_public";
+    }
+    query += " FROM settings ORDER BY";
+    if (hasGroupColumn.rows.length > 0) {
+      query += " group_name,";
+    }
+    query += " key";
+    
+    const result = await pool.query(query);
     
     // Convert settings array to object for easier frontend use
     const settings = {};
     result.rows.forEach(row => {
       let value = row.value;
       
-      // Parse value based on type
-      if (row.type === 'boolean') {
-        value = value === 'true';
-      } else if (row.type === 'number') {
-        value = parseFloat(value);
-      } else if (row.type === 'json') {
-        try {
-          value = JSON.parse(value);
-        } catch (e) {
-          console.error(`Error parsing JSON setting ${row.key}:`, e);
+      // Parse value based on type if type column exists
+      if (row.type) {
+        if (row.type === 'boolean') {
+          value = value === 'true';
+        } else if (row.type === 'number') {
+          value = parseFloat(value);
+        } else if (row.type === 'json') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            console.error(`Error parsing JSON setting ${row.key}:`, e);
+          }
         }
       }
       
@@ -80,6 +133,17 @@ export const updateSettings = async (req, res) => {
   try {
     const updates = req.body;
     
+    // Check available columns
+    const hasTypeColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'type'"
+    );
+    const hasPublicColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'is_public'"
+    );
+    const hasUpdatedAtColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'updated_at'"
+    );
+    
     for (const [key, value] of Object.entries(updates)) {
       let stringValue = value;
       let type = 'string';
@@ -96,16 +160,36 @@ export const updateSettings = async (req, res) => {
         stringValue = JSON.stringify(value);
       }
       
-      await pool.query(
-        `INSERT INTO settings (key, value, type, is_public, updated_at) 
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-         ON CONFLICT (key) 
-         DO UPDATE SET 
-           value = $2, 
-           type = $3, 
-           updated_at = CURRENT_TIMESTAMP`,
-        [key, stringValue, type, true]
-      );
+      // Build query dynamically
+      let insertQuery = 'INSERT INTO settings (key, value';
+      let insertValues = '($1, $2';
+      let updateQuery = 'DO UPDATE SET value = $2';
+      let params = [key, stringValue];
+      let paramIndex = 2;
+      
+      if (hasTypeColumn.rows.length > 0) {
+        insertQuery += ', type';
+        insertValues += ', $' + (++paramIndex);
+        updateQuery += ', type = $' + paramIndex;
+        params.push(type);
+      }
+      
+      if (hasPublicColumn.rows.length > 0) {
+        insertQuery += ', is_public';
+        insertValues += ', $' + (++paramIndex);
+        updateQuery += ', is_public = $' + paramIndex;
+        params.push(true);
+      }
+      
+      if (hasUpdatedAtColumn.rows.length > 0) {
+        insertQuery += ', updated_at';
+        insertValues += ', CURRENT_TIMESTAMP';
+        updateQuery += ', updated_at = CURRENT_TIMESTAMP';
+      }
+      
+      insertQuery += ') VALUES ' + insertValues + ') ON CONFLICT (key) ' + updateQuery;
+      
+      await pool.query(insertQuery, params);
     }
     
     res.status(200).json({ message: "Settings updated successfully" });
@@ -173,20 +257,68 @@ export const updateSocialMediaLinks = async (req, res) => {
       { key: 'social_threads_url', value: threads || '' }
     ];
     
+    // Check if the settings table has the type column
+    const hasTypeColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'type'"
+    );
+    
+    const hasGroupColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'group_name'"
+    );
+    
+    const hasDescriptionColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'description'"
+    );
+    
+    const hasPublicColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'is_public'"
+    );
+    
     for (const update of updates) {
-      await pool.query(
-        `INSERT INTO settings (key, value, type, group_name, description, is_public, updated_at) 
-         VALUES ($1, $2, 'string', 'social', $3, true, CURRENT_TIMESTAMP)
-         ON CONFLICT (key) 
-         DO UPDATE SET 
-           value = $2, 
-           updated_at = CURRENT_TIMESTAMP`,
-        [
-          update.key, 
-          update.value,
-          `URL for ${update.key.replace('social_', '').replace('_url', '')} social media profile`
-        ]
+      // Build query dynamically based on available columns
+      let insertQuery = 'INSERT INTO settings (key, value';
+      let insertValues = '($1, $2';
+      let updateQuery = 'DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP';
+      let params = [update.key, update.value];
+      let paramIndex = 2;
+      
+      if (hasTypeColumn.rows.length > 0) {
+        insertQuery += ', type';
+        insertValues += ', $' + (++paramIndex);
+        params.push('string');
+      }
+      
+      if (hasGroupColumn.rows.length > 0) {
+        insertQuery += ', group_name';
+        insertValues += ', $' + (++paramIndex);
+        params.push('social');
+      }
+      
+      if (hasDescriptionColumn.rows.length > 0) {
+        insertQuery += ', description';
+        insertValues += ', $' + (++paramIndex);
+        params.push(`URL for ${update.key.replace('social_', '').replace('_url', '')} social media profile`);
+      }
+      
+      if (hasPublicColumn.rows.length > 0) {
+        insertQuery += ', is_public';
+        insertValues += ', $' + (++paramIndex);
+        params.push(true);
+      }
+      
+      // Add updated_at if column exists
+      const hasUpdatedAtColumn = await pool.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'updated_at'"
       );
+      
+      if (hasUpdatedAtColumn.rows.length > 0) {
+        insertQuery += ', updated_at';
+        insertValues += ', CURRENT_TIMESTAMP';
+      }
+      
+      insertQuery += ') VALUES ' + insertValues + ') ON CONFLICT (key) ' + updateQuery;
+      
+      await pool.query(insertQuery, params);
     }
     
     res.status(200).json({ 
@@ -202,9 +334,21 @@ export const updateSocialMediaLinks = async (req, res) => {
 // Get OAuth configuration (admin only)
 export const getOAuthSettings = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT key, value FROM settings WHERE group_name = 'oauth' ORDER BY key"
+    // Check if group_name column exists
+    const hasGroupColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'group_name'"
     );
+    
+    let query = "SELECT key, value FROM settings";
+    if (hasGroupColumn.rows.length > 0) {
+      query += " WHERE group_name = 'oauth'";
+    } else {
+      // Fallback: filter by oauth-related keys
+      query += " WHERE key LIKE 'oauth_%'";
+    }
+    query += " ORDER BY key";
+    
+    const result = await pool.query(query);
     
     const oauthConfig = {
       google: {
@@ -347,17 +491,38 @@ export const updateOAuthSettings = async (req, res) => {
       );
     }
     
+    // Check available columns
+    const hasGroupColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'group_name'"
+    );
+    const hasUpdatedAtColumn = await pool.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'settings' AND column_name = 'updated_at'"
+    );
+    
     // Update database
     for (const update of updates) {
-      await pool.query(
-        `INSERT INTO settings (key, value, group_name, updated_at)
-         VALUES ($2, $1, 'oauth', CURRENT_TIMESTAMP)
-         ON CONFLICT (key) 
-         DO UPDATE SET 
-           value = $1, 
-           updated_at = CURRENT_TIMESTAMP`,
-        [update.value, update.key]
-      );
+      let insertQuery = 'INSERT INTO settings (key, value';
+      let insertValues = '($1, $2';
+      let updateQuery = 'DO UPDATE SET value = $2';
+      let params = [update.key, update.value];
+      let paramIndex = 2;
+      
+      if (hasGroupColumn.rows.length > 0) {
+        insertQuery += ', group_name';
+        insertValues += ', $' + (++paramIndex);
+        updateQuery += ', group_name = $' + paramIndex;
+        params.push('oauth');
+      }
+      
+      if (hasUpdatedAtColumn.rows.length > 0) {
+        insertQuery += ', updated_at';
+        insertValues += ', CURRENT_TIMESTAMP';
+        updateQuery += ', updated_at = CURRENT_TIMESTAMP';
+      }
+      
+      insertQuery += ') VALUES ' + insertValues + ') ON CONFLICT (key) ' + updateQuery;
+      
+      await pool.query(insertQuery, params);
     }
     
     res.status(200).json({

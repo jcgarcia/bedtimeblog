@@ -31,6 +31,7 @@ router.get("/social", getSocialMediaLinks);
 
 // Update social media links (admin only)
 router.put("/social", updateSocialMediaLinks);
+router.post("/social", updateSocialMediaLinks);
 
 // Get OAuth configuration (admin only)
 router.get("/oauth", requireAdminAuth, getOAuthSettings);
