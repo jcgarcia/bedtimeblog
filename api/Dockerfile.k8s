@@ -16,8 +16,8 @@ COPY package.json ./
 # Copy individual package files (only pnpm-compatible files)
 COPY api/package.json ./api/
 
-# Install dependencies using pnpm
-RUN pnpm install --frozen-lockfile --production=false
+# Install dependencies using pnpm (force recreate lockfile if needed)
+RUN pnpm install --force --production=false
 
 # Copy source code
 COPY api/ ./api/
