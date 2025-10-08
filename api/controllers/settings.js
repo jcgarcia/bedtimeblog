@@ -788,3 +788,104 @@ export const getMediaStorageConfig = async (req, res) => {
     });
   }
 };
+
+// Get AWS Configuration
+export const getAwsConfig = async (req, res) => {
+  try {
+    const pool = getDbPool();
+    const result = await pool.query(
+      "SELECT value FROM settings WHERE key = 'aws_config'"
+    );
+    
+    let awsConfig = {};
+    if (result.rows.length > 0 && result.rows[0].value) {
+      try {
+        // Parse the JSON value
+        const parsedValue = JSON.parse(result.rows[0].value);
+        awsConfig = parsedValue;
+      } catch (e) {
+        console.error('Error parsing aws_config JSON:', e);
+        awsConfig = {};
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      awsConfig
+    });
+  } catch (error) {
+    console.error("Error fetching AWS configuration:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching AWS configuration" 
+    });
+  }
+};
+
+// Update AWS Configuration
+export const updateAwsConfig = async (req, res) => {
+  try {
+    const pool = getDbPool();
+    const {
+      bucketName,
+      region,
+      authMethod,
+      roleArn,
+      externalId,
+      accessKey,
+      secretKey,
+      sessionToken,
+      tempAccessKey,
+      tempSecretKey,
+      tempSessionToken,
+      accountId,
+      oidcIssuerUrl,
+      oidcAudience,
+      oidcSubject
+    } = req.body;
+    
+    // Build the AWS configuration object
+    const awsConfig = {
+      bucketName: bucketName || '',
+      region: region || 'eu-west-2',
+      authMethod: authMethod || 'identity-center',
+      ...(roleArn && { roleArn }),
+      ...(externalId && { externalId }),
+      ...(accessKey && { accessKey }),
+      ...(secretKey && { secretKey }),
+      ...(sessionToken && { sessionToken }),
+      ...(tempAccessKey && { tempAccessKey }),
+      ...(tempSecretKey && { tempSecretKey }),
+      ...(tempSessionToken && { tempSessionToken }),
+      ...(accountId && { accountId }),
+      ...(oidcIssuerUrl && { oidcIssuerUrl }),
+      ...(oidcAudience && { oidcAudience }),
+      ...(oidcSubject && { oidcSubject })
+    };
+    
+    // Store the configuration as JSON in the database
+    const configJson = JSON.stringify(awsConfig);
+    
+    // Use upsert to insert or update the aws_config setting
+    await pool.query(
+      `INSERT INTO settings (key, value, description) 
+       VALUES ('aws_config', $1, 'AWS S3 storage configuration') 
+       ON CONFLICT (key) 
+       DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP`,
+      [configJson]
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: 'AWS configuration saved successfully',
+      awsConfig
+    });
+  } catch (error) {
+    console.error("Error updating AWS configuration:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error updating AWS configuration",
+      error: error.message
+    });
+  }
+};

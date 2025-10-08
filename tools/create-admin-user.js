@@ -31,7 +31,7 @@ class AdminUserCreator {
   constructor() {
     const sslConfig = process.env.NODE_ENV === 'production' ? {
       rejectUnauthorized: true,
-      ca: fs.readFileSync(join(__dirname, 'ca-certificate.crt')).toString()
+      ca: fs.readFileSync(join(__dirname, 'rds-combined-ca-bundle.pem')).toString()
     } : false;
 
     this.client = new Client({

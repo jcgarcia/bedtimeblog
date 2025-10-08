@@ -1,17 +1,21 @@
 # Stage 1: Build React app
 FROM node:20-alpine AS build
+
+# Install pnpm using corepack (official method, no npm needed)
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-# Copy workspace configuration
+# Copy workspace configuration files
 COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
-COPY package*.json ./
+COPY package.json ./
 
-# Copy individual package files
-COPY client/package*.json ./client/
+# Copy individual package files (only pnpm-compatible files)
+COPY client/package.json ./client/
 
-# Install pnpm and dependencies for the entire workspace
-RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
+# Install dependencies using pnpm
+RUN pnpm install --frozen-lockfile --production=false
 
 # Copy source code
 COPY client/ ./client/

@@ -33,3 +33,4 @@ publishing-stats.json
 # Temporary files
 *.tmp
 *.temp
+rds-ca-*.pem

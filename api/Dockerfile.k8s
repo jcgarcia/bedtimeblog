@@ -1,19 +1,23 @@
 FROM node:20-alpine
-WORKDIR /app
 
 # Install curl for health checks and poppler-utils for PDF thumbnail generation
-RUN apk add --no-cache curl poppler-utils
+# Enable corepack for pnpm (official method, no npm needed)
+RUN apk add --no-cache curl poppler-utils && \
+    corepack enable && \
+    corepack prepare pnpm@latest --activate
 
-# Copy workspace configuration
+WORKDIR /app
+
+# Copy workspace configuration files  
 COPY pnpm-workspace.yaml ./
 COPY pnpm-lock.yaml ./
-COPY package*.json ./
+COPY package.json ./
 
-# Copy individual package files
-COPY api/package*.json ./api/
+# Copy individual package files (only pnpm-compatible files)
+COPY api/package.json ./api/
 
-# Install pnpm and dependencies for the entire workspace
-RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
+# Install dependencies using pnpm
+RUN pnpm install --frozen-lockfile --production=false
 
 # Copy source code
 COPY api/ ./api/
