@@ -165,3 +165,115 @@ export const syncS3ToDatabase = async (req, res) => {
     });
   }
 };
+
+// OIDC-specific S3 sync function
+export const syncS3ToDatabaseOIDC = async (req, res) => {
+  try {
+    const pool = getDbPool();
+    
+    // Get AWS configuration from database
+    const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'aws_config')");
+    const settings = {};
+    settingsRes.rows.forEach(row => {
+      if (row.type === 'json') {
+        settings[row.key] = row.value; // Already parsed by PostgreSQL
+      } else {
+        settings[row.key] = row.value;
+      }
+    });
+
+    if (settings.media_storage_type !== 'aws' || !settings.aws_config?.bucketName) {
+      return res.status(400).json({
+        success: false,
+        message: 'AWS S3 not configured for OIDC'
+      });
+    }
+
+    // Get S3 client using OIDC authentication
+    const credentials = await awsCredentialManager.getCredentials();
+    const s3Client = new S3Client({
+      region: settings.aws_config.region || 'eu-west-2',
+      credentials
+    });
+    const bucketName = settings.aws_config.bucketName;
+
+    // List all objects in S3 bucket
+    const listCommand = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: 'uploads/' // Only sync files in uploads folder
+    });
+
+    const s3Objects = await s3Client.send(listCommand);
+    
+    if (!s3Objects.Contents || s3Objects.Contents.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No files found in S3 bucket',
+        synced: 0
+      });
+    }
+
+    // Get existing files from database
+    const existingFiles = await pool.query('SELECT s3_key FROM media');
+    const existingKeys = new Set(existingFiles.rows.map(row => row.s3_key));
+
+    let syncedCount = 0;
+    const insertPromises = [];
+
+    for (const obj of s3Objects.Contents) {
+      if (!existingKeys.has(obj.Key)) {
+        // Extract filename from S3 key
+        const filename = obj.Key.split('/').pop();
+        const originalName = filename;
+        
+        // Determine mime type based on file extension
+        const ext = filename.split('.').pop()?.toLowerCase();
+        let mimeType = 'application/octet-stream';
+        if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg';
+        else if (ext === 'png') mimeType = 'image/png';
+        else if (ext === 'gif') mimeType = 'image/gif';
+        else if (ext === 'pdf') mimeType = 'application/pdf';
+        else if (['mp4', 'mov'].includes(ext)) mimeType = 'video/' + ext;
+
+        // Extract folder path from S3 key
+        const folderPath = obj.Key.substring(0, obj.Key.lastIndexOf('/') + 1) || '/';
+
+        const insertPromise = pool.query(`
+          INSERT INTO media (
+            filename, original_name, file_path, file_size, mime_type,
+            s3_key, s3_bucket, folder_path, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `, [
+          filename,
+          originalName,
+          obj.Key,
+          obj.Size || 0,
+          mimeType,
+          obj.Key,
+          bucketName,
+          folderPath
+        ]);
+
+        insertPromises.push(insertPromise);
+        syncedCount++;
+      }
+    }
+
+    // Execute all inserts
+    await Promise.all(insertPromises);
+
+    res.json({
+      success: true,
+      message: `OIDC sync completed successfully`,
+      synced: syncedCount,
+      total: s3Objects.Contents.length
+    });
+
+  } catch (error) {
+    console.error('Error syncing S3 with OIDC:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error syncing S3 bucket with database using OIDC'
+    });
+  }
+};

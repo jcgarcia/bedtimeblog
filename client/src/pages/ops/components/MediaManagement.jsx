@@ -428,7 +428,7 @@ export default function MediaManagement() {
 
     try {
       setLoading(true);
-      const response = await fetch(API_ENDPOINTS.MEDIA.SYNC_S3, {
+      const response = await fetch(API_ENDPOINTS.MEDIA.SYNC_S3_OIDC, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,

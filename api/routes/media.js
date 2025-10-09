@@ -24,6 +24,8 @@ import {
   getSignedUrlForKey
 } from "../controllers/media.js";
 
+import { syncS3ToDatabase, syncS3ToDatabaseOIDC } from "../controllers/sync.js";
+
 const router = express.Router();
 
 // Handle OPTIONS requests for CORS preflight
@@ -88,7 +90,8 @@ router.post("/folders", requireAdminAuth, createMediaFolder);      // POST /api/
 // AWS connection testing
 router.post("/test-aws-connection", requireAdminAuth, testAwsConnectionSimple); // POST /api/media/test-aws-connection - Test AWS S3 connection using credential manager
 router.post("/test-oidc-connection", requireAdminAuth, testOidcConnection); // POST /api/media/test-oidc-connection - Test OIDC configuration
-router.post("/sync-s3", requireAdminAuth, syncS3Files);              // POST /api/media/sync-s3 - Sync S3 bucket with database
+router.post("/sync-s3", requireAdminAuth, syncS3Files);              // POST /api/media/sync-s3 - Sync S3 bucket with database (credentials-based)
+router.post("/sync-s3-oidc", requireAdminAuth, syncS3ToDatabaseOIDC);  // POST /api/media/sync-s3-oidc - Sync S3 bucket with database (OIDC-based)
 router.post("/clear-database", requireAdminAuth, clearMediaDatabase); // POST /api/media/clear-database - Clear all media records
 
 // AWS credential management

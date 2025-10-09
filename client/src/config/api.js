@@ -87,6 +87,7 @@ export const API_ENDPOINTS = {
     TEST_AWS_CONNECTION: `${API_URL}/api/media/test-aws-connection`,
     TEST_OIDC_CONNECTION: `${API_URL}/api/media/test-oidc-connection`,
     SYNC_S3: `${API_URL}/api/media/sync-s3`,
+    SYNC_S3_OIDC: `${API_URL}/api/media/sync-s3-oidc`,
     CREDENTIAL_STATUS: `${API_URL}/api/media/credential-status`,
     REFRESH_CREDENTIALS: `${API_URL}/api/media/refresh-credentials`,
     INITIALIZE_SSO: `${API_URL}/api/media/initialize-sso`,
