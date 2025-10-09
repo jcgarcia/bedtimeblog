@@ -1483,7 +1483,12 @@ export const syncS3Files = async (req, res) => {
     const settings = {};
     settingsRes.rows.forEach(row => {
       try {
-        settings[row.key] = row.key === 'aws_config' ? JSON.parse(row.value) : row.value;
+        // Handle case where value is already parsed (jsonb type in PostgreSQL)
+        if (row.key === 'aws_config') {
+          settings[row.key] = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+        } else {
+          settings[row.key] = row.value;
+        }
       } catch (e) {
         console.error(`Error parsing setting ${row.key}:`, e);
         return res.status(500).json({
