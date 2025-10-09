@@ -419,6 +419,40 @@ export default function MediaManagement() {
     }
   };
 
+  // Sync S3 bucket with database using OIDC authentication
+  const syncS3WithOIDC = async () => {
+    if (mediaServerType !== 'aws') {
+      alert('S3 sync is only available for AWS storage');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(API_ENDPOINTS.MEDIA.SYNC_S3, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`OIDC Sync completed! ${result.synced} files added to database.`);
+        // Refresh media files after sync
+        fetchMediaFiles();
+      } else {
+        const error = await response.json();
+        alert(`OIDC Sync failed: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error syncing S3 with OIDC:', error);
+      alert('Error syncing S3 bucket with database using OIDC');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Refresh AWS credentials manually
   const refreshAwsCredentials = async () => {
     try {
@@ -1561,6 +1595,31 @@ export default function MediaManagement() {
                           title="Sync S3 bucket files with database records"
                         >
                           <i className="fa-solid fa-sync"></i> Sync S3 to Database
+                        </button>
+                      )}
+
+                      {/* OIDC Sync S3 Button - Only for OIDC authentication */}
+                      {cloudConfig.aws?.authMethod === 'oidc' && (
+                        <button 
+                          className="btn-sync-s3-oidc"
+                          onClick={syncS3WithOIDC}
+                          disabled={mediaServerType !== 'aws'}
+                          style={{
+                            backgroundColor: '#28a745',
+                            color: 'white',
+                            border: '2px solid #1e7e34',
+                            fontSize: '14px',
+                            padding: '10px 20px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            width: '100%',
+                            opacity: mediaServerType !== 'aws' ? 0.5 : 1,
+                            marginTop: '10px'
+                          }}
+                          title="Sync S3 bucket files with database using OIDC authentication"
+                        >
+                          <i className="fa-solid fa-sync"></i> Sync S3 to Database (OIDC)
                         </button>
                       )}
                     </div>
