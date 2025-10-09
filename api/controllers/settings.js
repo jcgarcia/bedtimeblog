@@ -281,7 +281,8 @@ export const updateSocialMediaLinks = async (req, res) => {
       let insertQuery = 'INSERT INTO settings (key, value';
       let insertValues = '($1, $2';
       let updateQuery = 'DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP';
-      let params = [update.key, update.value];
+      // Since value column is JSONB, we need to JSON stringify the string
+      let params = [update.key, JSON.stringify(update.value)];
       let paramIndex = 2;
       
       if (hasTypeColumn.rows.length > 0) {
