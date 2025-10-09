@@ -224,29 +224,18 @@ export const getSocialMediaLinks = async (req, res) => {
     };
     
     result.rows.forEach(row => {
-      // Parse JSON value since they're stored as JSON strings
-      let value = '';
-      if (row.value) {
-        try {
-          value = JSON.parse(row.value);
-        } catch (e) {
-          // If not valid JSON, use raw value
-          value = row.value;
-        }
-      }
-      
       switch (row.key) {
         case 'social_linkedin_url':
-          socialLinks.linkedin = value || '';
+          socialLinks.linkedin = row.value || '';
           break;
         case 'social_twitter_url':
-          socialLinks.twitter = value || '';
+          socialLinks.twitter = row.value || '';
           break;
         case 'social_instagram_url':
-          socialLinks.instagram = value || '';
+          socialLinks.instagram = row.value || '';
           break;
         case 'social_threads_url':
-          socialLinks.threads = value || '';
+          socialLinks.threads = row.value || '';
           break;
       }
     });
