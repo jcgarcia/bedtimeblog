@@ -119,30 +119,23 @@ class AWSCredentialManager {
       }
 
       // Create S3 client with the credential provider
-      // CRITICAL: Force standard S3 signing - AWS SDK v3.906.0 bug with S3Express detection
+      // CRITICAL: Force standard S3 signing to avoid AWS SDK v3.906.0 S3Express bug
       this.s3Client = new S3Client({
         region: config.region || 'eu-west-2',
         credentials: credentialProvider,
-        // Force standard S3 endpoint and signing
+        // Force standard S3 endpoint to prevent S3Express detection
         endpoint: `https://s3.${config.region || 'eu-west-2'}.amazonaws.com`,
         forcePathStyle: false,
-        // CRITICAL: Use legacy signer to avoid S3Express middleware
-        signer: {
-          sign: async (request, options) => {
-            // Import standard signature v4 (not S3Express)
-            const { SignatureV4 } = await import('@aws-sdk/signature-v4');
-            const { Sha256 } = await import('@aws-crypto/sha256-js');
-            
-            const signer = new SignatureV4({
-              credentials: credentialProvider,
-              region: config.region || 'eu-west-2',
-              service: 's3',
-              sha256: Sha256
-            });
-            
-            return signer.sign(request, options);
-          }
-        }
+        // CRITICAL: Override signing behavior to use standard v4 signing
+        signingName: 's3', // Force service name to 's3' not 's3express'
+        signingRegion: config.region || 'eu-west-2',
+        // Use existing signature version to prevent Express middleware
+        signatureVersion: 'v4',
+        // Additional configuration to prevent S3Express
+        useAccelerateEndpoint: false,
+        bucketEndpoint: false,
+        // Force standard behavior 
+        disableHostPrefix: false
       });
 
       // HACK: Remove S3 Express middleware if it was added
