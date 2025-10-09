@@ -1182,7 +1182,7 @@ export const getMediaFolders = async (req, res) => {
              COUNT(m.id) as file_count,
              u.username as created_by_username
       FROM media_folders mf
-      LEFT JOIN media m ON m.folder_path = mf.path
+      LEFT JOIN media m ON m.file_path LIKE CONCAT(mf.path, '/%')
       LEFT JOIN users u ON mf.created_by = u.id
       GROUP BY mf.id, u.username
       ORDER BY mf.path
