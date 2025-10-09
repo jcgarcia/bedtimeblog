@@ -1,6 +1,6 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getDbPool } from '../db.js';
-import credentialManager from '../services/awsCredentialManager.js';
+import awsCredentialManager from '../services/awsCredentialManager.js';
 
 // Sync S3 bucket contents with database
 export const syncS3ToDatabase = async (req, res) => {
@@ -30,19 +30,11 @@ export const syncS3ToDatabase = async (req, res) => {
       });
     }
 
-    // Get S3 client
-    const credentials = await credentialManager.getCredentials();
+    // Get S3 client using OIDC authentication
+    const credentials = await awsCredentialManager.getCredentials();
     const s3Client = new S3Client({
       region: settings.aws_config.region || 'eu-west-2',
-      credentials: {
-        accessKeyId: credentials.accessKeyId,
-        secretAccessKey: credentials.secretAccessKey,
-        sessionToken: credentials.sessionToken
-      },
-      forcePathStyle: true,
-      endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
-      disableS3ExpressSessionAuth: true,
-      signatureVersion: 'v4'
+      credentials
     });
     const bucketName = settings.aws_config.bucketName;
 
