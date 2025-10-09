@@ -144,7 +144,7 @@ class AWSCredentialManager {
         // Force standard S3 behavior
         s3ForcePathStyle: false,
         // Override endpoint to ensure standard S3
-        endpoint: undefined
+        endpoint: `https://s3.${config.region || 'eu-west-2'}.amazonaws.com`
       });
 
       // HACK: Remove S3 Express middleware if it was added

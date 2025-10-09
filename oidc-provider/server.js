@@ -1,9 +1,6 @@
 const express = require('express');
 const fs = require('fs');
-const jwt = require('json  const issuer = 'https://oidc.ingasti.com';
-  const config = {
-    issuer: issuer,
-    jwks_uri: `${issuer}/.well-known/jwks.json`,oken');
+const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 8080;
 
