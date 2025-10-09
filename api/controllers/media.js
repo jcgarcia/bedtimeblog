@@ -817,19 +817,7 @@ export const getMediaFiles = async (req, res) => {
         });
         
         if (settings.media_storage_type === 'aws' && settings.aws_config) {
-          const credentials = await credentialManager.getCredentials();
-          const s3Client = new S3Client({
-            region: settings.aws_config.region || 'eu-west-2',
-            credentials: {
-              accessKeyId: credentials.accessKeyId,
-              secretAccessKey: credentials.secretAccessKey,
-              sessionToken: credentials.sessionToken
-            },
-            forcePathStyle: true,
-            endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
-            disableS3ExpressSessionAuth: true,
-            signatureVersion: 'v4'
-          });
+          const s3Client = await credentialManager.getS3Client();
           const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
           syncPerformed = true;
           console.log(`✅ S3 sync completed: ${syncResult.syncedCount} new files, ${syncResult.updatedCount} reorganized`);
@@ -1060,16 +1048,7 @@ export const deleteMediaFile = async (req, res) => {
     // Delete from S3/OCI if key exists
     if (mediaFile.s3_key) {
       try {
-        const credentials = await credentialManager.getCredentials();
-        const s3Client = new S3Client({
-          region: 'eu-west-2',
-          credentials: {
-            accessKeyId: credentials.accessKeyId,
-            secretAccessKey: credentials.secretAccessKey,
-            sessionToken: credentials.sessionToken
-          },
-          forcePathStyle: true
-        });
+        const s3Client = await credentialManager.getS3Client();
         
         // Get bucket name from settings
         const bucketName = settings.oci_config?.bucket_name || settings.aws_config?.bucket_name;
@@ -1512,7 +1491,8 @@ export const syncS3Files = async (req, res) => {
       });
     }
     
-    // Get the already initialized S3 client from credential manager
+    // Use the properly configured OIDC S3Client from credential manager
+    // This uses fromWebToken() with service account token - pure OIDC, no credentials
     const s3Client = await credentialManager.getS3Client();
     const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
     
@@ -2266,15 +2246,7 @@ export const testAwsConnectionSimple = async (req, res) => {
       try {
         const credentials = await credentialManager.getCredentials();
         const { S3Client, ListBucketsCommand } = await import('@aws-sdk/client-s3');
-        const s3Client = new S3Client({
-          region: 'eu-west-2',
-          credentials: {
-            accessKeyId: credentials.accessKeyId,
-            secretAccessKey: credentials.secretAccessKey,
-            sessionToken: credentials.sessionToken
-          },
-          forcePathStyle: true
-        });
+        const s3Client = await credentialManager.getS3Client();
         const result = await s3Client.send(new ListBucketsCommand({}));
         testResult = {
           success: true,
