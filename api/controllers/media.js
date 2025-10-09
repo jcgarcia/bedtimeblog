@@ -599,32 +599,24 @@ export const uploadToS3 = async (req, res) => {
         let result;
         
         try {
-          // Insert into database with correct thumbnail columns
+          // Insert into database with correct columns
           const dbQuery = `
             INSERT INTO media (
-              filename, original_name, file_type, file_size, s3_key, s3_bucket, 
-              public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, 
-              thumbnail_path, thumbnail_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+              filename, original_name, file_path, file_size, mime_type, 
+              alt_text, width, height, uploaded_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
           `;
           const values = [
-            path.basename(s3Key),
-            file.originalname,
-            path.extname(file.originalname).toLowerCase().replace('.', ''),
-            file.size,
-            s3Key,
-            BUCKET_NAME,
-            privateUrl,
-            userId,
-            folderPath,
-            tags,
-            altText,
-            file.mimetype,
-            width,
-            height,
-            finalThumbnailS3Key,
-            finalThumbnailS3Key ? 'PRIVATE_BUCKET' : null
+            path.basename(s3Key),        // filename
+            file.originalname,           // original_name
+            s3Key,                       // file_path (using s3Key as the path)
+            file.size,                   // file_size
+            file.mimetype,               // mime_type
+            altText,                     // alt_text
+            width,                       // width
+            height,                      // height
+            userId                       // uploaded_by
           ];
           
           result = await pool.query(dbQuery, values);
@@ -724,17 +716,8 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
           correctFolderPath = '/documents';
         }
         
-        // Update folder path if needed
-        const updateQuery = `
-          UPDATE media 
-          SET folder_path = $1 
-          WHERE id = $2 AND folder_path != $1
-        `;
-        const updateResult = await pool.query(updateQuery, [correctFolderPath, existingRecord.id]);
-        if (updateResult.rowCount > 0) {
-          updatedCount++;
-          console.log(`📁 Updated folder for existing file: ${existingRecord.s3_key} -> ${correctFolderPath}`);
-        }
+        // Note: folder path is extracted from file_path, no separate column needed
+        // correctFolderPath logic kept for reference but not used in database update
       }
     }
     
@@ -770,25 +753,19 @@ async function syncS3WithDatabase(pool, s3Client, bucketName, defaultUserId = 1)
           // Insert into database
           const insertQuery = `
             INSERT INTO media (
-              filename, original_name, file_type, file_size, s3_key, s3_bucket,
-              public_url, uploaded_by, folder_path, mime_type, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (s3_key) DO NOTHING
+              filename, original_name, file_path, file_size, mime_type, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (filename) DO NOTHING
             RETURNING id
           `;
           
           const insertResult = await pool.query(insertQuery, [
-            filename,
-            filename, // Use filename as original name since we don't have metadata
-            fileType,
-            s3Object.Size,
-            s3Object.Key,
-            bucketName,
-            'PRIVATE_BUCKET', // Placeholder for private bucket
-            defaultUserId,
-            folderPath,
-            mimeType,
-            s3Object.LastModified
+            filename,                    // filename
+            filename,                    // original_name (use filename as original name)
+            s3Object.Key,               // file_path (use S3 key as file path)
+            s3Object.Size,              // file_size
+            mimeType,                   // mime_type
+            s3Object.LastModified       // created_at
           ]);
           
           if (insertResult.rows.length > 0) {
@@ -866,15 +843,15 @@ export const getMediaFiles = async (req, res) => {
       SELECT m.*, u.username, u.first_name, u.last_name
       FROM media m
       LEFT JOIN users u ON m.uploaded_by = u.id
-      WHERE m.folder_path = $1
+      WHERE m.file_path LIKE $1 || '%'
     `;
     let queryParams = [folderPath];
     let paramIndex = 2;
 
-    // Add file type filter
+    // Add file type filter (using mime_type)
     if (fileType) {
-      query += ` AND m.file_type = $${paramIndex}`;
-      queryParams.push(fileType);
+      query += ` AND m.mime_type LIKE $${paramIndex}`;
+      queryParams.push(fileType + '%'); // e.g., 'image%' for all image types
       paramIndex++;
     }
 
@@ -927,11 +904,11 @@ export const getMediaFiles = async (req, res) => {
     );
 
     // Get total count
-    let countQuery = `SELECT COUNT(*) FROM media WHERE folder_path = $1`;
+    let countQuery = `SELECT COUNT(*) FROM media WHERE file_path LIKE $1 || '%'`;
     let countParams = [folderPath];
     if (fileType) {
-      countQuery += ` AND file_type = $2`;
-      countParams.push(fileType);
+      countQuery += ` AND mime_type LIKE $2`;
+      countParams.push(fileType + '%');
     }
     
     const countResult = await pool.query(countQuery, countParams);
@@ -1016,13 +993,12 @@ export const updateMediaFile = async (req, res) => {
     const pool = getDbPool();
     const query = `
       UPDATE media 
-      SET alt_text = $1, tags = $2, description = $3, folder_path = $4, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
+      SET alt_text = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
       RETURNING *
     `;
     
-    const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : [];
-    const result = await pool.query(query, [altText, tagsArray, description, folderPath, id]);
+    const result = await pool.query(query, [altText, id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -1168,17 +1144,17 @@ export const moveMediaFile = async (req, res) => {
     const file = fileCheck.rows[0];
     const oldPath = file.folder_path || 'root';
     
-    // Update the folder_path in database
+    // Note: folder_path column doesn't exist in current schema
+    // Folder structure is derived from file_path
     const query = `
       UPDATE media 
-      SET folder_path = $1, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $2
+      SET updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
       RETURNING *
     `;
     
-    // Empty string or null means root folder
-    const folderPath = targetFolder === 'root' || targetFolder === '' ? null : targetFolder;
-    const result = await pool.query(query, [folderPath, id]);
+    // Note: Folder structure is derived from file_path, no separate update needed
+    const result = await pool.query(query, [id]);
     
     console.log(`📁 Moved file "${file.filename}" from "${oldPath}" to "${targetFolder || 'root'}"`);
     
