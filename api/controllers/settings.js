@@ -40,7 +40,8 @@ export const getSettings = async (req, res) => {
           value = parseFloat(value);
         } else if (row.type === 'json') {
           try {
-            value = JSON.parse(value);
+            // Handle case where PostgreSQL jsonb returns already parsed object
+            value = typeof value === 'string' ? JSON.parse(value) : value;
           } catch (e) {
             console.error(`Error parsing JSON setting ${row.key}:`, e);
           }
@@ -109,7 +110,8 @@ export const getAllSettings = async (req, res) => {
           value = parseFloat(value);
         } else if (row.type === 'json') {
           try {
-            value = JSON.parse(value);
+            // Handle case where PostgreSQL jsonb returns already parsed object
+            value = typeof value === 'string' ? JSON.parse(value) : value;
           } catch (e) {
             console.error(`Error parsing JSON setting ${row.key}:`, e);
           }
