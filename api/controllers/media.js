@@ -1513,14 +1513,9 @@ export const syncS3Files = async (req, res) => {
     }
     
     // Get S3 client and perform sync
-    const credentials = await credentialManager.getCredentials();
     const s3Client = new S3Client({
       region: settings.aws_config.region || 'eu-west-2',
-      credentials: {
-        accessKeyId: credentials.accessKeyId,
-        secretAccessKey: credentials.secretAccessKey,
-        sessionToken: credentials.sessionToken
-      },
+      credentials: credentialManager.credentialProvider,
       forcePathStyle: true,
       endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
       disableS3ExpressSessionAuth: true,
