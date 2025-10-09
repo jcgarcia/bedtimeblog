@@ -476,7 +476,21 @@ class AWSCredentialManager {
         return null;
       }
 
-      return JSON.parse(result.rows[0].value);
+      const value = result.rows[0].value;
+      
+      // If value is already an object (PostgreSQL json type), return it directly
+      if (typeof value === 'object' && value !== null) {
+        return value;
+      }
+      
+      // If value is a string, parse it as JSON
+      if (typeof value === 'string') {
+        return JSON.parse(value);
+      }
+      
+      // Fallback: log the type and return null
+      console.error('Unexpected value type for aws_config:', typeof value, value);
+      return null;
     } catch (error) {
       console.error('Error fetching AWS config from database:', error);
       return null;
