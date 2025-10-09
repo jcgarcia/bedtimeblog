@@ -1512,15 +1512,8 @@ export const syncS3Files = async (req, res) => {
       });
     }
     
-    // Get S3 client and perform sync
-    const s3Client = new S3Client({
-      region: settings.aws_config.region || 'eu-west-2',
-      credentials: credentialManager.credentialProvider,
-      forcePathStyle: true,
-      endpoint: `https://s3.${settings.aws_config.region || 'eu-west-2'}.amazonaws.com`,
-      disableS3ExpressSessionAuth: true,
-      signatureVersion: 'v4'
-    });
+    // Get the already initialized S3 client from credential manager
+    const s3Client = await credentialManager.getS3Client();
     const syncResult = await syncS3WithDatabase(pool, s3Client, settings.aws_config.bucketName);
     
     res.json({
