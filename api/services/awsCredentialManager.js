@@ -119,32 +119,30 @@ class AWSCredentialManager {
       }
 
       // Create S3 client with the credential provider
-      // CRITICAL: Force standard S3 signing by removing S3 Express middleware
+      // CRITICAL: Force standard S3 signing - AWS SDK v3.906.0 bug with S3Express detection
       this.s3Client = new S3Client({
         region: config.region || 'eu-west-2',
         credentials: credentialProvider,
-        // Explicitly disable S3 Express One Zone signing for standard S3 buckets
-        useAccelerateEndpoint: false,
+        // Force standard S3 endpoint and signing
+        endpoint: `https://s3.${config.region || 'eu-west-2'}.amazonaws.com`,
         forcePathStyle: false,
-        // Force standard S3 signing and prevent Express detection
-        signingName: 's3',
-        signingRegion: config.region || 'eu-west-2',
-        // Additional Express prevention options
-        disableS3ExpressSessionAuth: true,
-        // Force standard endpoint format
-        tls: true,
-        // Prevent Express One Zone detection by bucket name pattern
-        bucketEndpoint: false,
-        // Critical: Override service ID to prevent Express middleware loading
-        serviceId: 'S3',
-        // Force signature version to prevent Express detection
-        signatureVersion: 'v4',
-        // Disable Express-specific features
-        useGlobalEndpoint: false,
-        // Force standard S3 behavior
-        s3ForcePathStyle: false,
-        // Override endpoint to ensure standard S3
-        endpoint: `https://s3.${config.region || 'eu-west-2'}.amazonaws.com`
+        // CRITICAL: Use legacy signer to avoid S3Express middleware
+        signer: {
+          sign: async (request, options) => {
+            // Import standard signature v4 (not S3Express)
+            const { SignatureV4 } = await import('@aws-sdk/signature-v4');
+            const { Sha256 } = await import('@aws-crypto/sha256-js');
+            
+            const signer = new SignatureV4({
+              credentials: credentialProvider,
+              region: config.region || 'eu-west-2',
+              service: 's3',
+              sha256: Sha256
+            });
+            
+            return signer.sign(request, options);
+          }
+        }
       });
 
       // HACK: Remove S3 Express middleware if it was added
