@@ -952,7 +952,7 @@ export default function MediaManagement() {
                     <div className="media-info">
                       <h4 title={file.original_name}>{file.original_name}</h4>
                       <p className="file-size">{formatFileSize(file.file_size)}</p>
-                      <p className="file-type">{file.file_type.toUpperCase()}</p>
+                      <p className="file-type">{(file.file_type || 'file').toUpperCase()}</p>
                       <p className="upload-date">
                         {new Date(file.created_at).toLocaleDateString()}
                       </p>
