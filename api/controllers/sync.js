@@ -169,12 +169,14 @@ export const syncS3ToDatabase = async (req, res) => {
 // OIDC-specific S3 sync function
 export const syncS3ToDatabaseOIDC = async (req, res) => {
   try {
-    console.log('🔄 Starting OIDC S3 sync...');
+    console.log('🔄 OIDC Sync Phase 1: Starting OIDC S3 sync...');
     const pool = getDbPool();
     
     // Get AWS configuration from database - simple approach
+    console.log('🔄 OIDC Sync Phase 2: Retrieving AWS config from database...');
     const awsConfigRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config' AND type = 'json'");
     if (awsConfigRes.rows.length === 0) {
+      console.error('❌ Phase 2 Failed: AWS configuration not found in database');
       return res.status(400).json({
         success: false,
         message: 'AWS configuration not found in database'
@@ -201,15 +203,16 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
         throw new Error(`Unexpected value type: ${typeof rawValue}`);
       }
     } catch (e) {
-      console.error('❌ AWS config parsing error:', e.message);
+      console.error('❌ Phase 2 Failed: AWS config parsing error:', e.message);
       return res.status(400).json({
         success: false,
         message: `Invalid AWS configuration format: ${e.message}`
       });
     }
-    console.log('🔍 Found AWS config:', { bucketName: awsConfig.bucketName, region: awsConfig.region });
+    console.log('✅ Phase 2 Complete: AWS config parsed:', { bucketName: awsConfig.bucketName, region: awsConfig.region });
 
     if (!awsConfig.bucketName) {
+      console.error('❌ Phase 2 Failed: S3 bucket name not configured');
       return res.status(400).json({
         success: false,
         message: 'S3 bucket name not configured'
@@ -217,7 +220,7 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     }
 
     // Get S3 client using OIDC authentication
-    console.log('🔑 Getting OIDC credentials for S3 sync...');
+    console.log('� OIDC Sync Phase 3: Getting OIDC credentials...');
     const rawCredentials = await awsCredentialManager.getCredentials();
     console.log('✅ OIDC credentials obtained');
     console.log('🔍 Raw credential object keys:', Object.keys(rawCredentials));
@@ -245,13 +248,13 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
       sessionToken = rawCredentials.sessionToken || rawCredentials.SessionToken;
       console.log('🔍 Using direct credential structure');
     } else {
-      console.error('❌ Unable to find AWS credentials in object. Available properties:', Object.keys(rawCredentials).join(', '));
+      console.error('❌ Phase 3 Failed: Unable to find AWS credentials in object. Available properties:', Object.keys(rawCredentials).join(', '));
       throw new Error(`Unable to find AWS credentials in object. Available properties: ${Object.keys(rawCredentials).join(', ')}`);
     }
     
     // Validate extracted credentials
     if (!accessKeyId || !secretAccessKey || !sessionToken) {
-      console.error('❌ Credential validation failed:', {
+      console.error('❌ Phase 3 Failed: Credential validation failed:', {
         hasAccessKeyId: !!accessKeyId,
         hasSecretAccessKey: !!secretAccessKey,
         hasSessionToken: !!sessionToken
@@ -259,8 +262,9 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
       throw new Error(`Invalid credentials: missing ${!accessKeyId ? 'accessKeyId' : !secretAccessKey ? 'secretAccessKey' : 'sessionToken'}`);
     }
     
-    console.log('✅ Credentials extracted successfully');
+    console.log('✅ Phase 3 Complete: Credentials extracted successfully');
 
+    console.log('🔄 OIDC Sync Phase 4: Creating S3 client...');
     const s3Client = new S3Client({
       region: awsConfig.region || 'eu-west-2',
       credentials: {
@@ -270,16 +274,20 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
       }
     });
     const bucketName = awsConfig.bucketName;
+    console.log('✅ Phase 4 Complete: S3 client created for bucket:', bucketName);
 
     // List all objects in S3 bucket
+    console.log('🔄 OIDC Sync Phase 5: Listing S3 objects...');
     const listCommand = new ListObjectsV2Command({
       Bucket: bucketName,
       Prefix: 'uploads/' // Only sync files in uploads folder
     });
 
     const s3Objects = await s3Client.send(listCommand);
+    console.log('✅ Phase 5 Complete: S3 objects retrieved:', s3Objects.Contents?.length || 0, 'objects found');
     
     if (!s3Objects.Contents || s3Objects.Contents.length === 0) {
+      console.log('ℹ️ No files found in S3 bucket - sync complete');
       return res.json({
         success: true,
         message: 'No files found in S3 bucket',
@@ -288,14 +296,19 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     }
 
     // Get existing files from database
+    console.log('🔄 OIDC Sync Phase 6: Checking existing database entries...');
     const existingFiles = await pool.query('SELECT s3_key FROM media');
     const existingKeys = new Set(existingFiles.rows.map(row => row.s3_key));
+    console.log('🔍 Found', existingKeys.size, 'existing files in database');
 
+    console.log('🔄 OIDC Sync Phase 7: Processing S3 objects for database insertion...');
     let syncedCount = 0;
     const insertPromises = [];
 
     for (const obj of s3Objects.Contents) {
       if (!existingKeys.has(obj.Key)) {
+        console.log('🔍 Processing new file:', obj.Key);
+        
         // Extract filename from S3 key
         const filename = obj.Key.split('/').pop();
         const originalName = filename;
@@ -311,6 +324,14 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
 
         // Extract folder path from S3 key
         const folderPath = obj.Key.substring(0, obj.Key.lastIndexOf('/') + 1) || '/';
+
+        console.log('🔍 Preparing insert for:', {
+          filename,
+          originalName,
+          mimeType,
+          size: obj.Size,
+          folderPath
+        });
 
         const insertPromise = pool.query(`
           INSERT INTO media (
@@ -330,12 +351,21 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
 
         insertPromises.push(insertPromise);
         syncedCount++;
+      } else {
+        console.log('🔍 Skipping existing file:', obj.Key);
       }
     }
 
+    console.log('🔄 OIDC Sync Phase 8: Executing database inserts...', syncedCount, 'new files to insert');
     // Execute all inserts
-    await Promise.all(insertPromises);
+    if (insertPromises.length > 0) {
+      await Promise.all(insertPromises);
+      console.log('✅ Phase 8 Complete: Database inserts completed successfully');
+    } else {
+      console.log('ℹ️ Phase 8 Skipped: No new files to insert');
+    }
 
+    console.log('✅ OIDC Sync Complete: Success!');
     res.json({
       success: true,
       message: `OIDC sync completed successfully`,
@@ -344,7 +374,7 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ OIDC S3 Sync Error:', error);
+    console.error('❌ OIDC S3 Sync Error at phase:', error.message);
     console.error('❌ Error name:', error.name, 'message:', error.message);
     console.error('❌ Full error stack:', error.stack);
     res.status(500).json({
