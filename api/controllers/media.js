@@ -865,16 +865,16 @@ export const getMediaFiles = async (req, res) => {
             
             // Generate thumbnail URL if thumbnail exists
             let thumbnailUrl = null;
-            console.log(`🔍 Debug thumbnail for ${media.original_name}: thumbnail_path=${media.thumbnail_path}, s3_bucket=${media.s3_bucket}`);
-            if (media.thumbnail_path) {
+            console.log(`🔍 Debug thumbnail for ${media.original_name}: thumbnail_key=${media.thumbnail_key}, s3_bucket=${media.s3_bucket}`);
+            if (media.thumbnail_key) {
               try {
-                thumbnailUrl = await generateSignedUrl(media.thumbnail_path, media.s3_bucket);
+                thumbnailUrl = await generateSignedUrl(media.thumbnail_key, media.s3_bucket);
                 console.log(`✅ Generated thumbnail URL for ${media.original_name}: ${thumbnailUrl ? 'SUCCESS' : 'NULL'}`);
               } catch (thumbError) {
-                console.warn(`❌ Could not generate thumbnail URL for ${media.thumbnail_path}:`, thumbError.message);
+                console.warn(`❌ Could not generate thumbnail URL for ${media.thumbnail_key}:`, thumbError.message);
               }
             } else {
-              console.log(`⚠️ No thumbnail_path for ${media.original_name}`);
+              console.log(`⚠️ No thumbnail_key for ${media.original_name}`);
             }
             
             return { 
@@ -1065,14 +1065,14 @@ export const deleteMediaFile = async (req, res) => {
           console.log(`✅ Deleted file from S3: ${mediaFile.s3_key}`);
           
           // Also delete thumbnail if it exists
-          if (mediaFile.thumbnail_path) {
+          if (mediaFile.thumbnail_key) {
             try {
               const thumbnailDeleteCommand = new DeleteObjectCommand({
                 Bucket: bucketName,
-                Key: mediaFile.thumbnail_path
+                Key: mediaFile.thumbnail_key
               });
               await s3Client.send(thumbnailDeleteCommand);
-              console.log(`✅ Deleted thumbnail from S3: ${mediaFile.thumbnail_path}`);
+              console.log(`✅ Deleted thumbnail from S3: ${mediaFile.thumbnail_key}`);
             } catch (thumbnailError) {
               console.error('❌ Error deleting thumbnail from S3:', thumbnailError);
               // Continue even if thumbnail deletion fails

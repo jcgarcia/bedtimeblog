@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT INTO settings (key, value, description) 
 VALUES (
     'aws_config',
-    $JSON${"authMethod":"oidc","region":"eu-west-2","bucketName":"bedtimeblog-medialibrary","roleArn":"arn:aws:iam::007041844937:role/BedtimeBlogMediaRole","oidcIssuerUrl":"https://oidc.ingasti.com","oidcAudience":"https://oidc.ingasti.com","oidcSubject":"system:serviceaccount:blog:media-access-sa"}$JSON$,
+    '{"authMethod":"oidc","region":"eu-west-2","bucketName":"bedtimeblog-medialibrary","roleArn":"arn:aws:iam::007041844937:role/BedtimeBlogMediaRole","oidcIssuerUrl":"https://oidc.ingasti.com","oidcAudience":"https://oidc.ingasti.com","oidcSubject":"system:serviceaccount:blog:media-access-sa"}',
     'AWS S3 configuration with OIDC authentication'
 ) ON CONFLICT (key) DO NOTHING;
 
