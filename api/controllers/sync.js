@@ -183,7 +183,12 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
           settings[row.key] = {}; 
         }
       } else {
-        settings[row.key] = row.value;
+        // Handle string values that might be JSON-encoded
+        try {
+          settings[row.key] = JSON.parse(row.value);
+        } catch (e) {
+          settings[row.key] = row.value;
+        }
       }
     });
 
