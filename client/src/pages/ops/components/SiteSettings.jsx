@@ -47,13 +47,13 @@ export default function SiteSettings() {
         const data = await response.json();
         console.log('Loaded settings:', data);
         
-        // Map database keys to form fields
+        // Map database keys to form fields with proper defaults
         const mappedSettings = {
           blogTitle: data.blog_title || data.blogTitle || 'Guilt & Pleasure Bedtime',
           blogDescription: data.blog_description || data.blogDescription || 'A personal blog about life experiences',
-          requireApproval: data.require_approval === 'true' || data.requireApproval,
-          enableModeration: data.enable_moderation === 'true' || data.enableModeration,
-          enableAutoSave: data.enable_auto_save === 'true' || data.enableAutoSave,
+          requireApproval: data.require_approval ? data.require_approval === 'true' : true,
+          enableModeration: data.enable_moderation ? data.enable_moderation === 'true' : true,
+          enableAutoSave: data.enable_auto_save ? data.enable_auto_save === 'true' : true,
           autoSaveInterval: parseInt(data.auto_save_interval) || data.autoSaveInterval || 30,
           // SMTP Email Settings
           smtpHost: data.smtp_host || '',
@@ -61,8 +61,8 @@ export default function SiteSettings() {
           smtpUser: data.smtp_user || '',
           smtpPass: data.smtp_pass || '',
           smtpFrom: data.smtp_from || '',
-          smtpSecure: data.smtp_secure === 'true',
-          emailNotifications: data.email_notifications === 'true',
+          smtpSecure: data.smtp_secure ? data.smtp_secure === 'true' : false,
+          emailNotifications: data.email_notifications ? data.email_notifications === 'true' : true,
           contactEmail: data.contact_email || ''
         };
         
@@ -88,23 +88,23 @@ export default function SiteSettings() {
       setLoading(true);
       setMessage('');
       
-      // Map form fields to database keys
+      // Map form fields to database keys with safe defaults
       const settingsToSave = {
-        blog_title: settings.blogTitle,
-        blog_description: settings.blogDescription,
-        require_approval: settings.requireApproval.toString(),
-        enable_moderation: settings.enableModeration.toString(),
-        enable_auto_save: settings.enableAutoSave.toString(),
-        auto_save_interval: settings.autoSaveInterval.toString(),
+        blog_title: settings.blogTitle || '',
+        blog_description: settings.blogDescription || '',
+        require_approval: (settings.requireApproval || false).toString(),
+        enable_moderation: (settings.enableModeration || false).toString(),
+        enable_auto_save: (settings.enableAutoSave || false).toString(),
+        auto_save_interval: (settings.autoSaveInterval || 30).toString(),
         // SMTP Email Settings
-        smtp_host: settings.smtpHost,
-        smtp_port: settings.smtpPort,
-        smtp_user: settings.smtpUser,
-        smtp_pass: settings.smtpPass,
-        smtp_from: settings.smtpFrom,
-        smtp_secure: settings.smtpSecure.toString(),
-        email_notifications: settings.emailNotifications.toString(),
-        contact_email: settings.contactEmail
+        smtp_host: settings.smtpHost || '',
+        smtp_port: settings.smtpPort || '587',
+        smtp_user: settings.smtpUser || '',
+        smtp_pass: settings.smtpPass || '',
+        smtp_from: settings.smtpFrom || '',
+        smtp_secure: (settings.smtpSecure || false).toString(),
+        email_notifications: (settings.emailNotifications || true).toString(),
+        contact_email: settings.contactEmail || ''
       };
       
       console.log('Saving settings:', settingsToSave);
