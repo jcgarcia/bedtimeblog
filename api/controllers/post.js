@@ -126,7 +126,9 @@ async function resolveMediaUrl(mediaId) {
         return mediaId; // Return S3 key as fallback
       }
       
-      const awsConfig = JSON.parse(settingsRes.rows[0].value);
+      // Handle both JSON string and object formats from database
+      const rawValue = settingsRes.rows[0].value;
+      const awsConfig = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue;
       console.log(`🔧 Using bucket: ${awsConfig.bucketName} with OIDC authentication`);
       
       console.log(`📝 Using manual signing for bucket: ${awsConfig.bucketName}, key: ${mediaId}`);
