@@ -1,24 +1,6 @@
-import { S3Client, ListObjectsV2    // Get S3 client using OIDC authentication
-    console.log('🔄 Getting OIDC credentials...');
-    const credentials = await awsCredentialManager.getCredentials();
-    console.log('🔍 Credential validation:', {
-      hasAccessKeyId: !!credentials.accessKeyId,
-      hasSecretAccessKey: !!credentials.secretAccessKey,
-      hasSessionToken: !!credentials.sessionToken,
-      credentialType: typeof credentials
-    });
-
-    // Ensure credentials are properly formatted for S3 client
-    const validatedCredentials = {
-      accessKeyId: credentials.accessKeyId,
-      secretAccessKey: credentials.secretAccessKey,
-      ...(credentials.sessionToken && { sessionToken: credentials.sessionToken })
-    };
-
-    const s3Client = new S3Client({
-      region: awsConfig.region || 'eu-west-2',
-      credentials: validatedCredentials,
-      // Force standard S3 endpoint to prevent S3Express detection
+import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getDbPool } from '../db.js';
+import awsCredentialManager from '../services/awsCredentialManager.js';
       endpoint: `https://s3.${awsConfig.region || 'eu-west-2'}.amazonaws.com`,
       forcePathStyle: false,
       // Force standard v4 signing
@@ -249,6 +231,12 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     try {
       credentials = await awsCredentialManager.getCredentials();
       console.log('✅ Successfully got OIDC credentials');
+      console.log('🔍 Credential validation:', {
+        hasAccessKeyId: !!credentials.accessKeyId,
+        hasSecretAccessKey: !!credentials.secretAccessKey,
+        hasSessionToken: !!credentials.sessionToken,
+        credentialType: typeof credentials
+      });
     } catch (credError) {
       console.error('❌ Failed to get OIDC credentials:', credError);
       return res.status(500).json({
@@ -257,9 +245,23 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
       });
     }
 
+    // Ensure credentials are properly formatted for S3 client
+    const validatedCredentials = {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      ...(credentials.sessionToken && { sessionToken: credentials.sessionToken })
+    };
+
     const s3Client = new S3Client({
       region: awsConfig.region || 'eu-west-2',
-      credentials
+      credentials: validatedCredentials,
+      // Force standard S3 endpoint to prevent S3Express detection
+      endpoint: `https://s3.${awsConfig.region || 'eu-west-2'}.amazonaws.com`,
+      forcePathStyle: false,
+      // Force standard v4 signing
+      signingName: 's3',
+      signingRegion: awsConfig.region || 'eu-west-2',
+      signatureVersion: 'v4'
     });
     const bucketName = awsConfig.bucketName;
 
