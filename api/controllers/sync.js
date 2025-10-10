@@ -176,7 +176,12 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     const settings = {};
     settingsRes.rows.forEach(row => {
       if (row.type === 'json') {
-        settings[row.key] = row.value; // Already parsed by PostgreSQL
+        try { 
+          settings[row.key] = JSON.parse(row.value); 
+        } catch (e) { 
+          console.error(`Error parsing JSON setting ${row.key}:`, e);
+          settings[row.key] = {}; 
+        }
       } else {
         settings[row.key] = row.value;
       }
