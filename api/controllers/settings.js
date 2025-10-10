@@ -147,18 +147,21 @@ export const updateSettings = async (req, res) => {
     );
     
     for (const [key, value] of Object.entries(updates)) {
-      let stringValue = value;
+      let stringValue;
       let type = 'string';
       
-      // Determine type
+      // Determine type and ensure proper JSON encoding for jsonb column
       if (typeof value === 'boolean') {
         type = 'boolean';
-        stringValue = value.toString();
+        stringValue = JSON.stringify(value.toString());
       } else if (typeof value === 'number') {
         type = 'number';
-        stringValue = value.toString();
+        stringValue = JSON.stringify(value.toString());
       } else if (typeof value === 'object') {
         type = 'json';
+        stringValue = JSON.stringify(value);
+      } else {
+        // String values also need to be JSON encoded for jsonb column
         stringValue = JSON.stringify(value);
       }
       
