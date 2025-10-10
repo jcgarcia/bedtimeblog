@@ -192,7 +192,19 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
       }
     });
 
+    console.log('🔍 OIDC Sync - Parsed settings:', {
+      media_storage_type: settings.media_storage_type,
+      media_storage_type_type: typeof settings.media_storage_type,
+      aws_config_exists: !!settings.aws_config,
+      aws_config_bucketName: settings.aws_config?.bucketName
+    });
+
     if (settings.media_storage_type !== 'aws' || !settings.aws_config?.bucketName) {
+      console.error('❌ OIDC Sync configuration check failed:', {
+        media_storage_type: settings.media_storage_type,
+        expected: 'aws',
+        bucketName: settings.aws_config?.bucketName
+      });
       return res.status(400).json({
         success: false,
         message: 'AWS S3 not configured for OIDC'
