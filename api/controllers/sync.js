@@ -314,10 +314,17 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error syncing S3 with OIDC:', error);
+    console.error('❌ OIDC S3 Sync Error:', error);
+    console.error('❌ Error name:', error.name, 'message:', error.message);
+    console.error('❌ Full error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Error syncing S3 bucket with database using OIDC'
+      message: `OIDC S3 sync failed: ${error.message}`,
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }
     });
   }
 };
