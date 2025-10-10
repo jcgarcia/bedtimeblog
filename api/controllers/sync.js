@@ -1,8 +1,8 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getDbPool } from '../db.js';
 import awsCredentialManager from '../services/awsCredentialManager.js';
-    // PostgreSQL JSON columns return objects directly, no parsing needed
-    const awsConfig = awsConfigRes.rows[0].value; bucket contents with database
+
+// Sync S3 bucket contents with database
 export const syncS3ToDatabase = async (req, res) => {
   try {
     const pool = getDbPool();
