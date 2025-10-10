@@ -316,37 +316,50 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
         // Determine mime type based on file extension
         const ext = filename.split('.').pop()?.toLowerCase();
         let mimeType = 'application/octet-stream';
-        if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg';
-        else if (ext === 'png') mimeType = 'image/png';
-        else if (ext === 'gif') mimeType = 'image/gif';
-        else if (ext === 'pdf') mimeType = 'application/pdf';
-        else if (['mp4', 'mov'].includes(ext)) mimeType = 'video/' + ext;
-
-        // Extract folder path from S3 key
-        const folderPath = obj.Key.substring(0, obj.Key.lastIndexOf('/') + 1) || '/';
+        let folderPath = '/'; // Default to root
+        
+        if (['jpg', 'jpeg'].includes(ext)) {
+          mimeType = 'image/jpeg';
+          folderPath = '/images';
+        } else if (ext === 'png') {
+          mimeType = 'image/png';
+          folderPath = '/images';
+        } else if (ext === 'gif') {
+          mimeType = 'image/gif';
+          folderPath = '/images';
+        } else if (ext === 'webp') {
+          mimeType = 'image/webp';
+          folderPath = '/images';
+        } else if (ext === 'pdf') {
+          mimeType = 'application/pdf';
+          folderPath = '/documents';
+        } else if (['mp4', 'mov'].includes(ext)) {
+          mimeType = 'video/' + ext;
+          folderPath = '/videos';
+        }
 
         console.log('🔍 Preparing insert for:', {
           filename,
           originalName,
           mimeType,
           size: obj.Size,
-          folderPath
+          folderPath,
+          s3Key: obj.Key
         });
 
         const insertPromise = pool.query(`
           INSERT INTO media (
             filename, original_name, file_path, file_size, mime_type,
-            s3_key, s3_bucket, folder_path, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            s3_key, s3_bucket, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `, [
           filename,
           originalName,
-          obj.Key,
+          folderPath + '/' + filename, // Use categorized folder path
           obj.Size || 0,
           mimeType,
           obj.Key,
-          bucketName,
-          folderPath
+          bucketName
         ]);
 
         insertPromises.push(insertPromise);
