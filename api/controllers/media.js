@@ -832,6 +832,7 @@ export const getMediaFiles = async (req, res) => {
       FROM media m
       LEFT JOIN users u ON m.uploaded_by = u.id
       WHERE m.file_path LIKE $1 || '%'
+      AND (m.is_thumbnail IS NULL OR m.is_thumbnail = false)
     `;
     let queryParams = [folderPath];
     let paramIndex = 2;
@@ -892,7 +893,7 @@ export const getMediaFiles = async (req, res) => {
     );
 
     // Get total count
-    let countQuery = `SELECT COUNT(*) FROM media WHERE file_path LIKE $1 || '%'`;
+    let countQuery = `SELECT COUNT(*) FROM media WHERE file_path LIKE $1 || '%' AND (is_thumbnail IS NULL OR is_thumbnail = false)`;
     let countParams = [folderPath];
     if (fileType) {
       countQuery += ` AND mime_type LIKE $2`;
