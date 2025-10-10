@@ -301,17 +301,32 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     const existingKeys = new Set(existingFiles.rows.map(row => row.s3_key));
     console.log('🔍 Found', existingKeys.size, 'existing files in database');
 
-    console.log('🔄 OIDC Sync Phase 7: Clearing existing media entries for fresh sync...');
-    await pool.query('DELETE FROM media');
-    console.log('✅ Phase 7a: Existing media entries cleared');
+    console.log('🔄 OIDC Sync Phase 7: Fixing existing media entries...');
     
-    // Fix media_folders table - replace Thumbnails with Videos
+    // First, fix existing records with NULL file_type to prevent JavaScript crashes
+    await pool.query(`
+      UPDATE media 
+      SET file_type = CASE 
+        WHEN mime_type LIKE 'image/%' THEN SUBSTRING(filename FROM '\.([^.]+)$')
+        WHEN mime_type = 'application/pdf' THEN 'pdf'
+        WHEN mime_type LIKE 'video/%' THEN SUBSTRING(filename FROM '\.([^.]+)$')
+        ELSE 'unknown'
+      END
+      WHERE file_type IS NULL
+    `);
+    console.log('✅ Phase 7a: Fixed existing NULL file_type values');
+    
+    // Fix media_folders table - replace Thumbnails with Videos  
     console.log('🔄 Phase 7b: Fixing media folders structure...');
     await pool.query(`
       UPDATE media_folders SET name = 'Videos', path = '/videos', description = 'Video files' 
       WHERE name = 'Thumbnails' OR path = '/thumbnails'
     `);
     console.log('✅ Phase 7b: Media folders structure fixed');
+    
+    // Now clear for fresh sync
+    await pool.query('DELETE FROM media');
+    console.log('✅ Phase 7c: Existing media entries cleared for fresh sync');
     
     console.log('🔄 OIDC Sync Phase 7c: Processing S3 objects for database insertion...');
     let syncedCount = 0;
