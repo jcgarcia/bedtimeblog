@@ -24,6 +24,7 @@ import dotenv from "dotenv";
 import { loadSystemConfig } from "./middleware/systemConfig.js";
 import { closeDbPool } from "./db.js";
 import { createHealthCheckEndpoint, createConnectionInfoEndpoint } from "./utils/dbHealthCheck.js";
+import { initializeDatabaseMigrations } from "./migrations.js";
 
 // Load environment variables for database connection only
 dotenv.config({ path: '.env.local' });
@@ -181,6 +182,14 @@ app.get('/share', socialCrawlerMiddleware);
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, async () => {
   console.log(`Connected! Server running on port ${PORT}`);
+  
+  try {
+    // Run database migrations to ensure critical settings are present
+    await initializeDatabaseMigrations();
+  } catch (error) {
+    console.error('❌ Failed to initialize database migrations:', error);
+    console.error('🔄 Application will continue but some features may not work properly');
+  }
   
   // OIDC authentication is handled automatically when needed
   // No manual initialization required for OIDC-based AWS access
