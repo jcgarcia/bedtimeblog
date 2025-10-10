@@ -301,13 +301,24 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     const existingKeys = new Set(existingFiles.rows.map(row => row.s3_key));
     console.log('🔍 Found', existingKeys.size, 'existing files in database');
 
-    console.log('🔄 OIDC Sync Phase 7: Processing S3 objects for database insertion...');
+    console.log('🔄 OIDC Sync Phase 7: Clearing existing media entries for fresh sync...');
+    await pool.query('DELETE FROM media');
+    console.log('✅ Phase 7a: Existing media entries cleared');
+    
+    // Fix media_folders table - replace Thumbnails with Videos
+    console.log('🔄 Phase 7b: Fixing media folders structure...');
+    await pool.query(`
+      UPDATE media_folders SET name = 'Videos', path = '/videos', description = 'Video files' 
+      WHERE name = 'Thumbnails' OR path = '/thumbnails'
+    `);
+    console.log('✅ Phase 7b: Media folders structure fixed');
+    
+    console.log('🔄 OIDC Sync Phase 7c: Processing S3 objects for database insertion...');
     let syncedCount = 0;
     const insertPromises = [];
 
     for (const obj of s3Objects.Contents) {
-      if (!existingKeys.has(obj.Key)) {
-        console.log('🔍 Processing new file:', obj.Key);
+      console.log('🔍 Processing file:', obj.Key);
         
         // Extract filename from S3 key
         const filename = obj.Key.split('/').pop();
@@ -364,9 +375,6 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
 
         insertPromises.push(insertPromise);
         syncedCount++;
-      } else {
-        console.log('🔍 Skipping existing file:', obj.Key);
-      }
     }
 
     console.log('🔄 OIDC Sync Phase 8: Executing database inserts...', syncedCount, 'new files to insert');
