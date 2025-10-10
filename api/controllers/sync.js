@@ -218,26 +218,56 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
 
     // Get S3 client using OIDC authentication
     console.log('🔑 Getting OIDC credentials for S3 sync...');
-    const credentials = await awsCredentialManager.getCredentials();
-    console.log('✅ Successfully got OIDC credentials with validation');
+    const rawCredentials = await awsCredentialManager.getCredentials();
+    console.log('✅ OIDC credentials obtained');
+    console.log('🔍 Raw credential object keys:', Object.keys(rawCredentials));
     
-    // Ensure credentials are properly formatted for S3 client
-    const validatedCredentials = {
-      accessKeyId: credentials.accessKeyId,
-      secretAccessKey: credentials.secretAccessKey,
-      ...(credentials.sessionToken && { sessionToken: credentials.sessionToken })
-    };
+    // Handle OIDC Web Identity Token response structure (same as working media.js)
+    let accessKeyId, secretAccessKey, sessionToken;
+    
+    if (rawCredentials.Credentials) {
+      // OIDC Web Identity Token response structure
+      accessKeyId = rawCredentials.Credentials.AccessKeyId;
+      secretAccessKey = rawCredentials.Credentials.SecretAccessKey;
+      sessionToken = rawCredentials.Credentials.SessionToken;
+      console.log('🔍 Using OIDC Web Identity credential structure (Credentials.AccessKeyId)');
+    } else if (rawCredentials.credentials) {
+      // Nested credentials object (lowercase)
+      const creds = rawCredentials.credentials;
+      accessKeyId = creds.AccessKeyId || creds.accessKeyId;
+      secretAccessKey = creds.SecretAccessKey || creds.secretAccessKey;
+      sessionToken = creds.SessionToken || creds.sessionToken;
+      console.log('🔍 Using nested credentials object');
+    } else if (rawCredentials.accessKeyId || rawCredentials.AccessKeyId) {
+      // Direct credential structure
+      accessKeyId = rawCredentials.accessKeyId || rawCredentials.AccessKeyId;
+      secretAccessKey = rawCredentials.secretAccessKey || rawCredentials.SecretAccessKey;
+      sessionToken = rawCredentials.sessionToken || rawCredentials.SessionToken;
+      console.log('🔍 Using direct credential structure');
+    } else {
+      console.error('❌ Unable to find AWS credentials in object. Available properties:', Object.keys(rawCredentials).join(', '));
+      throw new Error(`Unable to find AWS credentials in object. Available properties: ${Object.keys(rawCredentials).join(', ')}`);
+    }
+    
+    // Validate extracted credentials
+    if (!accessKeyId || !secretAccessKey || !sessionToken) {
+      console.error('❌ Credential validation failed:', {
+        hasAccessKeyId: !!accessKeyId,
+        hasSecretAccessKey: !!secretAccessKey,
+        hasSessionToken: !!sessionToken
+      });
+      throw new Error(`Invalid credentials: missing ${!accessKeyId ? 'accessKeyId' : !secretAccessKey ? 'secretAccessKey' : 'sessionToken'}`);
+    }
+    
+    console.log('✅ Credentials extracted successfully');
 
     const s3Client = new S3Client({
       region: awsConfig.region || 'eu-west-2',
-      credentials: validatedCredentials,
-      // Force standard S3 endpoint to prevent S3Express detection
-      endpoint: `https://s3.${awsConfig.region || 'eu-west-2'}.amazonaws.com`,
-      forcePathStyle: false,
-      // Force standard v4 signing
-      signingName: 's3',
-      signingRegion: awsConfig.region || 'eu-west-2',
-      signatureVersion: 'v4'
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+        sessionToken
+      }
     });
     const bucketName = awsConfig.bucketName;
 
