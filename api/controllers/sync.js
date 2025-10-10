@@ -1,8 +1,8 @@
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getDbPool } from '../db.js';
 import awsCredentialManager from '../services/awsCredentialManager.js';
-
-// Sync S3 bucket contents with database
+    // PostgreSQL JSON columns return objects directly, no parsing needed
+    const awsConfig = awsConfigRes.rows[0].value; bucket contents with database
 export const syncS3ToDatabase = async (req, res) => {
   try {
     const pool = getDbPool();
@@ -169,55 +169,45 @@ export const syncS3ToDatabase = async (req, res) => {
 // OIDC-specific S3 sync function
 export const syncS3ToDatabaseOIDC = async (req, res) => {
   try {
+    console.log('🔄 Starting OIDC S3 sync...');
     const pool = getDbPool();
     
-    // Get AWS configuration from database
-    const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'aws_config')");
-    const settings = {};
-    settingsRes.rows.forEach(row => {
-      if (row.type === 'json') {
-        try { 
-          settings[row.key] = JSON.parse(row.value); 
-        } catch (e) { 
-          console.error(`Error parsing JSON setting ${row.key}:`, e);
-          settings[row.key] = {}; 
-        }
-      } else {
-        // Handle string values that might be JSON-encoded
-        try {
-          settings[row.key] = JSON.parse(row.value);
-        } catch (e) {
-          settings[row.key] = row.value;
-        }
-      }
-    });
-
-    console.log('🔍 OIDC Sync - Parsed settings:', {
-      media_storage_type: settings.media_storage_type,
-      media_storage_type_type: typeof settings.media_storage_type,
-      aws_config_exists: !!settings.aws_config,
-      aws_config_bucketName: settings.aws_config?.bucketName
-    });
-
-    if (settings.media_storage_type !== 'aws' || !settings.aws_config?.bucketName) {
-      console.error('❌ OIDC Sync configuration check failed:', {
-        media_storage_type: settings.media_storage_type,
-        expected: 'aws',
-        bucketName: settings.aws_config?.bucketName
-      });
+    // Get AWS configuration from database - simple approach
+    const awsConfigRes = await pool.query("SELECT value FROM settings WHERE key = 'aws_config' AND type = 'json'");
+    if (awsConfigRes.rows.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'AWS S3 not configured for OIDC'
+        message: 'AWS configuration not found in database'
+      });
+    }
+
+    let awsConfig;
+    try {
+      awsConfig = typeof awsConfigRes.rows[0].value === 'string' 
+        ? JSON.parse(awsConfigRes.rows[0].value) 
+        : awsConfigRes.rows[0].value;
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid AWS configuration format'
+      });
+    }
+    console.log('🔍 Found AWS config:', { bucketName: awsConfig.bucketName, region: awsConfig.region });
+
+    if (!awsConfig.bucketName) {
+      return res.status(400).json({
+        success: false,
+        message: 'S3 bucket name not configured'
       });
     }
 
     // Get S3 client using OIDC authentication
     const credentials = await awsCredentialManager.getCredentials();
     const s3Client = new S3Client({
-      region: settings.aws_config.region || 'eu-west-2',
+      region: awsConfig.region || 'eu-west-2',
       credentials
     });
-    const bucketName = settings.aws_config.bucketName;
+    const bucketName = awsConfig.bucketName;
 
     // List all objects in S3 bucket
     const listCommand = new ListObjectsV2Command({
