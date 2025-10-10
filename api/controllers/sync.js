@@ -182,14 +182,29 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     }
 
     let awsConfig;
+    const rawValue = awsConfigRes.rows[0].value;
+    console.log('🔍 Raw AWS config value type:', typeof rawValue);
+    console.log('🔍 Raw AWS config value:', rawValue);
+    
     try {
-      awsConfig = typeof awsConfigRes.rows[0].value === 'string' 
-        ? JSON.parse(awsConfigRes.rows[0].value) 
-        : awsConfigRes.rows[0].value;
+      // PostgreSQL JSONB columns return objects directly, not strings
+      if (typeof rawValue === 'object' && rawValue !== null) {
+        awsConfig = rawValue;
+      } else if (typeof rawValue === 'string') {
+        // Only parse if it's actually a JSON string
+        if (rawValue.startsWith('{') || rawValue.startsWith('[')) {
+          awsConfig = JSON.parse(rawValue);
+        } else {
+          throw new Error(`Invalid JSON format: ${rawValue}`);
+        }
+      } else {
+        throw new Error(`Unexpected value type: ${typeof rawValue}`);
+      }
     } catch (e) {
+      console.error('❌ AWS config parsing error:', e.message);
       return res.status(400).json({
         success: false,
-        message: 'Invalid AWS configuration format'
+        message: `Invalid AWS configuration format: ${e.message}`
       });
     }
     console.log('🔍 Found AWS config:', { bucketName: awsConfig.bucketName, region: awsConfig.region });
