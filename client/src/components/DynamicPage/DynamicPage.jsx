@@ -131,6 +131,16 @@ export default function DynamicPage() {
 
     switch (node.type) {
       case 'paragraph':
+        // Check if this paragraph contains a header in its text
+        const firstChild = node.children?.[0];
+        if (firstChild && firstChild.type === 'text' && firstChild.text) {
+          const text = firstChild.text;
+          if (text.startsWith('## ') || text.startsWith('### ') || text.startsWith('# ')) {
+            // Render as header instead of paragraph
+            return renderLexicalNode(firstChild, index);
+          }
+        }
+        
         return (
           <p key={index}>
             {node.children?.map((child, childIndex) => renderLexicalNode(child, childIndex))}
@@ -146,13 +156,49 @@ export default function DynamicPage() {
         );
       
       case 'text':
-        let textElement = node.text || '';
+        let text = node.text || '';
         
-        // Apply formatting
+        // Handle Markdown formatting within text nodes
+        if (text.startsWith('## ')) {
+          return <h2 key={index}>{text.replace(/^## /, '')}</h2>;
+        }
+        if (text.startsWith('### ')) {
+          return <h3 key={index}>{text.replace(/^### /, '')}</h3>;
+        }
+        if (text.startsWith('# ')) {
+          return <h1 key={index}>{text.replace(/^# /, '')}</h1>;
+        }
+        
+        // Handle bold text with **text**
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Handle italic text with *text*
+        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        // Handle lists
+        if (text.includes('- ') || text.includes('* ')) {
+          const listItems = text.split('\n').filter(line => line.trim().startsWith('- ') || line.trim().startsWith('* '));
+          if (listItems.length > 0) {
+            return (
+              <ul key={index}>
+                {listItems.map((item, idx) => (
+                  <li key={idx} dangerouslySetInnerHTML={{ __html: item.replace(/^[- \*] /, '') }} />
+                ))}
+              </ul>
+            );
+          }
+        }
+        
+        let textElement = text;
+        
+        // Apply Lexical formatting
         if (node.format && node.format > 0) {
           if (node.format & 1) textElement = <strong key={index}>{textElement}</strong>; // Bold
           if (node.format & 2) textElement = <em key={index}>{textElement}</em>; // Italic
           if (node.format & 8) textElement = <u key={index}>{textElement}</u>; // Underline
+        } else if (text.includes('<strong>') || text.includes('<em>')) {
+          // If we have HTML from markdown conversion, render it
+          return <span key={index} dangerouslySetInnerHTML={{ __html: textElement }} />;
         }
         
         return textElement;
