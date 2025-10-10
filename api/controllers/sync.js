@@ -325,7 +325,7 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
         const originalName = filename;
         
         // Determine mime type based on file extension
-        const ext = filename.split('.').pop()?.toLowerCase();
+        const ext = filename.split('.').pop()?.toLowerCase() || '';
         let mimeType = 'application/octet-stream';
         let folderPath = '/'; // Default to root
         
@@ -344,8 +344,8 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
         } else if (ext === 'pdf') {
           mimeType = 'application/pdf';
           folderPath = '/documents';
-        } else if (['mp4', 'mov'].includes(ext)) {
-          mimeType = 'video/' + ext;
+        } else if (['mp4', 'mov'].includes(ext) && ext) {
+          mimeType = `video/${ext}`;
           folderPath = '/videos';
         }
 
@@ -360,17 +360,18 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
 
         const insertPromise = pool.query(`
           INSERT INTO media (
-            filename, original_name, file_path, file_size, mime_type,
+            filename, original_name, file_path, file_size, mime_type, file_type,
             s3_key, s3_bucket, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `, [
-          filename,
-          originalName,
+          filename || 'unknown',
+          originalName || filename || 'unknown',
           folderPath + '/' + filename, // Use categorized folder path
           obj.Size || 0,
-          mimeType,
-          obj.Key,
-          bucketName
+          mimeType || 'application/octet-stream',
+          ext || 'unknown', // Add file_type field
+          obj.Key || '',
+          bucketName || ''
         ]);
 
         insertPromises.push(insertPromise);
