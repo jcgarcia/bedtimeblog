@@ -39,13 +39,20 @@ export default function DynamicPage() {
 
   const renderContent = (content) => {
     if (!content) return '';
-    // Try Lexical JSON parsing first
+    
+    // Check if content is HTML (contains HTML tags)
+    if (typeof content === 'string' && /<[^>]+>/.test(content)) {
+      return <div dangerouslySetInnerHTML={{ __html: content }} />;
+    }
+    
+    // Try Lexical JSON parsing
     let parsedContent;
     try {
       parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
     } catch (error) {
       parsedContent = null;
     }
+    
     // Lexical JSON root node
     if (parsedContent && parsedContent.root && parsedContent.root.children) {
       return renderLexicalContent(parsedContent.root);
@@ -57,10 +64,6 @@ export default function DynamicPage() {
     // Array of nodes (rare)
     if (Array.isArray(parsedContent)) {
       return renderLexicalContent({ children: parsedContent });
-    }
-    // If it's a string, treat as HTML
-    if (typeof parsedContent === 'string') {
-      return <div dangerouslySetInnerHTML={{ __html: parsedContent }} />;
     }
     // Enhanced plain text formatting fallback
     let text = typeof content === 'string' ? content : '';
