@@ -217,9 +217,9 @@ export const syncS3ToDatabaseOIDC = async (req, res) => {
     }
 
     // Get S3 client using OIDC authentication
-    console.log('🔑 Getting OIDC credentials...');
+    console.log('🔑 Getting OIDC credentials for S3 sync...');
     const credentials = await awsCredentialManager.getCredentials();
-    console.log('✅ Successfully got OIDC credentials');
+    console.log('✅ Successfully got OIDC credentials with validation');
     
     // Ensure credentials are properly formatted for S3 client
     const validatedCredentials = {
