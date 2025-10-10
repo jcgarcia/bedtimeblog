@@ -30,7 +30,17 @@ export default function SiteSettings() {
   const loadSettings = async () => {
     try {
       setLoading(true);
+      
+      // Get the admin token from localStorage
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        throw new Error('No admin token found. Please log in again.');
+      }
+      
       const response = await fetch(API_ENDPOINTS.SETTINGS.GET_ADMIN, {
+        headers: {
+          'Authorization': `Bearer ${adminToken}`,
+        },
         credentials: 'include'
       });
       if (response.ok) {
@@ -99,10 +109,17 @@ export default function SiteSettings() {
       
       console.log('Saving settings:', settingsToSave);
       
+      // Get the admin token from localStorage
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        throw new Error('No admin token found. Please log in again.');
+      }
+      
       const response = await fetch(API_ENDPOINTS.SETTINGS.UPDATE, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
         },
         credentials: 'include',
         body: JSON.stringify(settingsToSave)
