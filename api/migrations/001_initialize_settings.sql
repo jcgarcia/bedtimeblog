@@ -26,7 +26,7 @@ VALUES (
 -- Insert other essential system settings if needed
 INSERT INTO settings (key, value, description) 
 VALUES 
-    ('system.version', '1.0.0', 'Application version'),
+    ('system.version', 'v1.0.0', 'Application version'),
     ('system.environment', 'production', 'Application environment'),
     ('media.max_upload_size', '10485760', 'Maximum file upload size in bytes (10MB)')
 ON CONFLICT (key) DO NOTHING;
