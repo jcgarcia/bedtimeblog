@@ -76,14 +76,34 @@ export async function addComment(req, res) {
   const { content, parentId } = req.body;
   const pool = getDbPool();
   
-  // Check for authentication
+  // STRICT AUTHENTICATION CHECK - NO ANONYMOUS COMMENTS ALLOWED
   const token = req.cookies.access_token || req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required to comment' });
+    return res.status(401).json({ 
+      error: 'Authentication required. You must be logged in to comment.',
+      requiresAuth: true 
+    });
   }
   
   try {
     const userInfo = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // STRICT USER VALIDATION - Ensure user exists and is valid
+    if (!userInfo || !userInfo.id) {
+      return res.status(401).json({ 
+        error: 'Invalid user authentication. Please log in again.',
+        requiresAuth: true 
+      });
+    }
+    
+    // Verify user exists in database
+    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [userInfo.id]);
+    if (userCheck.rows.length === 0) {
+      return res.status(401).json({ 
+        error: 'User account not found. Please log in again.',
+        requiresAuth: true 
+      });
+    }
     
     // Validate content
     if (!content || content.trim().length === 0) {
@@ -106,12 +126,38 @@ export async function addComment(req, res) {
       }
     }
     
-    // Insert new comment
+    // Find or create social user mapping for this user
+    let socialUserId;
+    const socialUserCheck = await pool.query(
+      'SELECT id FROM social_users WHERE cognito_sub = $1 OR username = $2', 
+      [userInfo.id.toString(), userInfo.username]
+    );
+    
+    if (socialUserCheck.rows.length > 0) {
+      socialUserId = socialUserCheck.rows[0].id;
+    } else {
+      // Create social user entry for this regular user
+      const createSocialUser = await pool.query(`
+        INSERT INTO social_users (cognito_sub, username, email, display_name, created_at)
+        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+        RETURNING id
+      `, [
+        userInfo.id.toString(), 
+        userInfo.username || `user_${userInfo.id}`, 
+        userInfo.email || `user_${userInfo.id}@blog.local`,
+        userInfo.first_name && userInfo.last_name 
+          ? `${userInfo.first_name} ${userInfo.last_name}`
+          : userInfo.username || `User ${userInfo.id}`
+      ]);
+      socialUserId = createSocialUser.rows[0].id;
+    }
+    
+    // Insert new comment with social user ID  
     const result = await pool.query(`
       INSERT INTO comments (post_id, user_id, parent_id, content, is_approved)
       VALUES ($1, $2, $3, $4, true)
       RETURNING id, created_at
-    `, [postId, userInfo.id, parentId || null, content.trim()]);
+    `, [postId, socialUserId, parentId || null, content.trim()]);
     
     const commentId = result.rows[0].id;
     const createdAt = result.rows[0].created_at;
