@@ -1077,22 +1077,25 @@ export const deleteMediaFile = async (req, res) => {
     const mediaFile = getResult.rows[0];
 
     // Get storage settings from DB to initialize S3 client
-    const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'oci_config', 'aws_config')");
-    const settings = {};
-    settingsRes.rows.forEach(row => {
-      if (row.type === 'json') {
-        try { 
-          settings[row.key] = JSON.parse(row.value); 
-        } catch (e) { 
-          console.error(`Error parsing JSON setting ${row.key}:`, e);
-          settings[row.key] = {}; 
+      const settingsRes = await pool.query("SELECT key, value, type FROM settings WHERE key IN ('media_storage_type', 'oci_config', 'aws_config')");
+      const settings = {};
+      settingsRes.rows.forEach(row => {
+        if (row.type === 'json') {
+          try { 
+            // Handle case where value might already be an object
+            if (typeof row.value === 'string') {
+              settings[row.key] = JSON.parse(row.value);
+            } else {
+              settings[row.key] = row.value; // Already an object
+            }
+          } catch (e) { 
+            console.error(`Error parsing JSON setting ${row.key}:`, e);
+            settings[row.key] = {}; 
+          }
+        } else {
+          settings[row.key] = row.value;
         }
-      } else {
-        settings[row.key] = row.value;
-      }
-    });
-
-    // Delete from S3/OCI if key exists
+      });    // Delete from S3/OCI if key exists
     if (mediaFile.s3_key) {
       try {
         const s3Client = await credentialManager.getS3Client();
