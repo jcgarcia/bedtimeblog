@@ -16,15 +16,6 @@ import { existsSync } from 'fs';
 
 import crypto from 'crypto';
 
-// Helper function to determine file type from mime type
-function getFileType(mimeType) {
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType === 'application/pdf') return 'document';
-  if (mimeType.startsWith('audio/')) return 'audio';
-  return 'document'; // Default for other types
-}
-
 // Helper: Generate signed URL for private S3 objects using OIDC
 export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
@@ -637,31 +628,32 @@ export const uploadToS3 = async (req, res) => {
         let result;
         
         try {
-          // Insert into database with all necessary columns
+          // Insert into database with correct columns (matching working version)
           const dbQuery = `
             INSERT INTO media (
-              filename, original_name, file_path, file_size, mime_type, 
-              alt_text, width, height, uploaded_by, s3_key, s3_bucket, 
-              folder_path, tags, thumbnail_key, file_type
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+              filename, original_name, file_type, file_size, s3_key, s3_bucket, 
+              public_url, uploaded_by, folder_path, tags, alt_text, mime_type, width, height, 
+              thumbnail_path, thumbnail_url
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
           `;
           const values = [
-            path.basename(s3Key),        // filename
-            file.originalname,           // original_name  
-            folderPath + '/' + path.basename(s3Key), // file_path (folder + filename)
-            file.size,                   // file_size
-            file.mimetype,               // mime_type
-            altText,                     // alt_text
-            width,                       // width
-            height,                      // height
-            userId,                      // uploaded_by
-            s3Key,                       // s3_key (the full S3 key)
-            BUCKET_NAME,                 // s3_bucket
-            folderPath,                  // folder_path
-            tags,                        // tags array
-            finalThumbnailS3Key,         // thumbnail_key (may be null)
-            getFileType(file.mimetype)   // file_type
+            path.basename(s3Key),                                      // filename
+            file.originalname,                                         // original_name
+            path.extname(file.originalname).toLowerCase().replace('.', ''), // file_type
+            file.size,                                                 // file_size
+            s3Key,                                                     // s3_key
+            BUCKET_NAME,                                               // s3_bucket
+            'PRIVATE_BUCKET',                                          // public_url (placeholder for private bucket)
+            userId,                                                    // uploaded_by
+            folderPath,                                                // folder_path
+            tags,                                                      // tags
+            altText,                                                   // alt_text
+            file.mimetype,                                             // mime_type
+            width,                                                     // width
+            height,                                                    // height
+            finalThumbnailS3Key,                                       // thumbnail_path (using S3 key)
+            finalThumbnailS3Key ? `https://${BUCKET_NAME}.s3.amazonaws.com/${finalThumbnailS3Key}` : null // thumbnail_url
           ];
           
           result = await pool.query(dbQuery, values);
