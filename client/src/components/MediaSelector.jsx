@@ -22,73 +22,49 @@ const MediaSelector = ({ onSelect, selectedImage, onClose, title = "Select Featu
         return;
       }
       
-      // Get the actual folder list from the API
-      const foldersResponse = await fetch('https://bapi.ingasti.com/api/media/folders', {
+      console.log('MediaSelector: Fetching media with token:', token.substring(0, 20) + '...');
+      
+      // Directly fetch all media files without folder filtering since they all have folder_path: "/"
+      const mediaUrl = `https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent('/')}`;
+      
+      const response = await fetch(mediaUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      let actualFolders = ['/']; // Default fallback
+      console.log('MediaSelector: API response status:', response.status);
       
-      if (foldersResponse.ok) {
-        const foldersData = await foldersResponse.json();
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('MediaSelector: API response data:', data);
+      
+      if (data.success && data.media && Array.isArray(data.media)) {
+        // Filter only image files and add them with proper URLs
+        const imageFiles = data.media.filter(item => {
+          const isImage = item.mime_type && item.mime_type.startsWith('image/');
+          const hasImageExtension = (item.filename || item.file_name || item.original_name)?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+          return isImage || hasImageExtension;
+        }).map(item => ({
+          ...item,
+          // Preserve both original_name for display and filename for serving
+          display_name: item.original_name || item.file_name || item.filename,
+          filename: item.filename || item.file_name,
+          public_url: item.public_url || item.signed_url || item.url
+        }));
         
-        if (foldersData.success && foldersData.folders) {
-          // Extract folder paths
-          actualFolders = foldersData.folders.map(folder => {
-            if (typeof folder === 'string') return folder;
-            return folder.path || folder.folder_path || folder.name || '/';
-          });
-        }
+        console.log('MediaSelector: Filtered image files:', imageFiles.length);
+        setMedia(imageFiles);
+      } else {
+        console.log('MediaSelector: No media found in response');
+        setMedia([]);
       }
-      
-      // Try both actual folders AND common patterns
-      const allFoldersToTry = [...new Set([...actualFolders, '/', '/Images/', '/images/', '/media/', '/Media/'])];
-      
-      let allMedia = [];
-      
-      for (const folder of allFoldersToTry) {
-        try {
-          const mediaUrl = `https://bapi.ingasti.com/api/media/files?folder=${encodeURIComponent(folder)}`;
-          
-          const response = await fetch(mediaUrl, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.success && data.media && Array.isArray(data.media)) {
-              // Filter only image files and add them with proper URLs
-              const imageFiles = data.media.filter(item => {
-                return item.file_type && (
-                  item.file_type.startsWith('image/') || 
-                  (item.filename || item.file_name || item.original_name)?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
-                );
-              }).map(item => ({
-                ...item,
-                // Preserve both original_name for display and filename for serving
-                display_name: item.original_name || item.file_name || item.filename,
-                filename: item.filename || item.file_name,
-                public_url: item.public_url || item.signed_url || item.url
-              }));
-              
-              allMedia = [...allMedia, ...imageFiles];
-            }
-          }
-        } catch (folderError) {
-          console.error(`Error fetching folder "${folder}":`, folderError);
-        }
-      }
-      
-      setMedia(allMedia);
     } catch (err) {
-      console.error('Error fetching media:', err);
+      console.error('MediaSelector: Error fetching media:', err);
       setError(`Failed to load media: ${err.message}. Please make sure you're logged in.`);
     } finally {
       setLoading(false);
