@@ -646,13 +646,13 @@ export const uploadToS3 = async (req, res) => {
             BUCKET_NAME,                                               // s3_bucket
             'PRIVATE_BUCKET',                                          // public_url (placeholder for private bucket)
             userId,                                                    // uploaded_by
-            folderPath,                                                // folder_path
-            tags,                                                      // tags
-            altText,                                                   // alt_text
+            folderPath || '/',                                         // folder_path (ensure not null)
+            tags || [],                                                // tags (ensure not null)
+            altText || '',                                             // alt_text (ensure not null)
             file.mimetype,                                             // mime_type
-            width,                                                     // width
-            height,                                                    // height
-            finalThumbnailS3Key,                                       // thumbnail_path (using S3 key)
+            width || null,                                             // width (allow null)
+            height || null,                                            // height (allow null)
+            finalThumbnailS3Key || null,                               // thumbnail_path (allow null)
             finalThumbnailS3Key ? `https://${BUCKET_NAME}.s3.amazonaws.com/${finalThumbnailS3Key}` : null // thumbnail_url
           ];
           
