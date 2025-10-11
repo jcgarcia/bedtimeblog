@@ -5,12 +5,14 @@
 
 BEGIN;
 
--- Create settings table if it doesn't exist
+-- Create settings table if it doesn't exist with all expected columns
 CREATE TABLE IF NOT EXISTS settings (
     id SERIAL PRIMARY KEY,
     key VARCHAR(255) UNIQUE NOT NULL,
     value TEXT NOT NULL,
     description TEXT,
+    is_public BOOLEAN DEFAULT false,
+    category VARCHAR(100) DEFAULT 'general',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -23,12 +25,18 @@ VALUES (
     'AWS S3 configuration with OIDC authentication'
 ) ON CONFLICT (key) DO NOTHING;
 
--- Insert other essential system settings if needed
-INSERT INTO settings (key, value, description) 
-VALUES 
-    ('system.version', '"v1.0.0"', 'Application version'),
-    ('system.environment', '"production"', 'Application environment'),
-    ('media.max_upload_size', '"10485760"', 'Maximum file upload size in bytes (10MB)')
+-- Insert default system settings with all expected columns
+INSERT INTO settings (key, value, description, is_public, category) VALUES
+('system.version', '1.0.0', 'Current system version', false, 'system'),
+('system.maintenance_mode', 'false', 'Enable/disable maintenance mode', false, 'system'),
+('blog.title', 'Bedtime Blog', 'The main title of the blog', true, 'general'),
+('blog.description', 'A cozy place for bedtime stories and thoughts', 'Blog description/tagline', true, 'general'),
+('blog.posts_per_page', '10', 'Number of posts to display per page', true, 'general'),
+('ui.theme', 'default', 'Current UI theme', true, 'appearance'),
+('ui.enable_dark_mode', 'true', 'Enable dark mode toggle', true, 'appearance'),
+('ui.show_author_info', 'true', 'Display author information on posts', true, 'content'),
+('content.allow_comments', 'true', 'Enable comments on posts', true, 'content'),
+('content.moderate_comments', 'true', 'Require comment moderation', false, 'content')
 ON CONFLICT (key) DO NOTHING;
 
 COMMIT;
