@@ -411,9 +411,17 @@ export const uploadToS3 = async (req, res) => {
       settingsRes.rows.forEach(row => {
         if (row.type === 'json') {
           try { 
-            settings[row.key] = JSON.parse(row.value); 
+            // Check if value is already an object or needs parsing
+            if (typeof row.value === 'object' && row.value !== null) {
+              settings[row.key] = row.value;
+            } else if (typeof row.value === 'string') {
+              settings[row.key] = JSON.parse(row.value);
+            } else {
+              settings[row.key] = {};
+            }
           } catch (e) { 
             console.error(`Error parsing JSON setting ${row.key}:`, e);
+            console.error(`Raw value type: ${typeof row.value}, value:`, row.value);
             settings[row.key] = {}; 
           }
         } else {
@@ -425,6 +433,7 @@ export const uploadToS3 = async (req, res) => {
       console.log('🔍 Media Upload Debug - Storage Settings:');
       console.log('  media_storage_type:', settings.media_storage_type);
       console.log('  aws_config exists:', !!settings.aws_config);
+      console.log('  aws_config full object:', settings.aws_config);
       console.log('  aws_config.roleArn:', settings.aws_config?.roleArn);
       console.log('  aws_config.bucketName:', settings.aws_config?.bucketName);
       
