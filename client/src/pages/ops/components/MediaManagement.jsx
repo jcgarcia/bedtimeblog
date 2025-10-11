@@ -512,16 +512,24 @@ export default function MediaManagement() {
       return;
     }
 
-    console.log('Starting upload for', files.length, 'files');
+    console.log('Starting upload for', files.length, 'files to storage type:', mediaServerType);
     setUploading(true);
     
     const uploadPromises = Array.from(files).map(async (file) => {
-      console.log('Uploading file:', file.name, 'size:', file.size);
+      console.log('Uploading file:', file.name, 'size:', file.size, 'type:', file.type);
       const formData = new FormData();
       formData.append('file', file);
-      // Let backend auto-categorize based on file type instead of forcing current folder
+      
+      // Add current folder information
+      if (currentFolder && currentFolder !== '/') {
+        formData.append('folder', currentFolder);
+      }
+      
+      // Add storage type info for backend
+      formData.append('storageType', mediaServerType);
 
       try {
+        console.log('Sending request to:', API_ENDPOINTS.MEDIA.UPLOAD);
         const response = await fetch(API_ENDPOINTS.MEDIA.UPLOAD, {
           method: 'POST',
           headers: {
@@ -533,17 +541,29 @@ export default function MediaManagement() {
         console.log('Upload response status:', response.status);
         
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Upload failed:', errorText);
-          throw new Error(`Upload failed for ${file.name}: ${response.status} ${response.statusText}`);
+          let errorMessage;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || `HTTP ${response.status}`;
+          } catch {
+            errorMessage = await response.text() || `HTTP ${response.status} ${response.statusText}`;
+          }
+          console.error('Upload failed:', errorMessage);
+          throw new Error(`Upload failed for ${file.name}: ${errorMessage}`);
         }
 
         const result = await response.json();
         console.log('Upload successful:', result);
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Upload failed');
+        }
+        
         return result;
       } catch (error) {
         console.error(`Error uploading ${file.name}:`, error);
-        alert(`Failed to upload ${file.name}: ${error.message}`);
+        const errorMsg = error.message || 'Unknown error';
+        alert(`❌ Failed to upload ${file.name}:\n${errorMsg}\n\nPlease check:\n• File size and format\n• Network connection\n• AWS S3 configuration`);
         return null;
       }
     });
@@ -759,15 +779,18 @@ export default function MediaManagement() {
                 className="btn-secondary"
                 onClick={() => setShowCreateFolder(true)}
                 disabled={mediaServerType === 'external'}
+                title={mediaServerType === 'external' ? 'Folder creation disabled for external storage' : 'Create a new folder'}
               >
                 <i className="fa-solid fa-folder-plus"></i> New Folder
               </button>
               <button 
                 className="btn-primary"
                 onClick={() => setShowUploadModal(true)}
-                disabled={mediaServerType === 'external'}
+                disabled={mediaServerType === 'external' || uploading}
+                title={mediaServerType === 'external' ? 'Upload disabled for external storage' : uploading ? 'Upload in progress...' : 'Upload media files'}
               >
-                <i className="fa-solid fa-upload"></i> Upload Media
+                <i className="fa-solid fa-upload"></i> 
+                {uploading ? 'Uploading...' : 'Upload Media'}
               </button>
               {(mediaServerType === 'oci' || mediaServerType === 'aws') && (
                 <button 

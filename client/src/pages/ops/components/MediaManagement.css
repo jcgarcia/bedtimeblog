@@ -472,22 +472,25 @@
 
 /* Media Actions - Always visible and well-spaced - HEADER SECTION */
 .media-management .section-header .media-actions {
-  display: flex;
+  display: flex !important;
   gap: 1rem;
   margin: 0;
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: 0;
+  padding: 1rem 0;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
   flex-wrap: wrap;
   align-items: center;
-  width: auto;
+  width: 100%;
   max-width: none;
   box-sizing: border-box;
-  box-shadow: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   overflow: visible;
-  position: relative;
-  z-index: 200; /* Even higher z-index to ensure it stays above everything */
+  position: sticky;
+  top: 0;
+  z-index: 1000; /* Very high z-index to ensure it stays above everything */
+  justify-content: flex-end;
+  padding-right: 1rem;
 }
 
 .media-management .section-header .media-actions button {
