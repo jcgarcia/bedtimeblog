@@ -16,6 +16,15 @@ import { existsSync } from 'fs';
 
 import crypto from 'crypto';
 
+// Helper function to determine file type from mime type
+function getFileType(mimeType) {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType === 'application/pdf') return 'document';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  return 'document'; // Default for other types
+}
+
 // Helper: Generate signed URL for private S3 objects using OIDC
 export async function generateSignedUrl(s3Key, bucketName, expiresIn = 3600) {
   try {
@@ -492,19 +501,27 @@ export const uploadToS3 = async (req, res) => {
           if (thumbnail) {
             thumbnailS3Key = s3Key.replace(/(\.[^.]+)$/, '_thumb.jpg');
             
-            // Upload thumbnail to S3 using manual upload
-            await uploadToS3Manual({
-              bucket: BUCKET_NAME,
-              key: thumbnailS3Key,
-              body: thumbnail,
-              contentType: 'image/jpeg',
-              metadata: {
-                originalName: file.originalname + '_thumbnail',
-                uploadedBy: userId.toString(),
-                uploadedAt: new Date().toISOString(),
-                thumbnailFor: s3Key
-              }
-            });
+            // Upload thumbnail to S3 using AWS SDK
+            try {
+              const thumbnailUploadParams = {
+                Bucket: BUCKET_NAME,
+                Key: thumbnailS3Key,
+                Body: thumbnail,
+                ContentType: 'image/jpeg',
+                Metadata: {
+                  originalName: file.originalname + '_thumbnail',
+                  uploadedBy: userId.toString(),
+                  uploadedAt: new Date().toISOString(),
+                  thumbnailFor: s3Key
+                }
+              };
+
+              const thumbnailCommand = new PutObjectCommand(thumbnailUploadParams);
+              await s3.send(thumbnailCommand);
+            } catch (thumbnailError) {
+              console.error('❌ Thumbnail upload error:', thumbnailError.message);
+              // Don't fail the main upload if thumbnail fails
+            }
             console.log(`✅ Thumbnail uploaded: ${thumbnailS3Key}`);
           }
         }
@@ -533,20 +550,28 @@ export const uploadToS3 = async (req, res) => {
               // Generate S3 key for thumbnail
               pdfThumbnailS3Key = s3Key.replace(/(\.[^.]+)$/, '_thumb.png');
               
-              // Upload thumbnail to S3 using manual upload
-              await uploadToS3Manual({
-                bucket: BUCKET_NAME,
-                key: pdfThumbnailS3Key,
-                body: thumbnailBuffer,
-                contentType: 'image/png',
-                metadata: {
-                  originalName: file.originalname + '_pdf_thumbnail',
-                  uploadedBy: userId.toString(),
-                  uploadedAt: new Date().toISOString(),
-                  thumbnailFor: s3Key,
-                  generatedFrom: 'pdf'
-                }
-              });
+              // Upload thumbnail to S3 using AWS SDK
+              try {
+                const pdfThumbnailUploadParams = {
+                  Bucket: BUCKET_NAME,
+                  Key: pdfThumbnailS3Key,
+                  Body: thumbnailBuffer,
+                  ContentType: 'image/png',
+                  Metadata: {
+                    originalName: file.originalname + '_pdf_thumbnail',
+                    uploadedBy: userId.toString(),
+                    uploadedAt: new Date().toISOString(),
+                    thumbnailFor: s3Key,
+                    generatedFrom: 'pdf'
+                  }
+                };
+
+                const pdfThumbnailCommand = new PutObjectCommand(pdfThumbnailUploadParams);
+                await s3.send(pdfThumbnailCommand);
+              } catch (pdfThumbnailError) {
+                console.error('❌ PDF thumbnail upload error:', pdfThumbnailError.message);
+                // Don't fail the main upload if thumbnail fails
+              }
               console.log(`✅ PDF thumbnail uploaded: ${pdfThumbnailS3Key}`);
               
               // Store the relative path for database
@@ -574,24 +599,37 @@ export const uploadToS3 = async (req, res) => {
         // Use the appropriate thumbnail key (image or PDF)
         const finalThumbnailS3Key = thumbnailS3Key || pdfThumbnailS3Key;
         
-        // Upload main file to S3 using manual HTTP request (same approach as image serving)
-        console.log('🔄 [DEBUG] Starting manual S3 upload for:', s3Key);
+        // Upload main file to S3 using AWS SDK (same approach as existing working code)
+        console.log('🔄 [DEBUG] Starting S3 upload for:', s3Key);
         
-        // Use manual HTTP upload instead of AWS SDK to avoid credential validation issues
-        const s3Result = await uploadToS3Manual({
-          bucket: BUCKET_NAME,
-          key: s3Key,
-          body: file.buffer,
-          contentType: file.mimetype,
-          metadata: {
-            originalName: file.originalname,
-            uploadedBy: userId.toString(),
-            uploadedAt: new Date().toISOString(),
-            ...(finalThumbnailS3Key ? { thumbnailKey: finalThumbnailS3Key } : {})
-          }
-        });
-        
-        console.log('✅ [DEBUG] Manual S3 upload completed for:', s3Key);
+        try {
+          // Use the same S3 client that works for other operations
+          const uploadParams = {
+            Bucket: BUCKET_NAME,
+            Key: s3Key,
+            Body: file.buffer,
+            ContentType: file.mimetype,
+            Metadata: {
+              originalName: file.originalname,
+              uploadedBy: userId.toString(),
+              uploadedAt: new Date().toISOString(),
+              ...(finalThumbnailS3Key ? { thumbnailKey: finalThumbnailS3Key } : {})
+            }
+          };
+
+          const command = new PutObjectCommand(uploadParams);
+          await s3.send(command);
+          
+          console.log('✅ [DEBUG] S3 upload completed for:', s3Key);
+        } catch (s3Error) {
+          console.error('❌ S3 upload error details:', {
+            message: s3Error.message,
+            code: s3Error.code,
+            name: s3Error.name,
+            stack: s3Error.stack
+          });
+          throw new Error(`S3 upload failed: ${s3Error.message}`);
+        }
         // For private buckets, we don't store a public URL - we'll generate signed URLs on demand
         const privateUrl = 'PRIVATE_BUCKET'; // Placeholder for private bucket - use signed URLs instead
         
@@ -599,24 +637,31 @@ export const uploadToS3 = async (req, res) => {
         let result;
         
         try {
-          // Insert into database with correct columns
+          // Insert into database with all necessary columns
           const dbQuery = `
             INSERT INTO media (
               filename, original_name, file_path, file_size, mime_type, 
-              alt_text, width, height, uploaded_by
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              alt_text, width, height, uploaded_by, s3_key, s3_bucket, 
+              folder_path, tags, thumbnail_key, file_type
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *
           `;
           const values = [
             path.basename(s3Key),        // filename
-            file.originalname,           // original_name
-            s3Key,                       // file_path (using s3Key as the path)
+            file.originalname,           // original_name  
+            folderPath + '/' + path.basename(s3Key), // file_path (folder + filename)
             file.size,                   // file_size
             file.mimetype,               // mime_type
             altText,                     // alt_text
             width,                       // width
             height,                      // height
-            userId                       // uploaded_by
+            userId,                      // uploaded_by
+            s3Key,                       // s3_key (the full S3 key)
+            BUCKET_NAME,                 // s3_bucket
+            folderPath,                  // folder_path
+            tags,                        // tags array
+            finalThumbnailS3Key,         // thumbnail_key (may be null)
+            getFileType(file.mimetype)   // file_type
           ];
           
           result = await pool.query(dbQuery, values);

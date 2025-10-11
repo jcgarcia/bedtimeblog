@@ -474,23 +474,23 @@
 .media-management .section-header .media-actions {
   display: flex !important;
   gap: 1rem;
-  margin: 0;
-  padding: 1rem 0;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
+  margin: 0 0 1.5rem 0;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
   flex-wrap: wrap;
   align-items: center;
   width: 100%;
   max-width: none;
   box-sizing: border-box;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   overflow: visible;
   position: sticky;
-  top: 0;
+  top: 10px;
   z-index: 1000; /* Very high z-index to ensure it stays above everything */
-  justify-content: flex-end;
-  padding-right: 1rem;
+  justify-content: center;
+  min-height: 60px;
 }
 
 .media-management .section-header .media-actions button {
