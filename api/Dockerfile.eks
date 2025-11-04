@@ -1,0 +1,93 @@
+# Multi-architecture backend Dockerfile for AWS EKS
+FROM --platform=$BUILDPLATFORM node:20-alpine AS dependencies
+
+# Enable BuildKit for cross-compilation
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+# Install curl for health checks, poppler-utils for PDF thumbnail generation, postgresql-client for database backups
+# Install build tools for native modules (argon2, etc.) and python for node-gyp
+# Enable corepack for pnpm (official method, no npm needed)
+RUN apk add --no-cache \
+    curl \
+    poppler-utils \
+    postgresql-client \
+    python3 \
+    make \
+    g++ \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy workspace configuration files  
+COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml ./
+COPY package.json ./
+
+# Copy individual package files (only pnpm-compatible files)
+COPY api/package.json ./api/
+
+# Install dependencies using pnpm (force recreate lockfile if needed)
+RUN pnpm install --force --production=false
+
+# Final stage with proper platform
+FROM node:20-alpine
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    curl \
+    poppler-utils \
+    postgresql-client \
+    python3 \
+    make \
+    g++ \
+    && corepack enable \
+    && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=dependencies /app/node_modules ./node_modules/
+COPY --from=dependencies /app/package.json ./
+COPY --from=dependencies /app/pnpm-lock.yaml ./
+COPY --from=dependencies /app/pnpm-workspace.yaml ./
+
+# Copy API source code
+COPY api/ ./api/
+
+# Rebuild native modules for target architecture
+RUN cd /app && \
+    echo "Rebuilding native modules for ${TARGETARCH:-unknown} architecture..." && \
+    pnpm rebuild && \
+    echo "Native modules rebuilt successfully"
+
+WORKDIR /app/api
+
+# Create user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Create uploads directory
+RUN mkdir -p /app/api/uploads
+
+# Set ownership
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5000/health || exit 1
+
+# Labels for EKS
+LABEL maintainer="bedtime-blog" \
+      version="eks-1.0" \
+      platform="multi-arch" \
+      service="backend"
+
+CMD ["pnpm", "start"]

@@ -1,0 +1,99 @@
+# Application Load Balancer Ingress for EKS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: blog-ingress
+  namespace: blog
+  labels:
+    app: bedtime-blog
+  annotations:
+    # AWS Load Balancer Controller annotations
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-name: bedtime-blog-alb
+    
+    # SSL/TLS configuration
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT_ID:certificate/CERTIFICATE_ID
+    
+    # Health check configuration
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    
+    # Load balancer attributes
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      idle_timeout.timeout_seconds=60,
+      routing.http2.enabled=true,
+      access_logs.s3.enabled=true,
+      access_logs.s3.bucket=bedtime-blog-alb-logs,
+      access_logs.s3.prefix=bedtime-blog
+    
+    # Security groups
+    alb.ingress.kubernetes.io/security-groups: sg-XXXXXXXXX
+    
+    # Tags
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Application=bedtime-blog,
+      Platform=eks
+spec:
+  rules:
+  # Frontend rules
+  - host: blog.ingasti.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blog-frontend-service
+            port:
+              number: 80
+  - host: bedtime.ingasti.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blog-frontend-service
+            port:
+              number: 80
+  
+  # Backend API rules
+  - host: bapi.ingasti.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blog-backend-service
+            port:
+              number: 80
+  - host: api.bedtime.ingasti.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: blog-backend-service
+            port:
+              number: 80
+  
+  # TLS configuration
+  tls:
+  - hosts:
+    - blog.ingasti.com
+    - bedtime.ingasti.com
+    - bapi.ingasti.com
+    - api.bedtime.ingasti.com
+    # secretName: blog-tls-secret  # Not needed when using ACM certificate

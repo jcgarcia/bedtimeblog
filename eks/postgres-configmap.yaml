@@ -1,0 +1,33 @@
+# PostgreSQL initialization scripts ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: blog
+  labels:
+    app: blog-postgres
+    component: database
+data:
+  01-init-databases.sql: |
+    -- Create databases
+    CREATE DATABASE blog;
+    CREATE DATABASE coredb;
+    
+    -- Create users
+    CREATE USER "DataDBConnect" WITH PASSWORD 'zpnTeYwhPiyTCs938hVpG4swN';
+    CREATE USER "CoreDBConnect" WITH PASSWORD 'RxXrehHUwYh2RgEZBNzd3wAig';
+    
+    -- Grant permissions
+    GRANT ALL PRIVILEGES ON DATABASE blog TO "DataDBConnect";
+    GRANT ALL PRIVILEGES ON DATABASE coredb TO "CoreDBConnect";
+    
+  02-create-extensions.sql: |
+    -- Connect to blog database and create extensions
+    \c blog;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    
+    -- Connect to coredb database and create extensions
+    \c coredb;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";

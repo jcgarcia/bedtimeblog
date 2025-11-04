@@ -1,0 +1,151 @@
+# Backend Deployment for EKS
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-backend
+  namespace: blog
+  labels:
+    app: blog-backend
+    component: api
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: blog-backend
+  template:
+    metadata:
+      labels:
+        app: blog-backend
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: media-access-sa  # For S3 OIDC access
+      containers:
+      - name: blog-backend
+        image: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/bedtime-blog-backend:latest
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: CORS_ORIGIN
+          value: "https://blog.ingasti.com"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-secret
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: database-url
+        - name: COREDB_PATH
+          value: "/app/coredb/coredb.db"
+        # AWS/S3 Configuration for OIDC
+        - name: AWS_REGION
+          value: "us-west-2"
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"
+        - name: AWS_ROLE_ARN
+          value: "arn:aws:iam::ACCOUNT_ID:role/BedtimeBlogMediaRole"
+        - name: S3_BUCKET_NAME
+          value: "bedtimeblog-medialibrary"
+        volumeMounts:
+        - name: uploads
+          mountPath: /app/api/uploads
+        - name: coredb-storage
+          mountPath: /app/coredb
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 10
+      volumes:
+      - name: uploads
+        emptyDir: {}  # For EKS, consider using EFS for persistent storage
+      - name: coredb-storage
+        persistentVolumeClaim:
+          claimName: coredb-pvc
+      # Node selector and tolerations
+      nodeSelector:
+        kubernetes.io/arch: amd64  # Can be arm64 for Graviton instances
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      # Affinity to spread across availability zones
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - blog-backend
+              topologyKey: kubernetes.io/hostname
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-backend-service
+  namespace: blog
+  labels:
+    app: blog-backend
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer  # Will create AWS Network Load Balancer
+  ports:
+  - port: 80
+    targetPort: 5000
+    name: http
+    protocol: TCP
+  selector:
+    app: blog-backend
+  sessionAffinity: None

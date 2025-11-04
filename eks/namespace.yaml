@@ -1,0 +1,36 @@
+# EKS Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blog
+  labels:
+    name: blog
+    environment: production
+    platform: eks
+---
+# Service Account for OIDC authentication
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: blog-service-account
+  namespace: blog
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/BedtimeBlogEKSRole
+  labels:
+    app: bedtime-blog
+    environment: production
+automountServiceAccountToken: true
+---
+# Service Account for media access (S3 OIDC)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: media-access-sa
+  namespace: blog
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/BedtimeBlogMediaRole
+  labels:
+    app: bedtime-blog
+    component: media
+    environment: production
+automountServiceAccountToken: true

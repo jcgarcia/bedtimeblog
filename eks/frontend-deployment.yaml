@@ -1,0 +1,117 @@
+# Frontend Deployment for EKS
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-frontend
+  namespace: blog
+  labels:
+    app: blog-frontend
+    component: ui
+    environment: production
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: blog-frontend
+  template:
+    metadata:
+      labels:
+        app: blog-frontend
+        component: ui
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "80"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: blog-service-account
+      containers:
+      - name: blog-frontend
+        image: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/bedtime-blog-frontend:latest
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: NGINX_HOST
+          value: "blog.ingasti.com"
+        - name: NGINX_PORT
+          value: "80"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 10
+      # Node selector and tolerations
+      nodeSelector:
+        kubernetes.io/arch: amd64  # Can be arm64 for Graviton instances
+      tolerations:
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      # Affinity to spread across availability zones
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - blog-frontend
+              topologyKey: kubernetes.io/hostname
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-frontend-service
+  namespace: blog
+  labels:
+    app: blog-frontend
+    component: ui
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer  # Will create AWS Network Load Balancer
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+    protocol: TCP
+  selector:
+    app: blog-frontend
+  sessionAffinity: None

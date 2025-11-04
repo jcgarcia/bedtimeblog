@@ -1,0 +1,293 @@
+pipeline {
+    agent {
+        label 'local-agent'
+    }
+    environment {
+        // Security credentials - JWT secret is available globally
+        JWT_SECRET = credentials('jwt-secret')
+        // AWS credentials for EKS
+        AWS_DEFAULT_REGION = 'us-west-2'
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        // EKS cluster configuration
+        EKS_CLUSTER_NAME = 'bedtime-blog-cluster'
+        EKS_NAMESPACE = 'blog'
+        // Image configuration
+        BUILD_NUMBER = "${env.BUILD_NUMBER}"
+        // Environment configuration
+        CORS_ORIGIN = 'https://blog.ingasti.com'
+        VITE_API_URL = 'https://bapi.ingasti.com'
+        // AWS ECR registry (instead of localhost registry)
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+        ECR_REPOSITORY_PREFIX = 'bedtime-blog'
+    }
+    stages {
+        stage('Agent Dependency Setup') {
+            steps {
+                script {
+                    echo "🔧 Ensuring required system packages are installed..."
+                    sh '''
+                        # Install AWS CLI v2 if not present
+                        if ! command -v aws >/dev/null 2>&1; then
+                            echo "Installing AWS CLI v2..."
+                            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                            unzip awscliv2.zip
+                            sudo ./aws/install
+                            rm -rf aws awscliv2.zip
+                        fi
+                        
+                        # Install kubectl if not present
+                        if ! command -v kubectl >/dev/null 2>&1; then
+                            echo "Installing kubectl..."
+                            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                            chmod +x kubectl
+                            sudo mv kubectl /usr/local/bin/
+                        fi
+                        
+                        # Install eksctl if not present
+                        if ! command -v eksctl >/dev/null 2>&1; then
+                            echo "Installing eksctl..."
+                            curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+                            sudo mv /tmp/eksctl /usr/local/bin
+                        fi
+                        
+                        # Verify installations
+                        aws --version
+                        kubectl version --client
+                        eksctl version
+                    '''
+                }
+            }
+        }
+        
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    // Get short commit hash
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Set ECR image names with commit hash
+                    env.FRONTEND_IMAGE = "${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}-frontend:${BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
+                    env.BACKEND_IMAGE = "${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}-backend:${BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
+                    
+                    echo "🚀 Building Blog Application for AWS EKS"
+                    echo "========================================"
+                    echo "📦 Images to build:"
+                    echo "  Frontend: ${env.FRONTEND_IMAGE}"
+                    echo "  Backend: ${env.BACKEND_IMAGE}"
+                    echo "🌐 Target URLs:"
+                    echo "  Frontend: https://blog.ingasti.com"
+                    echo "  Backend: https://bapi.ingasti.com"
+                    echo "☁️  EKS Cluster: ${EKS_CLUSTER_NAME}"
+                    echo "📍 AWS Region: ${AWS_DEFAULT_REGION}"
+                }
+            }
+        }
+        
+        stage('Configure AWS & ECR') {
+            steps {
+                script {
+                    echo "🔐 Configuring AWS credentials and ECR login..."
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        sh '''
+                            # Configure AWS CLI
+                            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                            aws configure set default.region $AWS_DEFAULT_REGION
+                            
+                            # Login to ECR
+                            aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+                            
+                            # Create ECR repositories if they don't exist
+                            aws ecr describe-repositories --repository-names ${ECR_REPOSITORY_PREFIX}-frontend --region $AWS_DEFAULT_REGION || \
+                                aws ecr create-repository --repository-name ${ECR_REPOSITORY_PREFIX}-frontend --region $AWS_DEFAULT_REGION
+                            
+                            aws ecr describe-repositories --repository-names ${ECR_REPOSITORY_PREFIX}-backend --region $AWS_DEFAULT_REGION || \
+                                aws ecr create-repository --repository-name ${ECR_REPOSITORY_PREFIX}-backend --region $AWS_DEFAULT_REGION
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Build Multi-Arch Backend Image') {
+            steps {
+                script {
+                    echo "🔨 Building multi-architecture backend Docker image for EKS..."
+                    sh """
+                        # Build for both AMD64 and ARM64 using buildx
+                        docker buildx create --name eks-builder --use --platform linux/amd64,linux/arm64 || true
+                        docker buildx build --platform linux/amd64,linux/arm64 \
+                            -f api/Dockerfile.eks \
+                            -t ${env.BACKEND_IMAGE} \
+                            --push .
+                        
+                        # Also tag as latest
+                        docker buildx build --platform linux/amd64,linux/arm64 \
+                            -f api/Dockerfile.eks \
+                            -t ${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}-backend:latest \
+                            --push .
+                    """
+                }
+            }
+        }
+        
+        stage('Build Multi-Arch Frontend Image') {
+            steps {
+                script {
+                    echo "🔨 Building multi-architecture frontend Docker image for EKS..."
+                    sh """
+                        # Build for both AMD64 and ARM64 using buildx
+                        docker buildx build --platform linux/amd64,linux/arm64 \
+                            -f client/Dockerfile.eks \
+                            -t ${env.FRONTEND_IMAGE} \
+                            --push .
+                        
+                        # Also tag as latest
+                        docker buildx build --platform linux/amd64,linux/arm64 \
+                            -f client/Dockerfile.eks \
+                            -t ${ECR_REGISTRY}/${ECR_REPOSITORY_PREFIX}-frontend:latest \
+                            --push .
+                    """
+                }
+            }
+        }
+        
+        stage('Configure EKS Access') {
+            steps {
+                script {
+                    echo "⚙️ Configuring EKS cluster access..."
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        sh '''
+                            # Update kubeconfig for EKS cluster
+                            aws eks update-kubeconfig --region $AWS_DEFAULT_REGION --name $EKS_CLUSTER_NAME
+                            
+                            # Verify EKS access
+                            kubectl get nodes
+                            kubectl get namespaces
+                            
+                            # Create namespace if it doesn't exist
+                            kubectl create namespace $EKS_NAMESPACE || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    echo "🚀 Deploying to AWS EKS cluster..."
+                    sh """
+                        # Apply EKS-specific configurations
+                        kubectl apply -f eks/ -n ${EKS_NAMESPACE}
+                        
+                        # Update image tags in deployments
+                        kubectl set image deployment/blog-backend blog-backend=${env.BACKEND_IMAGE} -n ${EKS_NAMESPACE}
+                        kubectl set image deployment/blog-frontend blog-frontend=${env.FRONTEND_IMAGE} -n ${EKS_NAMESPACE}
+                        
+                        # Wait for rollout to complete
+                        kubectl rollout status deployment/blog-backend -n ${EKS_NAMESPACE} --timeout=300s
+                        kubectl rollout status deployment/blog-frontend -n ${EKS_NAMESPACE} --timeout=300s
+                    """
+                }
+            }
+        }
+        
+        stage('Verify EKS Deployment') {
+            steps {
+                script {
+                    echo "✅ Verifying EKS deployment..."
+                    sh """
+                        # Check pod status
+                        kubectl get pods -n ${EKS_NAMESPACE}
+                        
+                        # Check services
+                        kubectl get services -n ${EKS_NAMESPACE}
+                        
+                        # Check ingress
+                        kubectl get ingress -n ${EKS_NAMESPACE}
+                        
+                        # Describe any failed pods
+                        kubectl get pods -n ${EKS_NAMESPACE} --field-selector=status.phase!=Running -o jsonpath='{.items[*].metadata.name}' | xargs -I {} kubectl describe pod {} -n ${EKS_NAMESPACE} || true
+                    """
+                }
+            }
+        }
+        
+        stage('EKS Health Check') {
+            steps {
+                script {
+                    echo "🏥 Performing EKS health checks..."
+                    sh """
+                        # Wait a bit for services to be ready
+                        sleep 30
+                        
+                        # Get service endpoints
+                        kubectl get endpoints -n ${EKS_NAMESPACE}
+                        
+                        # Try to access health endpoints (if available through port-forward)
+                        timeout 10s kubectl port-forward service/blog-backend 8080:80 -n ${EKS_NAMESPACE} &
+                        sleep 5
+                        curl -f http://localhost:8080/health || echo "Backend health check failed"
+                        pkill -f "kubectl port-forward" || true
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                echo "🧹 Cleaning up EKS deployment artifacts..."
+                sh '''
+                    # Clean up any port-forward processes
+                    pkill -f "kubectl port-forward" || true
+                    
+                    # Clean up buildx builder
+                    docker buildx rm eks-builder || true
+                '''
+            }
+        }
+        success {
+            echo "✅ EKS Blog deployment pipeline completed successfully!"
+            echo ""
+            echo "🔍 Deployment Summary:"
+            script {
+                sh '''
+                    echo "Pods:"
+                    kubectl get pods -n ${EKS_NAMESPACE} -o wide
+                    echo ""
+                    echo "Services:"
+                    kubectl get services -n ${EKS_NAMESPACE}
+                    echo ""
+                    echo "Ingress:"
+                    kubectl get ingress -n ${EKS_NAMESPACE}
+                '''
+            }
+        }
+        failure {
+            echo "❌ EKS Blog deployment pipeline failed!"
+            echo ""
+            echo "🔍 Debug information:"
+            script {
+                sh '''
+                    echo "EKS cluster status:"
+                    kubectl get nodes || true
+                    kubectl get pods -n ${EKS_NAMESPACE} || true
+                    kubectl get events -n ${EKS_NAMESPACE} --sort-by=.metadata.creationTimestamp | tail -10 || true
+                '''
+            }
+        }
+    }
+}

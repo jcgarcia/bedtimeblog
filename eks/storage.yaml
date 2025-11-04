@@ -1,0 +1,51 @@
+# Persistent Volume Claims for EKS
+# PostgreSQL Data Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: blog
+  labels:
+    app: blog-postgres
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3  # AWS EBS GP3 storage class
+  resources:
+    requests:
+      storage: 20Gi
+---
+# CoreDB Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: coredb-pvc
+  namespace: blog
+  labels:
+    app: blog-backend
+    component: coredb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3  # AWS EBS GP3 storage class
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Optional: EFS storage for shared file access (if needed)
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: shared-storage-pvc
+#   namespace: blog
+#   labels:
+#     app: bedtime-blog
+#     component: shared-storage
+# spec:
+#   accessModes:
+#     - ReadWriteMany
+#   storageClassName: efs  # Requires EFS CSI driver
+#   resources:
+#     requests:
+#       storage: 100Gi
