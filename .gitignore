@@ -23,3 +23,5 @@ api/build
 .vite/
 dist/.env
 **/*.env
+docs/archive/
+docs/guides/
